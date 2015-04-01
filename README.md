@@ -7,9 +7,11 @@ Cargar el programa de cada Arduino (TX y RX). El código se encuentra en src/Ard
 
 **COMPILACIÓN:**
 * **Todo** ("libradio.a" y ejemplo "ImageTransmission"):  
-Entrar en el directorio "ImageTransmission" y ejecutar: 
+Entrar en el directorio "ImageTransmission" y compilar con: 
 
 		make
+eso generará "libradio.a" en el directorio "Release" del repositorio, y los programas "TX" y "RX"  
+en el directorio "ImageTransmisssion"
 >Nota: Compilando con: 
 
 		make RARGS="-DTIMMING"
