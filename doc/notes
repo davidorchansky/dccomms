@@ -1,0 +1,6 @@
+Preamble: 0x6a75616e69746f
+Dest. Dir: 0x01
+Source. Dir: 0x02
+Data size: 0x0900 (0x0009)
+Data (9 bytes): 0x6361676f6e746f7461
+FCS: 0x6d38dfa8 (0xa8df386d)

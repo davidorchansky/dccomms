@@ -1,0 +1,25 @@
+/*
+ * BlockRadioTransmitter.h
+ *
+ *  Created on: 01/03/2015
+ *      Author: diego
+ */
+
+#ifndef BLOCKRADIOTRANSMITTER_H_
+#define BLOCKRADIOTRANSMITTER_H_
+#include <Radio.h>
+namespace radiotransmission
+{
+
+class BlockRadioTransmitter {
+public:
+	BlockRadioTransmitter(Radio &);
+	void Send(const char* identifier, void * buffer, uint32_t size, uint8_t dest, uint32_t packetSize=0, unsigned long ms=50);
+	uint32_t Receive(const char* identifier, void * buffer, unsigned long ms=0);
+	virtual ~BlockRadioTransmitter();
+private:
+	Radio & radio;
+	bool _bigEndian;
+};
+}
+#endif /* BLOCKRADIOTRANSMITTER_H_ */
