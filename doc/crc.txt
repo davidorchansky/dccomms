@@ -1,0 +1,12 @@
+http://www.lammertbies.nl/comm/info/crc-calculation.html
+http://www.zorc.breitbandkatze.de/crc.html
+http://depa.usst.edu.cn/chenjq/www2/software/crc/CRC_Javascript/CRCcalculation.htm
+https://my.st.com/public/STe2ecommunities/mcu/Lists/cortex_mx_stm32/Flat.aspx?RootFolder=https%3a%2f%2fmy.st.com%2fpublic%2fSTe2ecommunities%2fmcu%2fLists%2fcortex_mx_stm32%2fCRC%20calculation%20in%20software&FolderCTID=0x01200200770978C69A1141439FE559EB459D7580009C4E14902C3CDE46A77F0FFD06506F5B&currentviews=6883
+http://www.barrgroup.com/Embedded-Systems/How-To/CRC-Calculation-C-Code
+http://rosettacode.org/wiki/CRC-32
+http://en.wikipedia.org/wiki/Cyclic_redundancy_check
+https://leventozturk.com/engineering/crc/
+http://en.wikipedia.org/wiki/Polynomial_representations_of_cyclic_redundancy_checks
+https://ghsi.de/CRC/
+http://xcore.github.io/doc_tips_and_tricks/crc.html
+http://en.wikipedia.org/wiki/Computation_of_cyclic_redundancy_checks
