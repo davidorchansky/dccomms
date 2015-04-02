@@ -61,6 +61,15 @@ int main(int argc, char **argv) {
 		unsigned long long t1;
 		unsigned long long tdif;
 
+		double isize = 0;
+		double itime = 0;
+		uint32_t it = 0;
+		uint32_t cont = 0;
+		double aitime;
+		double aisize;
+
+		double abstime;
+
 		while(1)
 		{
 			try
@@ -71,7 +80,7 @@ int main(int argc, char **argv) {
 
 				gettimeofday(&time0, NULL);
 				t0 = time0.tv_sec*1000 + time0.tv_usec/1000;
-
+				
 
 				//Recepción en modo bloqueante (Se bloquea hasta recibir un bloque válido)
 				fsize = fileRx.Receive("Imagen", rxbuffer);
@@ -94,6 +103,21 @@ int main(int argc, char **argv) {
 				tdif = t1 - t0;
 				std::cout << "Tiempo de recepción: " << tdif << std::endl <<std::endl;
 
+				it++;
+				if(it > 3)
+				{
+					cont++;
+					isize += fsize;
+					itime += tdif;
+					aitime = itime/cont;
+					aisize = isize/cont;
+					abstime = aitime/aisize;
+					std::cout << "Im. recibidas:\t" << cont << std::endl;
+					std::cout << "Tamaño medio (bytes):\t" << aisize << std::endl;
+					std::cout << "Tiempo medio (ms):\t" << aitime << std::endl;
+					std::cout << "ms/byte:\t" << abstime << std::endl;
+
+				}
 				std::cout << "Escribiendo imagen en disco..." << std::endl <<std::endl;
 
 				gettimeofday(&time0, NULL);
