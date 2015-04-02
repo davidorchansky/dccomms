@@ -1,9 +1,9 @@
 //============================================================================
-// Name        : PruebasRadio.cpp
+// Name        : TX.cpp
 // Author      : Diego
 // Version     :
-// Copyright   : Your copyright notice
-// Description : Hello World in C++, Ansi-style
+// Copyright   :
+// Description : Sends an image per bucle iteration
 //============================================================================
 
 #include <iostream>

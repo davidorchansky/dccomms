@@ -1,9 +1,9 @@
 //============================================================================
-// Name        : PruebasRadio.cpp
+// Name        : RX.cpp
 // Author      : Diego
 // Version     :
-// Copyright   : Your copyright notice
-// Description : Hello World in C++, Ansi-style
+// Copyright   :
+// Description : Receives one image per bucle iteration
 //============================================================================
 
 #include <iostream>
@@ -123,12 +123,12 @@ int main(int argc, char **argv) {
 			}
 			catch(std::exception & e)
 			{
-				std::cout <<"CUIDAO!!!!" <<std::endl  << std::flush;
+				std::cout <<"CUIDADO!!!!" <<std::endl  << std::flush;
 
 			}
 			catch(int e)
 			{
-				std::cout <<"CUIDAO intero!!!!" <<std::endl  << std::flush;
+				std::cout <<"CUIDADO intero!!!!" <<std::endl  << std::flush;
 
 			}
 		}
