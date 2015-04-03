@@ -1,22 +1,22 @@
-OBJS = TX RX
 LIBDIR = ../Release
 RARGS = 
+BINDIR = bin/
+all: radio $(BINDIR)TX $(BINDIR)RX $(BINDIR)RX1
 
-all: radio TX RX RX1
 radio:
 	make -C $(LIBDIR) -f radio.mk RADIOFLAGS="$(RARGS)"
 
-TX: radio
+$(BINDIR)TX: radio
 	g++ -std=c++0x -I"../includes/" -L $(LIBDIR)  TX.cpp -o $@ -lradio -lcrypto
 
-RX: radio
+$(BINDIR)RX: radio
 	g++ -std=c++0x -I"../includes/" -L $(LIBDIR)  RX.cpp -o $@ -lradio -lcrypto
 
-RX1: radio
+$(BINDIR)RX1: radio
 	g++ -std=c++0x -I"../includes/" -L $(LIBDIR)  RX1.cpp -o $@ -lradio -lcrypto
 
 
 clean:
-	rm -f test *.o $(OBJS)
+	rm -f $(BINDIR)/*
 	make -C $(LIBDIR) clean
 
