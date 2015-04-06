@@ -12,6 +12,12 @@ Entrar en el directorio "ImageTransmission" y compilar con:
 		make
 eso generará "libradio.a" en el directorio "Release" del repositorio, y los programas "TX" y "RX"  
 en el directorio "ImageTransmisssion"
+>Nota: Compilando con;:
+
+		make RARGS="-DDEBUG"
+>se muestra toda la información (datos y overhead) de cada frame que se envía o recibe, y si contiene
+o no errores.
+
 >Nota: Compilando con: 
 
 		make RARGS="-DTIMMING"
