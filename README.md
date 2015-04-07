@@ -31,7 +31,9 @@ Entrar en el directorio "Release" y ejecutar:
 
 
 **DEPENDENCIAS:**  
-Biblioteca "crypto" (temporal)
+Biblioteca "crypto" (temporal). Para instalar:
+
+		crypto dev-ssl apt-get
 
 **USO:**  
 Un ejemplo de uso se encuentra en el directorio "ImageTransmission" TX.cpp (sender) y en RX.cpp (receiver) 
