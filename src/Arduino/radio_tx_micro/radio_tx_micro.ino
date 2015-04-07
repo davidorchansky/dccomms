@@ -7,10 +7,11 @@
 
 #define BUFFER_SIZE 1100
 
-#include <Mensajero.h>
+#define TXS 6
+#define RXS 7
 
 char buf[BUFFER_SIZE];
-//#define PAYLOAD_SIZE 1008
+
 bool BigEndian;
 
 char preamble[] = "juanito";
@@ -26,7 +27,20 @@ unsigned char *serialAreYouPos;
 const int analogOutPin = A0;
 
 HardwareSerial *radioStream = &Serial1;
-Mensajero mensajero(1,radioStream,NULL,5);
+
+void modoTx()
+{
+    digitalWrite(TXS, LOW); //TX enabled
+    digitalWrite(RXS, HIGH);
+}
+
+void radioInit()
+{
+    pinMode(TXS, OUTPUT);
+    pinMode(RXS, OUTPUT);
+    modoTx();
+}
+
 
 char caracterActual = -1;
 
@@ -81,8 +95,6 @@ uint16_t radioFrameReceived(Stream * s, char* buffer, unsigned char* pre, unsign
   }
 
   char car = caracterActual;
-  if (car == '$') //Per a sincronitzar
-    s->print('$');
   if (car == **preamblePos)
   {
     //s->print("Coincide! "); s->println(iteracion);
@@ -145,8 +157,7 @@ void setup() {
 	serialPreamblePos = (unsigned char*)preamble;
 	serialAreYouPos = (unsigned char*)areyou;
 	
-        mensajero.init();
-        mensajero.modoTx();
+        radioInit();
 }
 
 int paylsize;
