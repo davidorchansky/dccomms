@@ -23,15 +23,14 @@ using namespace std;
 using namespace radiotransmission;
 
 int main(int argc, char **argv) {
-	if(argc != 3)
+	if(argc != 2)
 	{
 		std::cerr << "Numero de argumentos incorrecto" << std::endl;
-		std::cout << "Usage:\n\targs: <outputFile> <maxBufferSize>" << std::endl;
+		std::cerr << "Usage:\n\targs: <maxBufferSize>" << std::endl;
 		exit(1);
 	}
 
-	char * fname = argv[1];
-	uint32_t size = atoi(argv[2]);
+	uint32_t size = atoi(argv[1]);
 
 	try
 	{
@@ -45,7 +44,7 @@ int main(int argc, char **argv) {
 			exit(2);
 		}
 
-		std::cout <<"RX listo\n";
+		std::cerr <<"RX listo\n";
 
 		uint8_t rxbuffer[size];
 
@@ -74,7 +73,7 @@ int main(int argc, char **argv) {
 		{
 			try
 			{
-				std::cout << "BUSCANDO BLOQUE..." << std::endl;
+				std::cerr << "BUSCANDO BLOQUE..." << std::endl;
 
 				arduRx.FlushInput();
 
@@ -98,10 +97,10 @@ int main(int argc, char **argv) {
 				fileRx.Receive("Imagen", rxbuffer, 10000);
 
 				*/
-				std::cout << "NUEVO BLOQUE RECIBID0!" << std::endl;
+				std::cerr << "NUEVO BLOQUE RECIBID0!" << std::endl;
 
 				tdif = t1 - t0;
-				std::cout << "Tiempo de recepción: " << tdif << std::endl <<std::endl;
+				std::cerr << "Tiempo de recepción: " << tdif << std::endl <<std::endl;
 
 				it++;
 				if(it > 3)
@@ -112,13 +111,13 @@ int main(int argc, char **argv) {
 					aitime = itime/cont;
 					aisize = isize/cont;
 					abstime = aitime/aisize;
-					std::cout << "Bloques. recibidao:\t" << cont << std::endl;
-					std::cout << "Tamaño medio (bytes):\t" << aisize << std::endl;
-					std::cout << "Tiempo medio (ms):\t" << aitime << std::endl;
-					std::cout << "ms/byte:\t" << abstime << std::endl;
+					std::cerr << "Bloques. recibidao:\t" << cont << std::endl;
+					std::cerr << "Tamaño medio (bytes):\t" << aisize << std::endl;
+					std::cerr << "Tiempo medio (ms):\t" << aitime << std::endl;
+					std::cerr << "ms/byte:\t" << abstime << std::endl;
 
 				}
-				std::cout << "Enviando bloque por la salida estandar..." << std::endl <<std::endl;
+				std::cerr << "Enviando bloque por la salida estandar..." << std::endl <<std::endl;
 
 				gettimeofday(&time0, NULL);
 				t0 = time0.tv_sec*1000 + time0.tv_usec/1000;
@@ -128,38 +127,38 @@ int main(int argc, char **argv) {
 				gettimeofday(&time1, NULL);
 				t1 = time1.tv_sec*1000 + time1.tv_usec/1000;
 				tdif = t1 - t0;
-				std::cout << "Bloque enviado en : " << tdif << " ms" <<std::endl;
+				std::cerr << "Bloque enviado en : " << tdif << " ms" <<std::endl;
 
 			}
 			catch(RadioException& e) //Control de excepciones
 			{
-				//std::cout << "Radio Exception: " << e.what() << std::endl << std::flush;
+				//std::cerr << "Radio Exception: " << e.what() << std::endl << std::flush;
 				switch(e.code)
 				{
 					case RADIO_RXLINEDOWN: //Se ha perdido la comunicación con la arduino receptora
-						std::cout << "Intentando reconectar con RX..." << std::endl << std::flush;
+						std::cerr << "Intentando reconectar con RX..." << std::endl << std::flush;
 						while(!arduRx.TryReconnect()){};
-						std::cout << "ÉXITO!!" << std::endl << std::flush;
+						std::cerr << "ÉXITO!!" << std::endl << std::flush;
 						break;
 					case RADIO_TIMEOUT:
-						std::cout << "RADIO EXCEPTION: TIMEOUT!" << std::endl << std::flush;
+						std::cerr << "RADIO EXCEPTION: TIMEOUT!" << std::endl << std::flush;
 						break;
 					case RADIO_CORRUPTBLOCK:
-						std::cout << "RADIO EXCEPTION: BLOQUE CON ERRORES (SE DESCARTA)" << std::endl << std::flush;
+						std::cerr << "RADIO EXCEPTION: BLOQUE CON ERRORES (SE DESCARTA)" << std::endl << std::flush;
 						break;
 					default:
-						std::cout << "RADIO EXCEPTION: " << e.what() << std::endl << std::flush;
+						std::cerr << "RADIO EXCEPTION: " << e.what() << std::endl << std::flush;
 						break;
 				}
 			}
 			catch(std::exception & e)
 			{
-				std::cout <<"CUIDADO!!!!" <<std::endl  << std::flush;
+				std::cerr <<"CUIDADO!!!!" <<std::endl  << std::flush;
 
 			}
 			catch(int e)
 			{
-				std::cout <<"CUIDADO intero!!!!" <<std::endl  << std::flush;
+				std::cerr <<"CUIDADO intero!!!!" <<std::endl  << std::flush;
 
 			}
 		}
@@ -169,16 +168,16 @@ int main(int argc, char **argv) {
 		switch(e.code)
 		{
 			case RADIO_RXLINEDOWN:
-				std::cout << "CUIDAO RX!" << std::endl << std::flush;
+				std::cerr << "CUIDAO RX!" << std::endl << std::flush;
 				break;
 			case RADIO_TXLINEDOWN:
-				std::cout << "CUIDAO TX!" << std::endl << std::flush;
+				std::cerr << "CUIDAO TX!" << std::endl << std::flush;
 				break;
 			default:
-				std::cout << "CUIDAO!" << std::endl << std::flush;
+				std::cerr << "CUIDAO!" << std::endl << std::flush;
 				break;
 		}
-		std::cout << "Radio Exception: " << e.what() << std::endl << std::flush;
+		std::cerr << "Radio Exception: " << e.what() << std::endl << std::flush;
 		exit(1);
 	}
 
