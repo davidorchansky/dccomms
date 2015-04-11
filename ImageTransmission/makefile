@@ -1,7 +1,7 @@
 LIBDIR = ../Release
 RARGS = 
 BINDIR = bin/
-all: radio $(BINDIR)TX $(BINDIR)RX $(BINDIR)RX1 $(BINDIR)RX2
+all: radio $(BINDIR)TX $(BINDIR)RX $(BINDIR)RX1 $(BINDIR)RX2 $(BINDIR)TX2
 
 radio:
 	make -C $(LIBDIR) -f radio.mk RADIOFLAGS="$(RARGS)"
@@ -9,6 +9,10 @@ radio:
 $(BINDIR)TX: radio
 	mkdir -p $(BINDIR)
 	g++ -std=c++0x -I"../includes/" -L $(LIBDIR)  TX.cpp -o $@ -lradio -lcrypto
+
+$(BINDIR)TX2: radio
+	mkdir -p $(BINDIR)
+	g++ -std=c++0x -I"../includes/" -L $(LIBDIR)  TX2.cpp -o $@ -lradio -lcrypto
 
 $(BINDIR)RX: radio
 	mkdir -p $(BINDIR)
