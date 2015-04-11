@@ -23,14 +23,14 @@ using namespace std;
 using namespace radiotransmission;
 
 int main(int argc, char **argv) {
-	if(argc != 2)
+	if(argc != 3)
 	{
 		std::cerr << "Numero de argumentos incorrecto" << std::endl;
-		std::cerr << "Usage:\n\targs: <maxBufferSize>" << std::endl;
+		std::cerr << "Usage:\n\targs: <blockIdentifier> <maxBlockSize>" << std::endl;
 		exit(1);
 	}
 
-	uint32_t size = atoi(argv[1]);
+	uint32_t size = atoi(argv[2]);
 
 	try
 	{
@@ -82,7 +82,7 @@ int main(int argc, char **argv) {
 				
 
 				//Recepción en modo bloqueante (Se bloquea hasta recibir un bloque válido)
-				fsize = fileRx.Receive("Imagen", rxbuffer);
+				fsize = fileRx.Receive(argv[1], rxbuffer);
 
 
 				gettimeofday(&time1, NULL);
