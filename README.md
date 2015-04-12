@@ -37,3 +37,14 @@ Biblioteca "crypto" (temporal). Para instalar:
 
 **USO:**  
 Un ejemplo de uso se encuentra en el directorio "ImageTransmission" TX.cpp (sender) y en RX.cpp (receiver) 
+
+
+**INSTRUCCIONES PARA EJECUTAR EL VIDEO STREAMING DEL ROV:**   
+
+1. Ejecutar "make" en el directorio "ImageTransmission", tanto en el ROV como en el linux conectado al módulo receptor de radio.  
+2. Ejecutar la emisión de vídeo por radio en el ROV: Entrar en el directorio "ImageTransmission" y ejecutar:
+
+        ./videoRovTx.sh <EncodedImageSize> <MaxPayloadSizePerRadioFrame> <DelayBetweenFrames>
+3. Ejecutar la visualización del vídeo del ROV en el linux conectado al módulo receptor de radio: Entrar en el directorio "ImageTransmision" y ejecutar:
+
+	    ./videoRovRx.sh <EncodedImageSize>
