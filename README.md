@@ -44,7 +44,7 @@ Un ejemplo de uso se encuentra en el directorio "ImageTransmission" TX.cpp (send
 1. Ejecutar "make" en el directorio "ImageTransmission", tanto en el ROV (pasándole EDULIB="ezbtARM") como en el linux conectado al módulo receptor de radio (sin argumentos).  
 2. Ejecutar la emisión de vídeo por radio en el ROV: Entrar en el directorio "ImageTransmission" y ejecutar:
 
-        ./videoRovTx_2.sh <EncodedImageSize> <MaxPayloadSizePerRadioFrame> <DelayBetweenFrames> <MaxFrameAge>
+        ./videoRovTx.sh <EncodedImageSize> <MaxPayloadSizePerRadioFrame> <DelayBetweenFrames> <MaxFrameAge>
         
 >Nota: el último argumento, "MaxFrameAge", es el tiempo máximo permitido, en milisegundos, desde que se comprime la imagen hasta que el modulo transmisor (proceso) decide procesarla para enviarla a través del canal de radio. Si el módulo transmisor recibe una imagen comprimida muy antigua, la descarta. De esta manera podemos conseguir que el video en la recepción sea lo más reciente posible.
 
