@@ -4,7 +4,7 @@ BINDIR = bin/
 PRIVATELIBDIR = libraries
 INCLUDES = includes
 EDULIB = ezbtx86_64
-all: bindir radio improc $(BINDIR)TX $(BINDIR)RX $(BINDIR)RX1 $(BINDIR)RX2 $(BINDIR)TX2 $(BINDIR)encode $(BINDIR)decode $(BINDIR)header
+all: bindir radio improc $(BINDIR)TX3 $(BINDIR)TX $(BINDIR)RX $(BINDIR)RX1 $(BINDIR)RX2 $(BINDIR)TX2 $(BINDIR)encode $(BINDIR)decode $(BINDIR)header $(BINDIR)encode_2
 
 bindir:
 	mkdir -p $(BINDIR)
@@ -22,6 +22,9 @@ $(BINDIR)TX: TX.cpp
 $(BINDIR)TX2: TX2.cpp
 	g++ -std=c++0x -I"../includes/" -L $(LIBDIR)  $< -o $@ -lradio -lcrypto
 
+$(BINDIR)TX3: TX3.cpp
+	g++ -std=c++0x -I"../includes/" -L $(LIBDIR)  $< -o $@ -lradio -lcrypto
+
 $(BINDIR)RX: RX.cpp
 	g++ -std=c++0x -I"../includes/" -L $(LIBDIR)  $< -o $@ -lradio -lcrypto
 
@@ -33,6 +36,10 @@ $(BINDIR)RX2: RX2.cpp
 
 $(BINDIR)encode: encode.c colorconv.c
 	gcc -I $(INCLUDES) $^ -o $@ -l$(EDULIB) -lm
+
+$(BINDIR)encode_2: encode_2.c colorconv.c
+	gcc -I $(INCLUDES) $^ -o $@ -l$(EDULIB) -lm
+
 
 $(BINDIR)decode: decode.c
 	gcc -I $(INCLUDES) $< -o $@ -l$(EDULIB) -lm
