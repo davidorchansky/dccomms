@@ -150,7 +150,7 @@ void Radio::ReceiveBytes(void * buf, uint32_t size, uint8_t dirFrom, unsigned lo
 			}
 			else
 			{
-				std::cout << "Error en frame de radio" <<std::endl << std::flush;
+				std::cerr << "Error en frame de radio" <<std::endl << std::flush;
 	#ifdef DEBUG
 			//	std::this_thread::sleep_for(std::chrono::milliseconds(50000));
 	#endif
