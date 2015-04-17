@@ -271,7 +271,8 @@ int SerialPortInterface::Write(const void * buf, uint32_t size, uint32_t to)
 int SerialPortInterface::Available()
 {
 	int n;
-	ioctl(fd, FIONREAD, &n);
+	if(ioctl(fd, FIONREAD, &n)<0)
+		return -1;	
 	return n;
 }
 

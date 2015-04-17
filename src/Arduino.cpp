@@ -14,6 +14,8 @@
 #include <exception>
 #include <iostream>
 #include <cstring>
+#include <RadioException.h>
+
 namespace radiotransmission {
 
 
@@ -106,8 +108,14 @@ bool Arduino::TryReconnect()
 				Close();
 			}
 		}
+		catch(RadioException e)
+		{
+			std::cerr << "Excepción de radio" <<std::endl;
+		}
 		catch(std::exception e)
-		{}
+		{
+			std::cerr << "Excepción al intentar reconectar" << std::endl;
+		}
 	}
 	return false;
 }
