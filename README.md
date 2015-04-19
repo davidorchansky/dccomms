@@ -3,7 +3,13 @@
 Interfaz de control de dos Arduinos que forman un sistema de comunicación por radio half-duplex.
 
 **INSTALACIÓN ARDUINO CODE:**  
-Cargar el programa de cada Arduino (TX y RX). El código se encuentra en src/Arduino (radio_rx_micro.ino, radio_tx_micro.ino).
+Cargar el programa de cada Arduino (TX y RX). El código se encuentra en src/Arduino:
+
+* Módulos Radiometrix BiM2A (http://www.radiometrix.com/content/bim2a):  
+	*radio_tx_micro* y *radio_rx_micro*
+
+* Módulos FS1000A (http://www.ananiahelectronics.com/fs100a.gif):   
+ 	*radio_tx_micro_FS1000A* y *radio_rx_micro_FS1000A*
 
 **COMPILACIÓN:**
 * **Todo** ("libradio.a" y ejemplo "ImageTransmission"):  
