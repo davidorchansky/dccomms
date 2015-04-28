@@ -13,7 +13,9 @@
 #include <stdint.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <signal.h>
 
+#include <string.h>
 int
 writep9header(int w, int h)
 {/*
@@ -51,6 +53,11 @@ int fd_set_blocking(int fd, int blocking) {
     return fcntl(fd, F_SETFL, flags) != -1;
 }
 
+void segfault_sigaction(int signal, siginfo_t *si, void *arg)
+{
+    printf("Caught segfault at address %p\n", si->si_addr);
+    exit(0);
+}
 int main(int argc, char** argv) {
 	//puts("This program puts the header 'P9\\nWIDTH HEIGHT\\n255\\n'\nfor each WIDTH*HEIGHT+WIDTH*HEIGHT/2 bytes from stdin (yuyv420 size)\nand sends the result through stdout"); /* prints This program puts the header "P9\nWIDTH HEIGHT\n255\n" for each WIDTH*HEIGHT+ */
 
@@ -74,6 +81,15 @@ int main(int argc, char** argv) {
 
 	unsigned char *y = malloc(size);
 	long r;
+    	struct sigaction sa;
+
+    	memset(&sa, 0, sizeof(sigaction));
+    	sigemptyset(&sa.sa_mask);
+    	sa.sa_sigaction = segfault_sigaction;
+    	sa.sa_flags   = SA_SIGINFO;
+
+    	sigaction(SIGSEGV, &sa, NULL);
+
 	while(1)
 	{
 		writep9header(width, height);
@@ -81,10 +97,13 @@ int main(int argc, char** argv) {
 		while(r < size)
 		{
 			r += read(0, y+r, size-r);
+
+			fprintf(stderr, "\nHEADER: Leidos %ld bytes\n", r);
 		}
 
+		fprintf(stderr, "\nHEADER: imagen leida completamente (%ld)\n" , r);
 		write(1, y, size);
-		fprintf(stderr, "\nHEADER: Añadido header a %d bytes de imagen yuyv420\n", r);
+		fprintf(stderr, "\nHEADER: Añadido header a %ld bytes de imagen yuyv420\n", r);
 
 
 

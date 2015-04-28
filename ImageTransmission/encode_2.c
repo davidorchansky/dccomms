@@ -16,7 +16,10 @@
 #include <ctype.h>
 #include <string.h>
 #include <sys/time.h>
+#include <stdint.h>
 
+#include <signal.h>
+#include <string.h>
 int
 readint(int *v)
 {
@@ -66,6 +69,12 @@ void clearInputBuffer()
         fd_set_blocking(0,1);
 }
 
+void segfault_sigaction(int signal, siginfo_t *si, void *arg)
+{
+    fprintf(stderr, "ENCODE: Caught segfault at address %p\n", si->si_addr);
+    exit(0);
+}
+
 int main(int argc, char ** argv) {
 	fprintf(stderr, "Encoder UP\n");
 
@@ -90,7 +99,7 @@ int main(int argc, char ** argv) {
 	}
 	struct ezbtParams ezbtp;
 
-
+	fprintf(stderr,"Leyendo parametros...\n");
 	ezbtInitParams(&ezbtp);
 
 	ezbtp.lscan = !!atoi(argv[1]);//1;
@@ -108,40 +117,67 @@ int main(int argc, char ** argv) {
 
 	int width, height;
 
+	
+	fprintf(stderr,"Parametros leidos!\n");
 
+    	struct sigaction sa;
+
+    	memset(&sa, 0, sizeof(sigaction));
+    	sigemptyset(&sa.sa_mask);
+    	sa.sa_sigaction = segfault_sigaction;
+    	sa.sa_flags   = SA_SIGINFO;
+
+    sigaction(SIGSEGV, &sa, NULL);
+	
 	while(1)
 	{
 
+
 		if(readp9(&width, &height)==0)
 		{
-			//fprintf(stderr, "Width: %d ; Height: %d\n", width, height);
+			fprintf(stderr,"Imagen recibida!\n");
 
 			int ysize = width * height;
 			int uvsize = ysize / 4;
 
-			//fprintf(stderr, "ysize: %d ; uvsize: %d\n", ysize, uvsize);
+			fprintf(stderr, "width: %d height: %d\n", width, height);
 
-			unsigned char *y = malloc(ysize+uvsize*2);
+			uint32_t size = ysize+uvsize*2;
+			unsigned char *y = malloc(size);
 			unsigned char *u = y+ysize;
 			unsigned char *v = u+uvsize;
 
-			fread(y, ysize+uvsize*2, 1, stdin);
-			fflush(stdin);
+			fprintf(stderr,"leyendo imagen (%d bytes)...\n", size); 
+			int r = 0;
+			int intentos = 0;
+			if(y == NULL)
+				fprintf(stderr, "ERROR AL RESERVAR MEMORIA\n");
 
-
+			while(r < size)
+			{
+				r += read(0, y+r, size-r);
+				intentos++;
+				
+			}
+			fprintf(stderr,"Imagen leida!: %d bytes\n", r); 
 
 
 			int colorformat = newColorFormat(COLORFORMAT_STD_BT601_ANALOG,
 					COLORFORMAT_FMT_420);
 
-			unsigned char *cimg = NULL;
-			int cimgsize = 0;
-			int size = ezbtEncodeImg(y, width, height, colorformat, &cimg, &cimgsize, 0, &ezbtp,
-					EZBT_TRANSFORM_RW97, 6, -1, 0, 0);
+			fprintf(stderr,"Creado colorformat!\n");
 
+			unsigned char *cimg = NULL;//malloc(size*10);
+			int cimgsize = 0;
+
+
+			fprintf(stderr,"Comprimiendo...\n");
+			size = ezbtEncodeImg(y, width, height, colorformat, &cimg, &cimgsize, 0, &ezbtp, EZBT_TRANSFORM_RW97, 6, -1, 0, 0);
+
+			fprintf(stderr,"Imagen COMPRIMIDA!\n");
 			fprintf(stderr, "ENCODER: Imagen comprimida a %d bytes\n", size);
 
-                	gettimeofday(&start, NULL);
+			gettimeofday(&start, NULL);
 
 			write(1, header, headerSize);
 			write(1, &start, sizeof(struct timeval));
@@ -149,9 +185,8 @@ int main(int argc, char ** argv) {
 
 			free(y);
 
+
 			clearInputBuffer();
-
-
 		}
 
 	}
