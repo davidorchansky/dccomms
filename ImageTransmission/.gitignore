@@ -3,3 +3,5 @@ TX
 RX1
 out
 videoRovRx_rtsp.sh
+*.raw
+*~
