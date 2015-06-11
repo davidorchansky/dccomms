@@ -4,3 +4,5 @@ bin/
 Debug
 /Release/
 *~
+input
+.gitignore
