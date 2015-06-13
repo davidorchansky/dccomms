@@ -509,15 +509,15 @@ int fd_set_blocking(int fd, int blocking) {
 
 void clearInputBuffer()
 {
-		fd_set_blocking(0,0);
-        char c;
-        while(fread(&c,1,1,stdin)>0){}
-        fd_set_blocking(0,1);
+	fd_set_blocking(0,0);
+	char c;
+	while(fread(&c,1,1,stdin)>0){}
+	fd_set_blocking(0,1);
 }
 
 void segfault_sigaction(int signal, siginfo_t *si, void *arg)
 {
-    fprintf(stderr, "ENCODE: Caught segfault at address %p\n", si->si_addr);
+    fprintf(stderr, "ENCODER: Caught segfault at address %p\n", si->si_addr);
     exit(0);
 }
 
@@ -553,27 +553,34 @@ main(int argc, char *argv[])
 
 	if(isEncoder || isDecoder)
 	{
-		struct sigaction sa;
-		memset(&sa, 0, sizeof(sigaction));
-		sigemptyset(&sa.sa_mask);
-		sa.sa_sigaction = segfault_sigaction;
-		sa.sa_flags   = SA_SIGINFO;
-
-		sigaction(SIGSEGV, &sa, NULL);
-
 
 		if(isEncoder)
 		{
+			struct sigaction sa;
+			memset(&sa, 0, sizeof(sigaction));
+			sigemptyset(&sa.sa_mask);
+			sa.sa_sigaction = segfault_sigaction;
+			sa.sa_flags   = SA_SIGINFO;
+
+			sigaction(SIGSEGV, &sa, NULL);
+
 
 			struct timeval start;
 
 			while(1)
 			{
 				gettimeofday(&start, NULL);
-
+				
+				fprintf(stderr, "ENCODER: Escribiendo identificador de la imagen (%d bytes)\n", imIdSize);
 				write(1, imId, imIdSize);
+
+				fprintf(stderr, "ENCODER: Escribiendo timeval actual (%ld bytes)\n", sizeof(struct timeval));
 				write(1, &start, sizeof(struct timeval));
+
+				fprintf(stderr, "ENCODER: Comprimiendo...\n");
 				encode(&e);
+				fprintf(stderr, "ENCODER: Limpiando input buffer...\n");
+			//	sleep(5);
 				clearInputBuffer();
 			}
 		}
@@ -581,8 +588,13 @@ main(int argc, char *argv[])
 		{
 			while(1)
 			{
+
+				fprintf(stderr, "DECODER: descomprimiendo...\n");
 				decode(&d);
+
+				fprintf(stderr, "DECODER: Limpiando input buffer...\n");
 				clearInputBuffer();
+//				sleep(5);
 			}
 		}
 	}
