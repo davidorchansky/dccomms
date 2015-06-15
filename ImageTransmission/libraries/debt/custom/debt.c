@@ -272,6 +272,14 @@ defaultParams(struct debtEncParam *e, struct debtDecParam *d)
 
 #define MAXSIZE 	(64 * 1024 * 1024) // 64 megabytes is a HUGE BUFFER for a compressed image! Signal anything above it
 
+void clearInputBuffer()
+{
+	fd_set_blocking(0,0);
+	char c;
+	while(fread(&c,1,1,stdin)>0){}
+	fd_set_blocking(0,1);
+}
+
 static unsigned char *
 read_img(int *size, FILE *f)
 {
@@ -311,8 +319,9 @@ write_img(struct imgBuffer *img, FILE *f)
 	int uvsize = img->uvwidth * img->uvheight; // FIXME: assumes img->uvpitch == img->uvwidth
 	int yuvsize = ysize + (uvsize << 1);
 	/* PGM header */
-	fprintf(stdout, "P%d\n%d %d\n255\n", color == COLORFORMAT_FMT_GREY ? 5 : 7, img->width, img->height);
-	int n = fwrite(img->buffer, 1, yuvsize, f);
+	//fprintf(stdout, "P%d\n%d %d\n255\n", color == COLORFORMAT_FMT_GREY ? 5 : 7, img->width, img->height);
+//	int n = fwrite(img->buffer, 1, yuvsize, f);
+	int n = write(1, img->buffer, yuvsize); //parece que write flushea después de escribir, en cambio fwrite no
 	if (n != yuvsize) {
 		fprintf(stderr, "Short write (%d out of %d)\n", n, yuvsize);
 		n = -1;
@@ -331,12 +340,18 @@ decode(struct debtDecParam *d)
 		/* prepare an imgBuffer for decoding */
 		struct imgBuffer *dst = imgBuffer_new();
 		if (dst) {
+
+			fprintf(stderr, "DECODER: Intentando descomprimir!!!\n");
 			if (debt_decode_imgbuffer(dst, debtimg, debtimgsize, d, NULL, NULL)) {
+				fprintf(stderr, "DECODER: Descomprimiendo la imagen!!!\n");
 				retval = write_img(dst, stdout);
 			}
+			else
+				fprintf(stderr, "DECODER: ERROR al descomprimir!!!\n");
 			imgBuffer_del(dst);
 		}
 		free(debtimg);
+		clearInputBuffer();
 	}
 	return retval;
 }
@@ -420,10 +435,12 @@ read_src_img(FILE *f)
 }
 
 static int
-encode(struct debtEncParam *e)
+encode(struct debtEncParam *e, char* imId, int imIdSize)
 {
 	int imgsize = 0;
 	struct imgBuffer *src = read_src_img(stdin);
+
+	struct timeval start;
 	if (src) {
 		/* setup the output buffer */
 		unsigned char *buffer = NULL;
@@ -436,16 +453,28 @@ encode(struct debtEncParam *e)
 		/* encode it! */
 		int blen = debt_encode_imgbuffer(src, &buffer, &buflen, fixed, e);
 		if (blen) {
+			gettimeofday(&start, NULL);
+			
+			fprintf(stderr, "ENCODER: Escribiendo identificador de la imagen (%d bytes)\n", imIdSize);
+			write(1, imId, imIdSize);
+
+			fprintf(stderr, "ENCODER: Escribiendo timeval actual (%ld bytes)\n", sizeof(struct timeval));
+			write(1, &start, sizeof(struct timeval));
+
+			fprintf(stderr, "ENCODER: Comprimiendo...\n");
+
 			/* negative result means valid but truncated output (the user has probably specified a max size or no more memory */
 			if (blen < 0) {
 				blen = -blen;
 			}
 			int n = (blen + 7) >> 3;
-			imgsize = fwrite(buffer, 1, n, stdout);
+			//imgsize = fwrite(buffer, 1, n, stdout);
+			imgsize = write(1, buffer, n);
 			if (n != imgsize) {
 				fprintf(stderr, "Short write (%d out of %d)\n", imgsize, n);
 			}
 		}
+		clearInputBuffer();
 		free(buffer);
 		buflen = 0;
 		imgBuffer_del(src);
@@ -507,13 +536,7 @@ int fd_set_blocking(int fd, int blocking) {
 }
 
 
-void clearInputBuffer()
-{
-	fd_set_blocking(0,0);
-	char c;
-	while(fread(&c,1,1,stdin)>0){}
-	fd_set_blocking(0,1);
-}
+
 
 void segfault_sigaction(int signal, siginfo_t *si, void *arg)
 {
@@ -565,23 +588,10 @@ main(int argc, char *argv[])
 			sigaction(SIGSEGV, &sa, NULL);
 
 
-			struct timeval start;
 
 			while(1)
 			{
-				gettimeofday(&start, NULL);
-				
-				fprintf(stderr, "ENCODER: Escribiendo identificador de la imagen (%d bytes)\n", imIdSize);
-				write(1, imId, imIdSize);
-
-				fprintf(stderr, "ENCODER: Escribiendo timeval actual (%ld bytes)\n", sizeof(struct timeval));
-				write(1, &start, sizeof(struct timeval));
-
-				fprintf(stderr, "ENCODER: Comprimiendo...\n");
-				encode(&e);
-				fprintf(stderr, "ENCODER: Limpiando input buffer...\n");
-			//	sleep(5);
-				clearInputBuffer();
+				encode(&e, imId, imIdSize);
 			}
 		}
 		else
@@ -589,12 +599,7 @@ main(int argc, char *argv[])
 			while(1)
 			{
 
-				fprintf(stderr, "DECODER: descomprimiendo...\n");
 				decode(&d);
-
-				fprintf(stderr, "DECODER: Limpiando input buffer...\n");
-				clearInputBuffer();
-//				sleep(5);
 			}
 		}
 	}

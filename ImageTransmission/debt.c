@@ -14,6 +14,14 @@
 
 #include "libdebt.h"
 
+//old encode includes
+#include <math.h>
+#include <ctype.h>
+#include <sys/time.h>
+#include <stdint.h>
+#include <signal.h>
+#include <fcntl.h>
+
 static char *
 pgmName(char *path)
 {
@@ -22,22 +30,25 @@ pgmName(char *path)
 }
 
 static void
-usage(char *pgmname, struct encParam *e, struct decParam *d)
+usage(char *pgmname, struct debtEncParam *e, struct debtDecParam *d)
 {
 	fprintf(stderr,
 			"usage: %s (-d|-e)[options] < infile > outfile\n"
 			"Options:\n"
+			"\t-v [0|1]         - Use vector instructions if possible <%d>\n"
+			"\n"
 			"Decoding: -d\n"
 			"\t-b [bias]        - Bias used when decoding (default, zero, mid, exp, midexp) <%s>\n"
 			"\t-a [bias weight] - Bias weight to use with bias <%f>\n"
 			"\t-c [size]        - Truncate input file to [size] bytes <%d>\n"
 			"\nEncoding: -e\n"
-			"\t-t transform     - Wavelet used (2/2, 5/3, 9/7-M, 13/7-T) and (CDF-9/7) <%s>\n"
+			"\t-t transform     - Wavelet used (CDF-9/7) and (5/3, 9/7-M, 13/7-T, haar) <%s>\n"
 			"\t-n nbands        - Number of transformations <%d>\n"
 			"\t-k depth         - Decompose for depth <= otherwise partition <%d>\n"
 			"\t-y val           - Dynamic decomposition/partition <%d>\n"
 			"\t-r refmul        - Refinement mutliplier <%f>\n"
 			"\t-q quality       - Quality value (0 = max) <%f>\n"
+			"\t-u resolution    - Resolution order <%d>\n"
 			"\t-x maxsize       - Truncate output at maxsize bytes <%d>\n"
 			"\n"
 			"\t-p pad           - Pad codes when mapping <%d>\n"
@@ -45,12 +56,18 @@ usage(char *pgmname, struct encParam *e, struct decParam *d)
 			"\t-s esc           - Escape 0xff on output stream <%d>\n"
 			"\n"
 			"\t-l left-shift    - ROI left shift <%d>\n"
-			"\t-i x0,y0,x1,y1   - ROI rectangle (Top-Left and Bottom-Right) (repeat)\n",
+			"\t-i x0,y0,x1,y1   - ROI rectangle (Top-Left and Bottom-Right) (repeat)\n"
+			"\n"
+			"\t-h               - Benchmark <%d>\n"
+			"\t-f               - Print encoding statistics <%d>\n"
+			"\t-I               - Specify an ASCII identifier for the image (it is like a header)\n",
 			pgmname,
+			e->vector,
 			bias_name(d->bias), d->weight, d->bitlen >> 3,
-			transform_name(e->transform), e->nbands, e->maxk, e->dynamic, e->refmul, e->quality, e->maxsize,
+			transform_name(e->transform), e->nbands, e->maxk, e->dynamic, e->refmul, e->quality, e->resolution, e->maxsize,
 			e->pad, e->map, e->esc,
-			e->uroi_shift);
+			e->uroi_shift,
+			e->benchmark, e->timestats);
 	exit(-1);
 }
 
@@ -98,7 +115,7 @@ getInt(char *s, int *v, int *sign)
 }
 
 int
-optGetRect(struct encParam *e, char *s)
+optGetRect(struct debtEncParam *e, char *s)
 {
 	int error = 0;
 	int sx0, sy0, sx1, sy1;
@@ -126,7 +143,7 @@ optGetRect(struct encParam *e, char *s)
 /* -d to decode or -e to encode */
 /* returns -1 to graph, 0 to decode, 1 to encode */
 static int
-getOptions(int argc, char *argv[], struct encParam *e, struct decParam *d)
+getOptions(int argc, char *argv[], struct debtEncParam *e, struct debtDecParam *d, char** imId, int* imIdSize)
 {
 	int opt;
 	int error = 0;
@@ -135,8 +152,20 @@ getOptions(int argc, char *argv[], struct encParam *e, struct decParam *d)
 	int enc = 0;
 	int graph = 0;
 
-	while ((opt = getopt(argc, argv, "db:a:c:et:n:k:r:q:x:p:m:s:l:i:y:g")) != -1) {
+	while ((opt = getopt(argc, argv, "v:db:a:c:et:n:k:r:q:u:x:p:m:s:l:i:y:gf:h:I:")) != -1) {
 		switch (opt) {
+		case 'I':
+			*imId = optarg;
+			*imIdSize = strlen(optarg);
+		case 'v':
+			error += optGetIntError(optarg, &e->vector, 0);
+			break;
+		case 'h':
+			error += optGetIntError(optarg, &e->benchmark, 0);
+			break;
+		case 'f':
+			error += optGetIntError(optarg, &e->timestats, 0);
+			break;
 		case 'g':
 			/* special hidden option to calculate rate x psnr curve */
 			graph = 1;
@@ -169,7 +198,7 @@ getOptions(int argc, char *argv[], struct encParam *e, struct decParam *d)
 			break;
 		case 't':
 			if (!optarg) {
-				e->transform = TRANSFORM_B_CDF9x7;
+				e->transform = TRANSFORM_I_B_13x7T;
 			} else {
 				int t = transform_code(optarg);
 				if (t != -1)
@@ -189,6 +218,9 @@ getOptions(int argc, char *argv[], struct encParam *e, struct decParam *d)
 			break;
 		case 'q':
 			error += optGetFloatError(optarg, &e->quality, 0.0);
+			break;
+		case 'u':
+			error += optGetIntError(optarg, &e->resolution, 0);
 			break;
 		case 'x':
 			error += optGetIntError(optarg, &e->maxsize, 0);
@@ -231,13 +263,22 @@ getOptions(int argc, char *argv[], struct encParam *e, struct decParam *d)
 }
 
 static void
-defaultParams(struct encParam *e, struct decParam *d)
+defaultParams(struct debtEncParam *e, struct debtDecParam *d)
 {
-	encParam_init(e);
-	decParam_init(d);
+	debtEncParam_init(e);
+	e->vector = 1;
+	debtDecParam_init(d);
 }
 
 #define MAXSIZE 	(64 * 1024 * 1024) // 64 megabytes is a HUGE BUFFER for a compressed image! Signal anything above it
+
+void clearInputBuffer()
+{
+	fd_set_blocking(0,0);
+	char c;
+	while(fread(&c,1,1,stdin)>0){}
+	fd_set_blocking(0,1);
+}
 
 static unsigned char *
 read_img(int *size, FILE *f)
@@ -278,8 +319,9 @@ write_img(struct imgBuffer *img, FILE *f)
 	int uvsize = img->uvwidth * img->uvheight; // FIXME: assumes img->uvpitch == img->uvwidth
 	int yuvsize = ysize + (uvsize << 1);
 	/* PGM header */
-	fprintf(stdout, "P%d\n%d %d\n255\n", color == COLORFORMAT_FMT_GREY ? 5 : 7, img->width, img->height);
-	int n = fwrite(img->buffer, 1, yuvsize, f);
+	//fprintf(stdout, "P%d\n%d %d\n255\n", color == COLORFORMAT_FMT_GREY ? 5 : 7, img->width, img->height);
+//	int n = fwrite(img->buffer, 1, yuvsize, f);
+	int n = write(1, img->buffer, yuvsize); //parece que write flushea después de escribir, en cambio fwrite no
 	if (n != yuvsize) {
 		fprintf(stderr, "Short write (%d out of %d)\n", n, yuvsize);
 		n = -1;
@@ -288,7 +330,7 @@ write_img(struct imgBuffer *img, FILE *f)
 }
 
 static int
-decode(struct decParam *d)
+decode(struct debtDecParam *d)
 {
 	int retval = -1;
 	/* read the image up to size */
@@ -298,12 +340,18 @@ decode(struct decParam *d)
 		/* prepare an imgBuffer for decoding */
 		struct imgBuffer *dst = imgBuffer_new();
 		if (dst) {
+
+			fprintf(stderr, "DECODER: Intentando descomprimir!!!\n");
 			if (debt_decode_imgbuffer(dst, debtimg, debtimgsize, d, NULL, NULL)) {
+				fprintf(stderr, "DECODER: Descomprimiendo la imagen!!!\n");
 				retval = write_img(dst, stdout);
 			}
+			else
+				fprintf(stderr, "DECODER: ERROR al descomprimir!!!\n");
 			imgBuffer_del(dst);
 		}
 		free(debtimg);
+		clearInputBuffer();
 	}
 	return retval;
 }
@@ -387,10 +435,12 @@ read_src_img(FILE *f)
 }
 
 static int
-encode(struct encParam *e)
+encode(struct debtEncParam *e, char* imId, int imIdSize)
 {
 	int imgsize = 0;
 	struct imgBuffer *src = read_src_img(stdin);
+
+	struct timeval start;
 	if (src) {
 		/* setup the output buffer */
 		unsigned char *buffer = NULL;
@@ -403,16 +453,28 @@ encode(struct encParam *e)
 		/* encode it! */
 		int blen = debt_encode_imgbuffer(src, &buffer, &buflen, fixed, e);
 		if (blen) {
+			gettimeofday(&start, NULL);
+			
+			fprintf(stderr, "ENCODER: Escribiendo identificador de la imagen (%d bytes)\n", imIdSize);
+			write(1, imId, imIdSize);
+
+			fprintf(stderr, "ENCODER: Escribiendo timeval actual (%ld bytes)\n", sizeof(struct timeval));
+			write(1, &start, sizeof(struct timeval));
+
+			fprintf(stderr, "ENCODER: Comprimiendo...\n");
+
 			/* negative result means valid but truncated output (the user has probably specified a max size or no more memory */
 			if (blen < 0) {
 				blen = -blen;
 			}
 			int n = (blen + 7) >> 3;
-			imgsize = fwrite(buffer, 1, n, stdout);
+			//imgsize = fwrite(buffer, 1, n, stdout);
+			imgsize = write(1, buffer, n);
 			if (n != imgsize) {
 				fprintf(stderr, "Short write (%d out of %d)\n", imgsize, n);
 			}
 		}
+		clearInputBuffer();
 		free(buffer);
 		buflen = 0;
 		imgBuffer_del(src);
@@ -421,7 +483,7 @@ encode(struct encParam *e)
 }
 
 static int
-graph(struct encParam *e, struct decParam *d)
+graph(struct debtEncParam *e, struct debtDecParam *d)
 {
 	int ret = -1;
 	/* read the source image */
@@ -459,20 +521,91 @@ graph(struct encParam *e, struct decParam *d)
 	return ret;
 }
 
+
+int fd_set_blocking(int fd, int blocking) {
+    /* Save the current flags */
+    int flags = fcntl(fd, F_GETFL, 0);
+    if (flags == -1)
+        return 0;
+
+    if (blocking)
+        flags &= ~O_NONBLOCK;
+    else
+        flags |= O_NONBLOCK;
+    return fcntl(fd, F_SETFL, flags) != -1;
+}
+
+
+
+
+void segfault_sigaction(int signal, siginfo_t *si, void *arg)
+{
+    fprintf(stderr, "ENCODER: Caught segfault at address %p\n", si->si_addr);
+    exit(0);
+}
+
+
+int isEnc(int * e)
+{
+	*e = 1;
+	return 0;
+}
+
+int isDec(int * d)
+{
+	*d = 1;
+	return 0;
+}
+
 int
 main(int argc, char *argv[])
 {
-	struct encParam e;
-	struct decParam d;
+	struct debtEncParam e;
+	struct debtDecParam d;
 
 	defaultParams(&e, &d);
 
-	int act = getOptions(argc, argv, &e, &d);
+	char * imId;
+	int imIdSize;
 
-	int ret = (act == -1) ? graph(&e, &d) : (!act ? decode(&d) : encode(&e));
+	int isEncoder = 0, isDecoder = 0;
+	int act = getOptions(argc, argv, &e, &d, &imId, &imIdSize);
 
-	decParam_destroy(&d);
-	encParam_destroy(&e);
+	int ret = (act == -1) ? graph(&e, &d) : (!act ? isDec(&isDecoder) : isEnc(&isEncoder));
+
+
+	if(isEncoder || isDecoder)
+	{
+
+		if(isEncoder)
+		{
+			struct sigaction sa;
+			memset(&sa, 0, sizeof(sigaction));
+			sigemptyset(&sa.sa_mask);
+			sa.sa_sigaction = segfault_sigaction;
+			sa.sa_flags   = SA_SIGINFO;
+
+			sigaction(SIGSEGV, &sa, NULL);
+
+
+
+			while(1)
+			{
+				encode(&e, imId, imIdSize);
+			}
+		}
+		else
+		{
+			while(1)
+			{
+
+				decode(&d);
+			}
+		}
+	}
+
+	debtDecParam_destroy(&d);
+	debtEncParam_destroy(&e);
 
 	return ret;
 }

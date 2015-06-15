@@ -6,3 +6,6 @@ videoRovRx_rtsp.sh
 *.raw
 *~
 debter
+decoded
+encoded
+sinheader

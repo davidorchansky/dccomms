@@ -4,7 +4,8 @@ BINDIR = bin/
 PRIVATELIBDIR = libraries
 INCLUDES = includes
 EDULIB = ezbtx86_64
-all: bindir radio improc $(BINDIR)TX3 $(BINDIR)TX $(BINDIR)RX $(BINDIR)RX1 $(BINDIR)RX2 $(BINDIR)TX2 $(BINDIR)encode $(BINDIR)decode $(BINDIR)header $(BINDIR)encode_2
+EDULIB_v2 = 
+all: bindir radio improc $(BINDIR)TX3 $(BINDIR)TX $(BINDIR)RX $(BINDIR)RX1 $(BINDIR)RX2 $(BINDIR)TX2 $(BINDIR)encode $(BINDIR)decode $(BINDIR)header $(BINDIR)header_v2 $(BINDIR)encode_2 $(BINDIR)debter
 
 bindir:
 	mkdir -p $(BINDIR)
@@ -47,7 +48,13 @@ $(BINDIR)decode: decode.c
 $(BINDIR)header: header.c
 	gcc -I $(INCLUDES) $< -o $@ 
 
+$(BINDIR)header_v2: header_v2.c
+	gcc -I $(INCLUDES) $< -o $@ 
 
+$(BINDIR)debter: debt.c
+	gcc -I $(INCLUDES) $< -o $@ -l$(EDULIB_V2) -lm
+
+#gcc -L ../x86_64/static-libraries/ -I ../src/ debt.c -ldebt -lm -o debter
 clean:
 	rm -f $(BINDIR)/*
 	make -C $(LIBDIR) clean
