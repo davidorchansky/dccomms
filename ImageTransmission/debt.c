@@ -12,7 +12,7 @@
 #include <unistd.h>
 #include <getopt.h>
 
-#include "libdebt.h"
+#include <libdebt.h>
 
 //old encode includes
 #include <math.h>
