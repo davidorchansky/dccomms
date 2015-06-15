@@ -55,7 +55,7 @@ int main(int argc, char ** argv) {
 		exit(1);
 	}
 
-	int size = atoi(argv[1]) + 24;
+	int size = atoi(argv[1]);
 	unsigned char buffer[size];
 
 	int rsize = 0;
