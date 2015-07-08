@@ -6,7 +6,7 @@ INCLUDES = includes
 EDULIB_V2_INCLUDES = libraries/debt/src
 EDULIB = ezbt
 EDULIB_V2 = debt
-all: bindir radio improc $(BINDIR)TX3 $(BINDIR)TX $(BINDIR)RX $(BINDIR)RX1 $(BINDIR)RX2 $(BINDIR)TX2 $(BINDIR)encode $(BINDIR)decode $(BINDIR)header $(BINDIR)header_v2 $(BINDIR)encode_2 $(BINDIR)debter
+all: bindir radio improc $(BINDIR)TX3 $(BINDIR)TX $(BINDIR)RX $(BINDIR)RX1 $(BINDIR)RX2 $(BINDIR)TX2 $(BINDIR)encode $(BINDIR)decode $(BINDIR)header $(BINDIR)header_v2 $(BINDIR)encode_2 $(BINDIR)debter $(BINDIR)grabber
 
 bindir:
 	mkdir -p $(BINDIR)
@@ -52,6 +52,10 @@ $(BINDIR)header: header.c
 
 $(BINDIR)header_v2: header_v2.c
 	gcc -I $(INCLUDES) $< -o $@ 
+
+$(BINDIR)grabber: grabber.c
+	gcc -I $(INCLUDES) $< -o $@ 
+
 
 $(BINDIR)debter: debt.c
 	gcc -I $(INCLUDES) -I $(EDULIB_V2_INCLUDES) -L $(PRIVATELIBDIR) $< -o $@ -l$(EDULIB_V2) -lm
