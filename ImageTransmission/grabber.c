@@ -24,6 +24,13 @@
 #include <signal.h>
 
 
+#include <assert.h>
+#include <sys/types.h>
+#include <sys/time.h>
+
+
+#define CLEAR(x) memset(&(x), 0, sizeof(x))
+
 int width, height;
 
 void yuyv422_to_yuv420p(int width, int height, uint8_t * b422, uint8_t * y, uint8_t *u, uint8_t * v)
@@ -104,6 +111,12 @@ void segfault_sigaction(int signal, siginfo_t *si, void *arg)
 {
     printf("Caught segfault at address %p\n", si->si_addr);
     exit(0);
+}
+
+void errno_exit(const char *s)
+{
+        fprintf(stderr, "%s error %d, %s\n", s, errno, strerror(errno));
+        exit(EXIT_FAILURE);
 }
 
 uint8_t *buffer;
@@ -237,45 +250,55 @@ int init_mmap(int fd)
     return 0;
 }
  
-int capture_image(int fd)
-{
-    struct v4l2_buffer buf = {0};
-    buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    buf.memory = V4L2_MEMORY_MMAP;
-    buf.index = 0;
-    if(-1 == xioctl(fd, VIDIOC_QBUF, &buf))
-    {
-        perror("Query Buffer");
-        return 1;
-    }
- 
-    if(-1 == xioctl(fd, VIDIOC_STREAMON, &buf.type))
-    {
-        perror("Start Capture");
-        return 1;
-    }
- 
-    fd_set fds;
-    FD_ZERO(&fds);
-    FD_SET(fd, &fds);
-    struct timeval tv = {0};
-    tv.tv_sec = 2;
-    int r = select(fd+1, &fds, NULL, NULL, &tv);
-    if(-1 == r)
-    {
-        perror("Waiting for Frame");
-        return 1;
-    }
- 
-    if(-1 == xioctl(fd, VIDIOC_DQBUF, &buf))
-    {
-        perror("Retrieving Frame");
-        return 1;
-    }
 
-    return 0;
+int read_frame(int fd)
+{
+	struct v4l2_buffer buf;
+	CLEAR(buf);
+
+	buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	buf.memory = V4L2_MEMORY_MMAP;
+
+	if (-1 == xioctl(fd, VIDIOC_DQBUF, &buf)) {
+		switch (errno) {
+			case EAGAIN:
+				return 0;
+
+			case EIO:
+				/* Could ignore EIO, see spec. */
+
+				/* fall through */
+
+			default:
+				errno_exit("VIDIOC_DQBUF");
+		}
+	}
+
+	if (-1 == xioctl(fd, VIDIOC_QBUF, &buf))
+		errno_exit("VIDIOC_QBUF");
 }
- 
+
+int start_capturing(int fd)
+{
+	struct v4l2_buffer buf = {0};
+	buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	buf.memory = V4L2_MEMORY_MMAP;
+	buf.index = 0;
+	if(-1 == xioctl(fd, VIDIOC_QBUF, &buf))
+	{
+		perror("Query Buffer");
+		return 1;
+	}
+
+	if(-1 == xioctl(fd, VIDIOC_STREAMON, &buf.type))
+	{
+		perror("Start Capture");
+		return 1;
+	}
+	return 0;
+
+}
+
 int main(int argc, char ** argv)
 {
 
@@ -324,13 +347,35 @@ int main(int argc, char ** argv)
 	uint8_t * v = u + width * height / 4;
 
 
+	if(start_capturing(fd))
+		return 1;
+	fd_set fds;
+
+
 	while(1)
 	{
-	
+
+
 		fprintf(stderr, "GRABBER: capturando imagen...\n");
-		if(!capture_image(fd))
+		FD_ZERO(&fds);
+		FD_SET(fd, &fds);
+		struct timeval tv = {0};
+		tv.tv_sec = 2;
+		int r = select(fd+1, &fds, NULL, NULL, &tv);
+		
+		int frameReady = 1;	
+		
+		if(-1 == r)
 		{
-			
+			perror("Waiting for Frame");
+			frameReady = 0;
+		}
+
+		
+		if(frameReady)
+		{
+
+			read_frame(fd);	
 			fprintf(stderr, "GRABBER: Convirtiendo imagen de yuyv422 a yuv420p\n");
 			yuyv422_to_yuv420p(width, height, buffer, y, u, v);
 			fprintf(stderr, "GRABBER: Añadido header a %ld bytes de imagen yuyv420\n", yuv420p_size);
