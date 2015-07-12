@@ -268,14 +268,17 @@ int read_frame(int fd)
 				/* Could ignore EIO, see spec. */
 
 				/* fall through */
+				return 0;
 
 			default:
-				errno_exit("VIDIOC_DQBUF");
+				return 0;
 		}
 	}
 
 	if (-1 == xioctl(fd, VIDIOC_QBUF, &buf))
-		errno_exit("VIDIOC_QBUF");
+		return 0;
+
+	return 1;
 }
 
 int start_capturing(int fd)
@@ -375,13 +378,15 @@ int main(int argc, char ** argv)
 		if(frameReady)
 		{
 
-			read_frame(fd);	
-			fprintf(stderr, "GRABBER: Convirtiendo imagen de yuyv422 a yuv420p\n");
-			yuyv422_to_yuv420p(width, height, buffer, y, u, v);
-			fprintf(stderr, "GRABBER: Añadido header a %ld bytes de imagen yuyv420\n", yuv420p_size);
-			writep9header(width, height);
-			fprintf(stderr, "GRABBER: Enviando imagen por la salida estandar\n");
-			write(1, yuv420p, yuv420p_size);
+			if(read_frame(fd))
+			{
+				fprintf(stderr, "GRABBER: Convirtiendo imagen de yuyv422 a yuv420p\n");
+				yuyv422_to_yuv420p(width, height, buffer, y, u, v);
+				fprintf(stderr, "GRABBER: Añadido header a %ld bytes de imagen yuyv420\n", yuv420p_size);
+				writep9header(width, height);
+				fprintf(stderr, "GRABBER: Enviando imagen por la salida estandar\n");
+				write(1, yuv420p, yuv420p_size);
+			}
 		}
 	}
 
