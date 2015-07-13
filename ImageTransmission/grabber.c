@@ -79,7 +79,7 @@ writep9header(int w, int h)
 	return 0;
 	*/
 	char header[100];
-	int n=sprintf(header, "P9\n%d %d\n255\n", w, h);
+	int n=sprintf(header, "P7\n%d %d\n255\n", w, h);
 	write(1, header, n);
 
 	return 0;
