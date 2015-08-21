@@ -35,7 +35,7 @@ $(BINDIR)RX1: RX1.cpp
 $(BINDIR)RX2: RX2.cpp
 	$(CXX) -std=c++0x -I"../includes/" -L $(LIBDIR)  $< -o $@ -lradio -lcrypto
 
-$(BINDIR)header_v2: header_v2.c
+$(BINDIR)header_v2: header.c
 	$(CC) -I $(INCLUDES) $< -o $@ 
 
 $(BINDIR)grabber: grabber.c
