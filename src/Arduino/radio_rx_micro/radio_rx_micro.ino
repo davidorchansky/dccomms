@@ -5,7 +5,7 @@
 #define AREYOU_SIZE 18
 #define IMFROM_SIZE 11
 
-#define BUFFER_SIZE 1100
+#define BUFFER_SIZE 1500
 
 #define TXS 6
 #define RXS 7
@@ -132,7 +132,7 @@ boolean commandReceived(Stream * s, char* buffer, int buffSize, unsigned char* p
 }
 void setup() {
   Serial.begin(115200);
-  radioStream->begin(38400);
+  radioStream->begin(9600);
   //radioStream->begin(57600);
 
   BigEndian = IsBigEndian();

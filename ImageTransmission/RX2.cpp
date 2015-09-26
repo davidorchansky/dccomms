@@ -18,7 +18,9 @@
 #include <RadioException.h>
 #include <stdlib.h>
 #include <sys/stat.h>
+#include <cstring>
 
+#include <unistd.h> //Posix write/read
 using namespace std;
 using namespace radiotransmission;
 
@@ -31,6 +33,7 @@ int main(int argc, char **argv) {
 	}
 
 	uint32_t size = atoi(argv[2]);
+	uint32_t idlength = strlen(argv[1]);
 
 	try
 	{
@@ -122,12 +125,19 @@ int main(int argc, char **argv) {
 				gettimeofday(&time0, NULL);
 				t0 = time0.tv_sec*1000 + time0.tv_usec/1000;
 
-				fwrite(rxbuffer, 1, fsize, stdout);
+				std::cout << argv[1];
+				if(write(1, &fsize, sizeof(fsize)) == sizeof(fsize))
+				{
+					//if(fwrite(rxbuffer, 1, fsize, stdout) == fsize)
+					if(write(1, rxbuffer, fsize))
+					{
 
-				gettimeofday(&time1, NULL);
-				t1 = time1.tv_sec*1000 + time1.tv_usec/1000;
-				tdif = t1 - t0;
-				std::cerr << "Bloque enviado en : " << tdif << " ms" <<std::endl;
+						gettimeofday(&time1, NULL);
+						t1 = time1.tv_sec*1000 + time1.tv_usec/1000;
+						tdif = t1 - t0;
+						std::cerr << "Bloque enviado en : " << tdif << " ms" <<std::endl;
+					}
+				}
 
 			}
 			catch(RadioException& e) //Control de excepciones

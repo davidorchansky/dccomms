@@ -5,7 +5,7 @@
 #define AREYOU_SIZE 18
 #define IMFROM_SIZE 11
 
-#define BUFFER_SIZE 1100
+#define BUFFER_SIZE 1500
 
 #define TXS 6
 #define RXS 7
@@ -144,7 +144,7 @@ char sensorsInfo[40];
 
 void setup() {
 	Serial.begin(115200);
-	radioStream->begin(38400);
+	radioStream->begin(9600);
 
 	for (int i = 0; i < 40; i++)
 		sensorsInfo[i] = 'i';

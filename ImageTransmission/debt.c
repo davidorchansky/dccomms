@@ -558,6 +558,37 @@ int isDec(int * d)
 }
 
 int
+readId(char* id, int len)
+{
+	char c;
+	int i;
+	for(i = 0; i < len; i++)
+	{
+		c = getchar();
+//		fprintf(stderr, "#%c\n",c);
+		if(c != id[i])
+			return -1;
+
+	}
+	return 0;
+}
+
+int readNb(void *bu, int size)
+{
+	int r = 0;
+	while(r < size)
+	{
+		r += read(0,bu+r,size-r);
+	}
+
+//	fprintf(stderr, "BU[0] : 0x%x, %c\n",*((unsigned char*)(bu)),*((unsigned char*)(bu)));
+//	fprintf(stderr, "BU[1] : 0x%x, %c\n",*((unsigned char*)(bu+1)),*((unsigned char*)(bu+1)));
+//	fprintf(stderr, "BU[2] : 0x%x, %c\n",*((unsigned char*)(bu+2)),*((unsigned char*)(bu+2)));
+//	fprintf(stderr, "BU[3] : 0x%x, %c\n",*((unsigned char*)(bu+3)),*((unsigned char*)(bu+3)));
+	return r;
+}
+
+int
 main(int argc, char *argv[])
 {
 	struct debtEncParam e;
@@ -598,8 +629,18 @@ main(int argc, char *argv[])
 		{
 			while(1)
 			{
-
-				decode(&d);
+				if(readId(imId,imIdSize) == 0)
+				{
+					uint32_t encodedSize = 0;
+					int r = readNb(&encodedSize, sizeof(encodedSize));
+					fprintf(stderr, "DECODER: (%d)Recibida imagen de comprimida a %x bytes (%d), (%ld)...\n", imIdSize,encodedSize,r, sizeof(encodedSize));
+					if(encodedSize < 90000)
+					{
+						d.bitlen = encodedSize << 3;
+						//fprintf(stderr, "DECODER: decodificando...\n");
+						decode(&d);
+					}
+				}
 			}
 		}
 	}
