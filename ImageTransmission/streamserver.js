@@ -55,9 +55,10 @@ function NXServer(httpUIDir, httpPort, streamIP, streamPort) {
 	//  ]);
 	// vcd
 	ffmpeg.on('error', function (err) {
-		throw err;
+		console.log('ERROR: '+err);
 	});
 
+	
 	ffmpeg.on('close', function (code) {
 		console.log('ffmpeg exited with code ' + code);
 	});

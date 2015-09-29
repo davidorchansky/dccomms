@@ -5,7 +5,7 @@ PRIVATELIBDIR = ./libraries/x86_64
 INCLUDES = includes 
 EDULIB_V2_INCLUDES = libraries/debt/src
 EDULIB_V2 = debt
-all: bindir radio improc $(BINDIR)TX4 $(BINDIR)videoServer $(BINDIR)TX3 $(BINDIR)TX $(BINDIR)RX $(BINDIR)RX1 $(BINDIR)RX2 $(BINDIR)TX2 $(BINDIR)debter $(BINDIR)grabber $(BINDIR)grabberDebter $(BINDIR)header_v2
+all: bindir radio improc $(BINDIR)TX4 $(BINDIR)videoServer $(BINDIR)TX3 $(BINDIR)TX $(BINDIR)RX $(BINDIR)RX1 $(BINDIR)RX2 $(BINDIR)TX2 $(BINDIR)debter $(BINDIR)grabber $(BINDIR)grabberDebter_v2 $(BINDIR)grabberDebter $(BINDIR)header_v2
 
 bindir:
 	mkdir -p $(BINDIR)
@@ -50,6 +50,9 @@ $(BINDIR)grabber: grabber.c
 	$(CC) -I $(INCLUDES) $< -o $@ 
 
 $(BINDIR)grabberDebter: grabberDebter.c
+	$(CC) -I $(INCLUDES) -I $(EDULIB_V2_INCLUDES) -L $(PRIVATELIBDIR) $< -o $@ -l$(EDULIB_V2) -lm
+
+$(BINDIR)grabberDebter_v2: grabberDebter_v2.c
 	$(CC) -I $(INCLUDES) -I $(EDULIB_V2_INCLUDES) -L $(PRIVATELIBDIR) $< -o $@ -l$(EDULIB_V2) -lm
 
 $(BINDIR)debter: debt.c

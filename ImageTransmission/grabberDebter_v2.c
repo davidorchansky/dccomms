@@ -1,10 +1,3 @@
-/*
- * ezbt.c
- *
- *  Created on: Jan 14, 2015
- *      Author: moscoso
- */
-
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,6 +14,290 @@
 #include <stdint.h>
 #include <signal.h>
 #include <fcntl.h>
+
+//extra grabber includes
+#include <sys/stat.h>
+#include <sys/ioctl.h>
+#include <linux/videodev2.h>
+#include <sys/mman.h>
+#include <errno.h>
+#include <assert.h>
+#include <sys/types.h>
+
+
+#define CLEAR(x) memset(&(x), 0, sizeof(x))
+
+int width = 1280 , height = 720;
+
+void yuyv422_to_yuv420p(int width, int height, uint8_t * b422, uint8_t * y, uint8_t *u, uint8_t * v)
+{
+	int b422width = width * 2;
+
+	uint8_t * row = b422;
+	uint8_t * max = row + height * b422width;
+
+	int offset;
+
+	uint8_t * cptr;
+	uint8_t * mptr;
+
+	int nrow;
+
+	for(row = b422, nrow = 0; row < max; row += b422width, nrow++)
+	{
+		mptr = row + b422width;
+
+		if(nrow % 2 == 0) //Nos guardamos "u" y "v"
+		{
+			for(cptr = row; cptr < mptr; cptr += 4)
+			{
+				*u = *(cptr + 1);
+				*v = *(cptr + 3);
+				u++;
+				v++;
+			}
+		}
+		//Nos guardamos "y" siempre
+		for(cptr = row; cptr < mptr; cptr +=2)
+		{
+			*y = *cptr;
+			y++;
+		}
+	}
+}
+
+int
+writep9header(int w, int h)
+{/*
+	fputs("P9\n", stdout);
+	fprintf(stdout, "%d %d\n", w ,h);
+	fputs("255\n",stdout);
+	return 0;
+	*/
+	char header[100];
+	int n=sprintf(header, "P7\n%d %d\n255\n", w, h);
+	write(1, header, n);
+
+	return 0;
+}
+
+
+/**
+ * Set a file descriptor to blocking or non-blocking mode.
+ *
+ * @param fd The file descriptor
+ * @param blocking 0:non-blocking mode, 1:blocking mode
+ *
+ * @return 1:success, 0:failure.
+ **/
+int fd_set_blocking(int fd, int blocking) {
+    /* Save the current flags */
+    int flags = fcntl(fd, F_GETFL, 0);
+    if (flags == -1)
+        return 0;
+
+    if (blocking)
+        flags &= ~O_NONBLOCK;
+    else
+        flags |= O_NONBLOCK;
+    return fcntl(fd, F_SETFL, flags) != -1;
+}
+
+void segfault_sigaction(int signal, siginfo_t *si, void *arg)
+{
+    printf("Caught segfault at address %p\n", si->si_addr);
+    exit(0);
+}
+
+void errno_exit(const char *s)
+{
+        fprintf(stderr, "%s error %d, %s\n", s, errno, strerror(errno));
+        exit(EXIT_FAILURE);
+}
+
+uint8_t *buffer_G;
+ 
+static int xioctl(int fd, int request, void *arg)
+{
+        int r;
+ 
+        do r = ioctl (fd, request, arg);
+        while (-1 == r && EINTR == errno);
+ 
+        return r;
+}
+ 
+int print_caps(int fd)
+{
+        struct v4l2_capability caps = {};
+        if (-1 == xioctl(fd, VIDIOC_QUERYCAP, &caps))
+        {
+                perror("Querying Capabilities");
+                return 1;
+        }
+ 
+        fprintf(stderr, "Driver Caps:\n"
+                "  Driver: \"%s\"\n"
+                "  Card: \"%s\"\n"
+                "  Bus: \"%s\"\n"
+                "  Version: %d.%d\n"
+                "  Capabilities: %08x\n",
+                caps.driver,
+                caps.card,
+                caps.bus_info,
+                (caps.version>>16)&&0xff,
+                (caps.version>>24)&&0xff,
+                caps.capabilities);
+ 
+ 
+        struct v4l2_cropcap cropcap = {0};
+        cropcap.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        if (-1 == xioctl (fd, VIDIOC_CROPCAP, &cropcap))
+        {
+                perror("Querying Cropping Capabilities");
+                return 1;
+        }
+ 
+        fprintf(stderr, "Camera Cropping:\n"
+                "  Bounds: %dx%d+%d+%d\n"
+                "  Default: %dx%d+%d+%d\n"
+                "  Aspect: %d/%d\n",
+                cropcap.bounds.width, cropcap.bounds.height, cropcap.bounds.left, cropcap.bounds.top,
+                cropcap.defrect.width, cropcap.defrect.height, cropcap.defrect.left, cropcap.defrect.top,
+                cropcap.pixelaspect.numerator, cropcap.pixelaspect.denominator);
+ 
+        int support_yuyv422 = 0;
+ 
+        struct v4l2_fmtdesc fmtdesc = {0};
+        fmtdesc.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        char fourcc[5] = {0};
+        char c, e;
+        fprintf(stderr,"  FMT : CE Desc\n--------------------\n");
+        while (0 == xioctl(fd, VIDIOC_ENUM_FMT, &fmtdesc))
+        {
+                strncpy(fourcc, (char *)&fmtdesc.pixelformat, 4);
+                if (fmtdesc.pixelformat == V4L2_PIX_FMT_YUYV)
+                    support_yuyv422 = 1;
+                c = fmtdesc.flags & 1? 'C' : ' ';
+                e = fmtdesc.flags & 2? 'E' : ' ';
+                fprintf(stderr,"  %s: %c%c %s\n", fourcc, c, e, fmtdesc.description);
+                fmtdesc.index++;
+        }
+ 
+        if (!support_yuyv422)
+        {
+            fprintf(stderr, "Doesn't support YUYV.\n");
+            return 1;
+        }
+ 
+        struct v4l2_format fmt = {0};
+        fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        fmt.fmt.pix.width = width;
+        fmt.fmt.pix.height = height;
+        fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
+        fmt.fmt.pix.field = V4L2_FIELD_NONE;
+ 
+        if (-1 == xioctl(fd, VIDIOC_S_FMT, &fmt))
+        {
+            perror("Setting Pixel Format");
+            return 1;
+        }
+ 
+        strncpy(fourcc, (char *)&fmt.fmt.pix.pixelformat, 4);
+        fprintf(stderr, "Selected Camera Mode:\n"
+                "  Width: %d\n"
+                "  Height: %d\n"
+                "  PixFmt: %s\n"
+                "  Field: %d\n",
+                fmt.fmt.pix.width,
+                fmt.fmt.pix.height,
+                fourcc,
+                fmt.fmt.pix.field);
+        return 0;
+}
+ 
+int init_mmap(int fd)
+{
+    struct v4l2_requestbuffers req = {0};
+    req.count = 1;
+    req.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    req.memory = V4L2_MEMORY_MMAP;
+ 
+    if (-1 == xioctl(fd, VIDIOC_REQBUFS, &req))
+    {
+        perror("Requesting Buffer");
+        return 1;
+    }
+ 
+    struct v4l2_buffer buf = {0};
+    buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    buf.memory = V4L2_MEMORY_MMAP;
+    buf.index = 0;
+    if(-1 == xioctl(fd, VIDIOC_QUERYBUF, &buf))
+    {
+        perror("Querying Buffer");
+        return 1;
+    }
+ 
+    buffer_G = mmap (NULL, buf.length, PROT_READ | PROT_WRITE, MAP_SHARED, fd, buf.m.offset);
+    fprintf(stderr, "Length: %d\nAddress: %p\n", buf.length, buffer_G);
+    fprintf(stderr, "Image Length: %d\n", buf.bytesused);
+ 
+    return 0;
+}
+ 
+
+int read_frame(int fd)
+{
+	struct v4l2_buffer buf;
+	CLEAR(buf);
+
+	buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	buf.memory = V4L2_MEMORY_MMAP;
+
+	if (-1 == xioctl(fd, VIDIOC_DQBUF, &buf)) {
+		switch (errno) {
+			case EAGAIN:
+				return 0;
+
+			case EIO:
+				/* Could ignore EIO, see spec. */
+
+				/* fall through */
+				return 0;
+
+			default:
+				return 0;
+		}
+	}
+
+	if (-1 == xioctl(fd, VIDIOC_QBUF, &buf))
+		return 0;
+
+	return 1;
+}
+
+int start_capturing(int fd)
+{
+	struct v4l2_buffer buf = {0};
+	buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	buf.memory = V4L2_MEMORY_MMAP;
+	buf.index = 0;
+	if(-1 == xioctl(fd, VIDIOC_QBUF, &buf))
+	{
+		perror("Query Buffer");
+		return 1;
+	}
+
+	if(-1 == xioctl(fd, VIDIOC_STREAMON, &buf.type))
+	{
+		perror("Start Capture");
+		return 1;
+	}
+	return 0;
+
+}
+//GRABBER METHODS
 
 static char *
 pgmName(char *path)
@@ -351,7 +628,7 @@ decode(struct debtDecParam *d)
 			imgBuffer_del(dst);
 		}
 		free(debtimg);
-		//clearInputBuffer();
+		clearInputBuffer();
 	}
 	return retval;
 }
@@ -413,43 +690,53 @@ read_header(int *w, int *h, FILE *f)
 static struct imgBuffer *
 read_src_img(FILE *f)
 {
+        struct imgBuffer *img = NULL;
+        int w, h, color;
+        color = read_header(&w, &h, f);
+        if (color != -1) {
+                /* prepare an image buffer for the input image */
+                if ((img = imgBuffer_aligned_new(1))) {
+                        if (imgBuffer_reinit(img, w, h, color)) {
+                                int yuvsize = (img->width * img->height) + ((img->uvwidth * img->uvheight) << 1);
+                                int n = fread(img->buffer, 1, yuvsize, f);
+                                if (n == yuvsize) {
+                                        return img;
+                                }
+                                fprintf(stderr, "Short read (%d from %d)\n", n, yuvsize);
+                        }
+                        imgBuffer_del(img);
+                        img = NULL;
+                }
+        }
+        return img;
+}
+
+static struct imgBuffer * buildImgBuffer(unsigned char * ci, int color, int w, int h, int yuvsize)
+{
 	struct imgBuffer *img = NULL;
-	int w, h, color;
-	color = read_header(&w, &h, f);
-	if (color != -1) {
-		/* prepare an image buffer for the input image */
-		if ((img = imgBuffer_aligned_new(1))) {
-			if (imgBuffer_reinit(img, w, h, color)) {
-				int yuvsize = (img->width * img->height) + ((img->uvwidth * img->uvheight) << 1);
-				int n = fread(img->buffer, 1, yuvsize, f);
-				if (n == yuvsize) {
-					return img;
-				}
-				fprintf(stderr, "Short read (%d from %d)\n", n, yuvsize);
-			}
-			imgBuffer_del(img);
-			img = NULL;
+	/* prepare an image buffer for the input image */
+	if ((img = imgBuffer_aligned_new(1))) {
+		if (imgBuffer_reinit(img, w, h, color)) 
+		{
+			memcpy(img->buffer, ci, yuvsize);
+			return img;
 		}
+		imgBuffer_del(img);
+		img = NULL;
 	}
 	return img;
 }
 
 static int
-encode(struct debtEncParam *e, char* imId, int imIdSize)
+encode(struct debtEncParam *e, unsigned char * buffer, int buflen, int fixed, char* imId, int imIdSize, struct imgBuffer * src)
 {
-	int imgsize = 0;
-	struct imgBuffer *src = read_src_img(stdin);
-
 	struct timeval start;
+	int imgsize = 0;
+	
+	fprintf(stderr, "ENCODER: Comprobando imagen...\n");
 	if (src) {
-		/* setup the output buffer */
-		unsigned char *buffer = NULL;
-		int buflen = 0;
-		int fixed = 0;
-		if (e->maxsize) {
-			buffer = malloc(buflen = e->maxsize);
-			fixed = 1;
-		}
+
+		fprintf(stderr, "ENCODER: Imagen encontrada!\n");
 		/* encode it! */
 		int blen = debt_encode_imgbuffer(src, &buffer, &buflen, fixed, e);
 		if (blen) {
@@ -474,10 +761,8 @@ encode(struct debtEncParam *e, char* imId, int imIdSize)
 				fprintf(stderr, "Short write (%d out of %d)\n", imgsize, n);
 			}
 		}
-		clearInputBuffer();
-		free(buffer);
-		buflen = 0;
-		imgBuffer_del(src);
+		//fprintf(stderr, "ENCODER: Limpiando buffer...\n");
+		//clearInputBuffer();
 	}
 	return imgsize;
 }
@@ -522,28 +807,6 @@ graph(struct debtEncParam *e, struct debtDecParam *d)
 }
 
 
-int fd_set_blocking(int fd, int blocking) {
-    /* Save the current flags */
-    int flags = fcntl(fd, F_GETFL, 0);
-    if (flags == -1)
-        return 0;
-
-    if (blocking)
-        flags &= ~O_NONBLOCK;
-    else
-        flags |= O_NONBLOCK;
-    return fcntl(fd, F_SETFL, flags) != -1;
-}
-
-
-
-
-void segfault_sigaction(int signal, siginfo_t *si, void *arg)
-{
-    fprintf(stderr, "ENCODER: Caught segfault at address %p\n", si->si_addr);
-    exit(0);
-}
-
 
 int isEnc(int * e)
 {
@@ -557,35 +820,37 @@ int isDec(int * d)
 	return 0;
 }
 
-int
-readId(char* id, int len)
+int setFrameSettings(
+	int fd, 
+	struct imgBuffer **img,
+	uint8_t **y,
+	uint8_t **u,
+	uint8_t **v
+	)
 {
-	char c;
-	int i;
-	for(i = 0; i < len; i++)
-	{
-		c = getchar();
-//		fprintf(stderr, "#%c\n",c);
-		if(c != id[i])
-			return -1;
-
+	/* prepare an image buffer for the input image */
+	if ((*img = imgBuffer_aligned_new(1))) {
+		if (!imgBuffer_reinit(*img, width, height, COLORFORMAT_FMT_420)) 
+			return 1;
 	}
+	else return 1;
+
+	free(buffer_G);
+	buffer_G = NULL;
+
+	if(print_caps(fd))
+		return 1;
+
+	if(init_mmap(fd))
+		return 1;
+
+	long yuv420p_size = width*height + width*height/2;
+
+	*y = (*(*img)).buffer;
+	*u = *y + width * height;
+	*v = *u + width * height / 4;
+
 	return 0;
-}
-
-int readNb(void *bu, int size)
-{
-	int r = 0;
-	while(r < size)
-	{
-		r += read(0,bu+r,size-r);
-	}
-
-//	fprintf(stderr, "BU[0] : 0x%x, %c\n",*((unsigned char*)(bu)),*((unsigned char*)(bu)));
-//	fprintf(stderr, "BU[1] : 0x%x, %c\n",*((unsigned char*)(bu+1)),*((unsigned char*)(bu+1)));
-//	fprintf(stderr, "BU[2] : 0x%x, %c\n",*((unsigned char*)(bu+2)),*((unsigned char*)(bu+2)));
-//	fprintf(stderr, "BU[3] : 0x%x, %c\n",*((unsigned char*)(bu+3)),*((unsigned char*)(bu+3)));
-	return r;
 }
 
 int
@@ -618,30 +883,74 @@ main(int argc, char *argv[])
 
 			sigaction(SIGSEGV, &sa, NULL);
 
+			const char * v4linuxDevice = "/dev/video0";
+			int fd;
 
+			fd = open(v4linuxDevice, O_RDWR);
+			if (fd == -1)
+			{
+				perror("Opening video device");
+				return 1;
+			}
+
+			struct imgBuffer *img = NULL;
+
+			uint8_t *y, *u, *v;
+
+			if(setFrameSettings(fd,&img,&y,&u,&v))
+				return 1;
+
+			if(start_capturing(fd))
+				return 1;
+			fd_set fds;
+
+			/* setup the output buffer */
+			unsigned char *buffer = NULL;
+			int buflen = 0;
+			int fixed = 0;
+			if (e.maxsize) {
+				buffer = malloc(buflen = e.maxsize);
+				fixed = 1;
+			}
 
 			while(1)
 			{
-				encode(&e, imId, imIdSize);
+				fprintf(stderr, "GRABBER: capturando imagen...\n");
+				FD_ZERO(&fds);
+				FD_SET(fd, &fds);
+				struct timeval tv = {0};
+				tv.tv_sec = 2;
+				int r = select(fd+1, &fds, NULL, NULL, &tv);
+
+				int frameReady = 1;	
+
+				if(-1 == r)
+				{
+					perror("Waiting for Frame");
+					frameReady = 0;
+				}
+
+
+				if(frameReady)
+				{
+
+					if(read_frame(fd))
+					{
+						fprintf(stderr, "GRABBER: Convirtiendo imagen de yuyv422 a yuv420p\n");
+						yuyv422_to_yuv420p(width, height, buffer_G, y, u, v);
+						
+						encode(&e, buffer, buflen, fixed, imId, imIdSize, img);
+					}
+				}
+
 			}
 		}
 		else
 		{
 			while(1)
-			{	
-				if(readId(imId,imIdSize) == 0)
-				{
-					uint32_t encodedSize = 0;
-					int r = readNb(&encodedSize, sizeof(encodedSize));
-					fprintf(stderr, "DECODER: (%d)Recibida imagen de comprimida a %x bytes (%d), (%ld)...\n", imIdSize,encodedSize,r, sizeof(encodedSize));
-					if(encodedSize < 90000)
-					{
-						d.bitlen = encodedSize << 3;
-						fprintf(stderr, "DECODER: decodificando...\n");
-						decode(&d);
-						fflush(stderr);
-					}
-				}
+			{
+
+				decode(&d);
 			}
 		}
 	}

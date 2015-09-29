@@ -215,7 +215,7 @@ int main(int argc , char *argv[])
 		fprintf(stderr, "Soy grabber, la lectura con server esta en %d\n", server_grabber_pipe[0]);
 		fflush(stderr);
 
-		execlp("./bin/grabberDebter", "grabberDebter", "-I", "imagen", NULL);
+		execlp("./bin/grabberDebter_v2", "grabberDebter_v2", "-I", "imagen", NULL);
 
 		fprintf(stderr, "Ha pasado algun problema al ejecutar el grabber\n");
 		fflush(stderr);

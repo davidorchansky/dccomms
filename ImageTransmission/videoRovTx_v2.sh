@@ -14,6 +14,6 @@ delay=$3
 maxAge=$4
 
 
-ffmpeg -r 25 -f video4linux2 -s 352x288 -i /dev/video0 -pix_fmt yuv420p -f rawvideo pipe:1 | ./bin/header_v2 352 288 | ./bin/debter -I imagen | ./bin/TX3 imagen $imsize $paysize $delay $maxAge
+ffmpeg -r 25 -f video4linux2 -s 1280x720 -i /dev/video0 -pix_fmt yuv420p -f rawvideo pipe:1 | ./bin/header_v2 1280 720 | ./bin/debter -I imagen | ./bin/TX3 imagen $imsize $paysize $delay $maxAge
 
 
