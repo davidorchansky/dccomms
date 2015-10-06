@@ -161,6 +161,15 @@ int main(int argc , char *argv[])
 	pipe(server_transmitter_pipe);
 	pipe(grabber_transmitter_pipe);
 
+	if(argc != 3)
+	{
+		fprintf(stderr, "Error: Arguments needed: <ImageWidth> <ImageHeight>\n");
+		exit(1);
+	}
+	char * width = argv[1];
+	char * height = argv[2];
+
+
 	if((grabber_pid = fork())!=0)
 	{
 		pid_t rfTransmitter_pid;
@@ -215,7 +224,7 @@ int main(int argc , char *argv[])
 		fprintf(stderr, "Soy grabber, la lectura con server esta en %d\n", server_grabber_pipe[0]);
 		fflush(stderr);
 
-		execlp("./bin/grabberDebter_dynamic", "grabberDebter_dynamic", "-I", "imagen", NULL);
+		execlp("./bin/grabberDebter_dynamic", "grabberDebter_dynamic", "-I", "imagen","-W",width, "-H",height, NULL);
 
 		fprintf(stderr, "Ha pasado algun problema al ejecutar el grabber\n");
 		fflush(stderr);
