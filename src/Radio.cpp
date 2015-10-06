@@ -130,8 +130,8 @@ void Radio::ReceiveBytes(void * buf, uint32_t size, uint8_t dirFrom, unsigned lo
 
 			arduino >> dlf;
 	#ifdef DEBUG
-			dlf.printFrame(std::cout);
-			std::cout << std::flush;
+			dlf.printFrame(std::cerr);
+			std::cerr << std::flush;
 	#endif
 			if(dlf.checkFrame())
 			{
