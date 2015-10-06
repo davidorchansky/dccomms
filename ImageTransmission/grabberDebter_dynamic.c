@@ -27,7 +27,7 @@
 
 #define CLEAR(x) memset(&(x), 0, sizeof(x))
 
-int width = 1280 , height = 720;
+int width_G, height_G;
 
 void yuyv422_to_yuv420p(int width, int height, uint8_t * b422, uint8_t * y, uint8_t *u, uint8_t * v)
 {
@@ -192,8 +192,8 @@ int print_caps(int fd)
  
         struct v4l2_format fmt = {0};
         fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-        fmt.fmt.pix.width = width;
-        fmt.fmt.pix.height = height;
+        fmt.fmt.pix.width = width_G;
+        fmt.fmt.pix.height = height_G;
         fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
         fmt.fmt.pix.field = V4L2_FIELD_NONE;
  
@@ -337,7 +337,9 @@ usage(char *pgmname, struct debtEncParam *e, struct debtDecParam *d)
 			"\n"
 			"\t-h               - Benchmark <%d>\n"
 			"\t-f               - Print encoding statistics <%d>\n"
-			"\t-I               - Specify an ASCII identifier for the image (it is like a header)\n",
+			"\t-I               - Specify an ASCII identifier for the image (it is like a header)\n"
+			"\t-W               - Specify the width of the image\n"
+			"\t-H               - Specify the height of the image\n",
 			pgmname,
 			e->vector,
 			bias_name(d->bias), d->weight, d->bitlen >> 3,
@@ -429,11 +431,18 @@ getOptions(int argc, char *argv[], struct debtEncParam *e, struct debtDecParam *
 	int enc = 0;
 	int graph = 0;
 
-	while ((opt = getopt(argc, argv, "v:db:a:c:et:n:k:r:q:u:x:p:m:s:l:i:y:gf:h:I:")) != -1) {
+	while ((opt = getopt(argc, argv, "v:db:a:c:et:n:k:r:q:u:x:p:m:s:l:i:y:gf:h:I:W:H:")) != -1) {
 		switch (opt) {
 		case 'I':
 			*imId = optarg;
 			*imIdSize = strlen(optarg);
+			break;
+		case 'W':
+			width_G = atoi(optarg);
+			break;
+		case 'H':
+			height_G = atoi(optarg);
+			break;
 		case 'v':
 			error += optGetIntError(optarg, &e->vector, 0);
 			break;
@@ -830,7 +839,7 @@ int setFrameSettings(
 {
 	/* prepare an image buffer for the input image */
 	if ((*img = imgBuffer_aligned_new(1))) {
-		if (!imgBuffer_reinit(*img, width, height, COLORFORMAT_FMT_420)) 
+		if (!imgBuffer_reinit(*img, width_G, height_G, COLORFORMAT_FMT_420)) 
 			return 1;
 	}
 	else return 1;
@@ -844,11 +853,11 @@ int setFrameSettings(
 	if(init_mmap(fd))
 		return 1;
 
-	long yuv420p_size = width*height + width*height/2;
+	long yuv420p_size = width_G*height_G + width_G*height_G/2;
 
 	*y = (*(*img)).buffer;
-	*u = *y + width * height;
-	*v = *u + width * height / 4;
+	*u = *y + width_G * height_G;
+	*v = *u + width_G * height_G / 4;
 
 	return 0;
 }
@@ -937,7 +946,7 @@ main(int argc, char *argv[])
 					if(read_frame(fd))
 					{
 						fprintf(stderr, "GRABBER: Convirtiendo imagen de yuyv422 a yuv420p\n");
-						yuyv422_to_yuv420p(width, height, buffer_G, y, u, v);
+						yuyv422_to_yuv420p(width_G, height_G, buffer_G, y, u, v);
 						
 						encode(&e, buffer, buflen, fixed, imId, imIdSize, img);
 					}

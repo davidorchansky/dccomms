@@ -79,7 +79,8 @@ int main(int argc, char ** argv) {
 
 		if(!sp.IsOpen())
 		{
-			std::cerr << "No ha sido posible encontrar la arduino" << std::endl;
+			std::cerr << "No ha sido posible conectar con el transmisor" << std::endl;
+			sp.Close();
 			exit(4);
 		}
 

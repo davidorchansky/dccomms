@@ -284,7 +284,6 @@ int SerialPortInterface::Write(const void * buf, uint32_t size, uint32_t to)
 	uint8_t * ptr = (uint8_t *) buf;
 	for(int i = 0; i < its; i++)
 	{
-		std::cerr << "Escribiendo... " << std::endl;
 		w = write(fd, ptr, increment);
 		
 		ptr += increment;
@@ -298,7 +297,6 @@ int SerialPortInterface::Write(const void * buf, uint32_t size, uint32_t to)
 	{
 		w = write(fd, ptr, left);
 
-		std::cerr << "Escribiendo  " << left << " bytes" << std::endl;
 		if(w < 0)
 		{
 			close(fd);
