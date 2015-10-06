@@ -193,7 +193,7 @@ int main(int argc , char *argv[])
 			fflush(stderr);
 
 
-			execlp("./bin/TX_dynamic", "TX_dynamic", "imagen", "100", "150", "0","0",NULL);
+			execlp("./bin/TX_dynamic_noArduino", "TX_dynamic_noArduino", "imagen", "100", "150", "0","0",NULL);
 
 			fprintf(stderr, "Ha pasado algun problema al ejecutar el transmitter\n");
 			fflush(stderr);

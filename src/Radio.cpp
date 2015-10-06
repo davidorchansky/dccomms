@@ -15,7 +15,7 @@
 #include <RadioException.h>
 using namespace radiotransmission;
 
-Radio::Radio(unsigned char d, Arduino & s, Radio::fcsType fcst, uint32_t maxRxBufferSize):arduino(s),dir(d)
+Radio::Radio(unsigned char d, SerialPortInterface & s, Radio::fcsType fcst, uint32_t maxRxBufferSize):serial(s),dir(d)
 {
 	_maxRxBufferSize = maxRxBufferSize;
 	_rxBuffer = new uint8_t[_maxRxBufferSize];
@@ -43,9 +43,9 @@ void Radio::SendBytes(const void * buf, uint32_t size, uint8_t dirTo, uint32_t p
 		std::cout << "Enviando paquete..." << std::endl;
 		dlf.printFrame(std::cout);
 #endif
-		arduino << dlf;
+		serial << dlf;
 		buffer += packetSize;
-		arduino.FlushIO(); //Lo ideal seria FlushOutput, pero en algun lado hay algo que hace que se llene el buffer de entrada
+		serial.FlushIO(); //Lo ideal seria FlushOutput, pero en algun lado hay algo que hace que se llene el buffer de entrada
 						   //y al final llega a bloquearse la comunicación... (TODO: comprobar qué es lo que hace que se llene el buffer de entrada)
 		std::this_thread::sleep_for(std::chrono::milliseconds(ms));
 
@@ -58,9 +58,9 @@ void Radio::SendBytes(const void * buf, uint32_t size, uint8_t dirTo, uint32_t p
 		std::cout << "Enviando paquete..." << std::endl;
 		dlf.printFrame(std::cout);
 #endif
-		arduino << dlf;
+		serial << dlf;
 		buffer += packetSize;
-		arduino.FlushIO(); //Lo ideal seria FlushOutput, pero en algun lado hay algo que hace que se llene el buffer de entrada
+		serial.FlushIO(); //Lo ideal seria FlushOutput, pero en algun lado hay algo que hace que se llene el buffer de entrada
 						   //y al final llega a bloquearse la comunicación... (TODO: comprobar qué es lo que hace que se llene el buffer de entrada)
 	}
 
@@ -74,8 +74,8 @@ void Radio::SendBytes(const void * buf, uint32_t size, uint8_t dirTo, uint32_t p
 		std::cout << "Enviando paquete..." << std::endl;
 		dlf.printFrame(std::cout);
 #endif
-		arduino << dlf;
-		arduino.FlushIO();//Lo ideal seria FlushOutput, pero en algun lado hay algo que hace que se llene el buffer de entrada
+		serial << dlf;
+		serial.FlushIO();//Lo ideal seria FlushOutput, pero en algun lado hay algo que hace que se llene el buffer de entrada
 		   	   	   	   	  //y al final llega a bloquearse la comunicación... (TODO: comprobar qué es lo que hace que se llene el buffer de entrada)
 		//std::this_thread::sleep_for(std::chrono::milliseconds(ms));
 	}
@@ -107,8 +107,8 @@ void Radio::ReceiveBytes(void * buf, uint32_t size, uint8_t dirFrom, unsigned lo
 	uint32_t bytes = 0;
 	DataLinkFrame dlf(DataLinkFrame::crc32);
 	uint16_t i;
-	unsigned long currentTimeout = arduino.GetTimeout();
-	arduino.SetTimeout(ms >= 0 ? ms : 0);
+	unsigned long currentTimeout = serial.GetTimeout();
+	serial.SetTimeout(ms >= 0 ? ms : 0);
 
 	if(_bytesInBuffer) //SI hay bytes en buffer, los leemos primero
 	{
@@ -128,7 +128,7 @@ void Radio::ReceiveBytes(void * buf, uint32_t size, uint8_t dirFrom, unsigned lo
 		while(bytes < size) //Si faltan bytes, esperamos recibirlos
 		{
 
-			arduino >> dlf;
+			serial >> dlf;
 	#ifdef DEBUG
 			dlf.printFrame(std::cerr);
 			std::cerr << std::flush;
@@ -172,13 +172,13 @@ void Radio::ReceiveBytes(void * buf, uint32_t size, uint8_t dirFrom, unsigned lo
 			_rxBufferFirstPos = 0;
 		}
 
-		arduino.SetTimeout(currentTimeout);
+		serial.SetTimeout(currentTimeout);
 	}
 	catch(RadioException &e)
 	{
 		_rxBufferLastPos = 0;
 		_rxBufferFirstPos = 0;
-		arduino.SetTimeout(currentTimeout);
+		serial.SetTimeout(currentTimeout);
 		throw;
 	}
 	catch(std::exception &e)
@@ -186,7 +186,7 @@ void Radio::ReceiveBytes(void * buf, uint32_t size, uint8_t dirFrom, unsigned lo
 		std::cerr << "Excepcion no esperada" <<std::endl << std::flush;
 		_rxBufferLastPos = 0;
 		_rxBufferFirstPos = 0;
-		arduino.SetTimeout(currentTimeout);
+		serial.SetTimeout(currentTimeout);
 
 	}
 	catch(int &e)
@@ -194,7 +194,7 @@ void Radio::ReceiveBytes(void * buf, uint32_t size, uint8_t dirFrom, unsigned lo
 		std::cerr << "Excepcion no esperada" <<std::endl << std::flush;
 		_rxBufferLastPos = 0;
 		_rxBufferFirstPos = 0;
-		arduino.SetTimeout(currentTimeout);
+		serial.SetTimeout(currentTimeout);
 	}
 
 

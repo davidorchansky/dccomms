@@ -37,8 +37,16 @@ Arduino Arduino::FindArduino(Arduino::BaudRate baud, const char * hello, const c
 {
 	int fd; /* File descriptor for the port */
 	char msg[200];
+	
+	#ifdef BBB
+	int maxPorts = 13;
+	const char *spfiles[] = {"/dev/ttyO5","/dev/ttyO4","/dev/ttyO1","/dev/ttyO0", "/dev/ttyO2","/dev/ttyACM0", "/dev/ttyACM1", "/dev/ttyACM2", "/dev/ttyACM3",
+			"/dev/ttyACM4", "/dev/ttyACM5", "/dev/ttyACM6", "/dev/ttyACM7"};
+	#else
+	int maxPorts = 8;
 	const char *spfiles[] = {"/dev/ttyACM0", "/dev/ttyACM1", "/dev/ttyACM2", "/dev/ttyACM3",
 			"/dev/ttyACM4", "/dev/ttyACM5", "/dev/ttyACM6", "/dev/ttyACM7"};
+	#endif
 
 	int i;
 	SerialPortInterface::PortSettings ps;
@@ -47,7 +55,7 @@ Arduino Arduino::FindArduino(Arduino::BaudRate baud, const char * hello, const c
 	ps.stopBits = SerialPortInterface::SB1;
 	ps.dataBits = SerialPortInterface::CHAR8;
 
-	for(i = 0; i <8; i++)
+	for(i = 0; i <maxPorts; i++)
 	{
 //		try
 //		{
