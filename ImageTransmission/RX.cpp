@@ -18,7 +18,9 @@
 #include <RadioException.h>
 #include <stdlib.h>
 #include <sys/stat.h>
+#include <cstring>
 
+#include <unistd.h> //Posix write/read
 using namespace std;
 using namespace radiotransmission;
 
@@ -26,12 +28,12 @@ int main(int argc, char **argv) {
 	if(argc != 3)
 	{
 		std::cerr << "Numero de argumentos incorrecto" << std::endl;
-		std::cout << "Usage:\n\targs: <outputFile> <maxBufferSize>" << std::endl;
+		std::cerr << "Usage:\n\targs: <blockIdentifier> <maxBlockSize>" << std::endl;
 		exit(1);
 	}
 
-	char * fname = argv[1];
 	uint32_t size = atoi(argv[2]);
+	uint32_t idlength = strlen(argv[1]);
 
 	try
 	{
@@ -45,7 +47,7 @@ int main(int argc, char **argv) {
 			exit(2);
 		}
 
-		std::cout <<"RX listo\n";
+		std::cerr <<"RX listo\n";
 
 		uint8_t rxbuffer[size];
 
@@ -61,20 +63,29 @@ int main(int argc, char **argv) {
 		unsigned long long t1;
 		unsigned long long tdif;
 
+		double isize = 0;
+		double itime = 0;
+		uint32_t it = 0;
+		uint32_t cont = 0;
+		double aitime;
+		double aisize;
+
+		double abstime;
+
 		while(1)
 		{
 			try
 			{
-				std::cout << "BUSCANDO IMAGEN..." << std::endl;
+				std::cerr << "BUSCANDO BLOQUE..." << std::endl;
 
 				arduRx.FlushInput();
 
 				gettimeofday(&time0, NULL);
 				t0 = time0.tv_sec*1000 + time0.tv_usec/1000;
-
+				
 
 				//Recepción en modo bloqueante (Se bloquea hasta recibir un bloque válido)
-				fsize = fileRx.Receive("Imagen", rxbuffer);
+				fsize = fileRx.Receive(argv[1], rxbuffer);
 
 
 				gettimeofday(&time1, NULL);
@@ -89,56 +100,75 @@ int main(int argc, char **argv) {
 				fileRx.Receive("Imagen", rxbuffer, 10000);
 
 				*/
-				std::cout << "NUEVA IMAGEN RECIBIDA!" << std::endl;
+				std::cerr << "NUEVO BLOQUE RECIBID0!" << std::endl;
 
 				tdif = t1 - t0;
-				std::cout << "Tiempo de recepción: " << tdif << std::endl <<std::endl;
+				std::cerr << "Tiempo de recepción: " << tdif << std::endl <<std::endl;
 
-				std::cout << "Escribiendo imagen en disco..." << std::endl <<std::endl;
+				it++;
+				if(it > 3)
+				{
+					cont++;
+					isize += fsize;
+					itime += tdif;
+					aitime = itime/cont;
+					aisize = isize/cont;
+					abstime = aitime/aisize;
+					std::cerr << "Bloques. recibidao:\t" << cont << std::endl;
+					std::cerr << "Tamaño medio (bytes):\t" << aisize << std::endl;
+					std::cerr << "Tiempo medio (ms):\t" << aitime << std::endl;
+					std::cerr << "ms/byte:\t" << abstime << std::endl;
+
+				}
+				std::cerr << "Enviando bloque por la salida estandar..." << std::endl <<std::endl;
 
 				gettimeofday(&time0, NULL);
 				t0 = time0.tv_sec*1000 + time0.tv_usec/1000;
 
-				//Grabando el fichero en disco...
-				FILE * file = fopen(fname, "wb");
-				fwrite(rxbuffer, 1, fsize, file);
-				fclose(file);
+				std::cout << argv[1];
+				if(write(1, &fsize, sizeof(fsize)) == sizeof(fsize))
+				{
+					//if(fwrite(rxbuffer, 1, fsize, stdout) == fsize)
+					if(write(1, rxbuffer, fsize))
+					{
 
-				gettimeofday(&time1, NULL);
-				t1 = time1.tv_sec*1000 + time1.tv_usec/1000;
-				tdif = t1 - t0;
-				std::cout << "Imagen grabada en: " << tdif << " ms" <<std::endl;
+						gettimeofday(&time1, NULL);
+						t1 = time1.tv_sec*1000 + time1.tv_usec/1000;
+						tdif = t1 - t0;
+						std::cerr << "Bloque enviado en : " << tdif << " ms" <<std::endl;
+					}
+				}
 
 			}
 			catch(RadioException& e) //Control de excepciones
 			{
-				//std::cout << "Radio Exception: " << e.what() << std::endl << std::flush;
+				//std::cerr << "Radio Exception: " << e.what() << std::endl << std::flush;
 				switch(e.code)
 				{
 					case RADIO_RXLINEDOWN: //Se ha perdido la comunicación con la arduino receptora
-						std::cout << "Intentando reconectar con RX..." << std::endl << std::flush;
+						std::cerr << "Intentando reconectar con RX..." << std::endl << std::flush;
 						while(!arduRx.TryReconnect()){};
-						std::cout << "ÉXITO!!" << std::endl << std::flush;
+						std::cerr << "ÉXITO!!" << std::endl << std::flush;
 						break;
 					case RADIO_TIMEOUT:
-						std::cout << "RADIO EXCEPTION: TIMEOUT!" << std::endl << std::flush;
+						std::cerr << "RADIO EXCEPTION: TIMEOUT!" << std::endl << std::flush;
 						break;
 					case RADIO_CORRUPTBLOCK:
-						std::cout << "RADIO EXCEPTION: IMAGEN CON ERRORES (SE DESCARTA)" << std::endl << std::flush;
+						std::cerr << "RADIO EXCEPTION: BLOQUE CON ERRORES (SE DESCARTA)" << std::endl << std::flush;
 						break;
 					default:
-						std::cout << "RADIO EXCEPTION: " << e.what() << std::endl << std::flush;
+						std::cerr << "RADIO EXCEPTION: " << e.what() << std::endl << std::flush;
 						break;
 				}
 			}
 			catch(std::exception & e)
 			{
-				std::cout <<"CUIDADO!!!!" <<std::endl  << std::flush;
+				std::cerr <<"CUIDADO!!!!" <<std::endl  << std::flush;
 
 			}
 			catch(int e)
 			{
-				std::cout <<"CUIDADO intero!!!!" <<std::endl  << std::flush;
+				std::cerr <<"CUIDADO intero!!!!" <<std::endl  << std::flush;
 
 			}
 		}
@@ -148,16 +178,16 @@ int main(int argc, char **argv) {
 		switch(e.code)
 		{
 			case RADIO_RXLINEDOWN:
-				std::cout << "CUIDAO RX!" << std::endl << std::flush;
+				std::cerr << "CUIDAO RX!" << std::endl << std::flush;
 				break;
 			case RADIO_TXLINEDOWN:
-				std::cout << "CUIDAO TX!" << std::endl << std::flush;
+				std::cerr << "CUIDAO TX!" << std::endl << std::flush;
 				break;
 			default:
-				std::cout << "CUIDAO!" << std::endl << std::flush;
+				std::cerr << "CUIDAO!" << std::endl << std::flush;
 				break;
 		}
-		std::cout << "Radio Exception: " << e.what() << std::endl << std::flush;
+		std::cerr << "Radio Exception: " << e.what() << std::endl << std::flush;
 		exit(1);
 	}
 
