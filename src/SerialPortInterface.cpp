@@ -259,13 +259,79 @@ void SerialPortInterface::FlushOutput()
 }
 int SerialPortInterface::Write(const void * buf, uint32_t size, uint32_t to)
 {
+
+#ifdef BADWRITE
+	int w = 0;
+	for(int i = 0; i < size; i++)
+	{
+		w = write(fd, ((const uint8_t*)buf)+i, 1 );
+		if(w < 0)
+		{
+			close(fd);
+			throw RadioException("Fallo de comunicacion al escribir", RADIO_TXLINEDOWN);
+		}
+	}
+	return w;
+#elif BADWRITE2
+	int w = 0;
+	int increment = BADWRITE2;
+	int left = size % increment;
+	std::cerr << "Size: " << size << std::endl;
+	std::cerr << "Left: " << left << std::endl;
+	std::cerr << "Increment: " << increment << std::endl;
+	int its = size / increment;
+	std::cerr << "Its: " << its  << std::endl;
+	uint8_t * ptr = (uint8_t *) buf;
+	for(int i = 0; i < its; i++)
+	{
+		std::cerr << "Escribiendo... " << std::endl;
+		w = write(fd, ptr, increment);
+		
+		ptr += increment;
+		if(w < 0)
+		{
+			close(fd);
+			throw RadioException("Fallo de comunicacion al escribir", RADIO_TXLINEDOWN);
+		}
+	}
+	if(left)
+	{
+		w = write(fd, ptr, left);
+
+		std::cerr << "Escribiendo  " << left << " bytes" << std::endl;
+		if(w < 0)
+		{
+			close(fd);
+			throw RadioException("Fallo de comunicacion al escribir", RADIO_TXLINEDOWN);
+		}
+	}
+	return w;
+
+#elif GOODWRITE
+	int tbw = 0, bw;
+	for(int i = 0; i < size; i += bw)
+	{
+		bw = write(fd, ((const uint8_t*) buf)+tbw, size-tbw);
+		std::cerr << "Bytes written: " << bw << std::endl;
+		tbw += bw;
+		if(bw < 0)
+		{
+			close(fd);
+			throw RadioException("Fallo de comunicacion al escribir", RADIO_TXLINEDOWN);
+		}
+	}
+	return tbw;
+#else
 	int w = write(fd, (const uint8_t*)buf, size);
 	if(w < 0)
 	{
 		close(fd);
 		throw RadioException("Fallo de comunicacion al escribir", RADIO_TXLINEDOWN);
 	}
+
 	return w;
+#endif
+
 }
 
 int SerialPortInterface::Available()
