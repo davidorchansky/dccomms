@@ -1,5 +1,5 @@
 //============================================================================
-// Name        : TX.cpp
+// Name        : TX2.cpp
 // Author      : Diego
 // Version     :
 // Copyright   :
@@ -19,23 +19,49 @@
 #include <stdlib.h>
 #include <cstdio>
 #include <sys/stat.h>
+#include <cstring>
+#include <unistd.h>
+#include <sys/time.h>
 
 using namespace std;
 using namespace radiotransmission;
 
+int
+readId(char* id, int len)
+{
+	char c;
+	for(int i = 0; i < len; i++)
+	{
+		c = getchar();
+	//	std::cout << "#"<<c<<std::endl;
+		if(c != id[i])
+			return -1;
+
+	}
+	return 0;
+}
+
+unsigned int getMilliseconds(struct timeval * t)
+{
+        return  (*t).tv_sec *1000 + (*t).tv_usec/1000;
+}
+
+
 int main(int argc, char ** argv) {
-	if(argc != 4)
+	if(argc != 6)
 	{
 		std::cerr << "Numero de argumentos incorrecto" << std::endl;
-		std::cout << "Usage:\n\targs: <imageFile> <packetSize> <delayBetweenPackets>" << std::endl;
+		std::cout << "Usage:\n\targs: <blockIdentifier> <blockSize> <packetSize> <delayBetweenPackets> <MaxAgeOfTheFrameToSendInMillis>" << std::endl;
 		exit(1);
 	}
 
-	struct stat finfo;
 
 
-	int frameSize = atoi(argv[2]);
-	int milis = atoi(argv[3]);
+	int bIdLength = strlen(argv[1]);
+	uint32_t blockSize = atoi(argv[2]);
+	int frameSize = atoi(argv[3]);
+	int milis = atoi(argv[4]);
+	int maxFrameAge = atoi(argv[5]);
 
 
 	unsigned char * buffer;
@@ -58,7 +84,8 @@ int main(int argc, char ** argv) {
 
 		BlockRadioTransmitter fileTx(radioTx);
 
-		std::cout << "File: " << argv[1] << std::endl;
+		std::cout << "Block name: " << argv[1] << std::endl;
+		std::cout << "Block size: " << blockSize << " bytes" << std::endl;
 
 		struct timeval time0, time1;
 
@@ -66,57 +93,53 @@ int main(int argc, char ** argv) {
 		unsigned long long t1;
 		unsigned long long tdif;
 
+		uint32_t bsize;
+
+		struct timeval start, stop;
+
+		uint32_t age;
 		while(1)
 		{
 			try
 			{
 
-				if(lstat(argv[1], &finfo) < 0)
+				if(readId(argv[1],bIdLength)==0)
 				{
-					std::cerr << "Error al obtener los metadatos del fichero " << argv[1] << std::endl;
-					std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-					throw 1;
+					std::cout << "Bloque encontrado, comprobando antigüedad..." << std::endl;
+					fread(&start, 1, sizeof(struct timeval), stdin);
+
+					gettimeofday(&stop, NULL);
+
+					unsigned int t1 = getMilliseconds(&stop);
+					unsigned int t0 = getMilliseconds(&start);
+					
+					std::cout << "T0: "<<t0 <<std::endl;
+					std::cout << "T1: " <<t1 <<std::endl;
+					age = t1-t0;
+
+					std::cout << "Age: " << age << std::endl;
+					std::cout << "MaxFrameAge: " << maxFrameAge << std::endl;
+					if(age <= maxFrameAge)
+					{
+						std::cout << "Esperando bytes del bloque..."  <<std::endl;
+
+						buffer = new uint8_t[blockSize];
+						int r = fread(buffer, 1, blockSize, stdin);
+
+						std::cout << "Leidos: " << r << std::endl;
+
+						std::cout << "ENVIANDO BLOQUE..." <<std::endl;
+
+						fileTx.Send(argv[1], buffer, blockSize, 255, frameSize, milis);
+						std::this_thread::sleep_for(std::chrono::milliseconds(milis));
+
+
+						std::cout << "BLOQUE ENVIADO!" <<std::endl;
+						std::cout << "------------------" <<std::endl;
+
+						delete buffer;
+					}
 				}
-
-				FILE * file = fopen(argv[1], "rb");
-
-				if(file == NULL)
-				{
-					std::cerr << "Error al abrir el fichero " << argv[1] << std::endl;
-					exit(3);
-				}
-
-				std::cout << "File size: " << finfo.st_size << " bytes" << std::endl;
-
-				gettimeofday(&time0, NULL);
-				t0 = time0.tv_sec*1000 + time0.tv_usec/1000;
-
-				buffer = new uint8_t[finfo.st_size];
-				fread(buffer, 1, finfo.st_size, file);
-				fclose(file);
-
-				gettimeofday(&time1, NULL);
-				t1 = time1.tv_sec*1000 + time1.tv_usec/1000;
-				tdif = t1 - t0;
-				std::cout << "Imagen cargada en: " << tdif << " ms" <<std::endl;
-
-				std::cout << "------------------" <<std::endl;
-				std::cout << "ENVIANDO BLOQUE..." <<std::endl;
-
-				gettimeofday(&time0, NULL);
-				t0 = time0.tv_sec*1000 + time0.tv_usec/1000;
-
-				fileTx.Send("Imagen", buffer, finfo.st_size, 255, frameSize, milis);
-				std::this_thread::sleep_for(std::chrono::milliseconds(milis));
-
-				gettimeofday(&time1, NULL);
-				t1 = time1.tv_sec*1000 + time1.tv_usec/1000;
-				std::cout << "Imagen enviada en: " << tdif << " ms" <<std::endl;
-
-				std::cout << "BLOQUE ENVIADO!" <<std::endl;
-				std::cout << "------------------" <<std::endl;
-
-				delete buffer;
 
 			}
 			catch(RadioException& e) //Control de excepciones

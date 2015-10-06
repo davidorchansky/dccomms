@@ -14,6 +14,6 @@ delay=$3
 maxAge=$4
 
 
-./bin/grabber 352 288 | ./bin/debter -I imagen | ./bin/TX3 imagen $imsize $paysize $delay $maxAge
+./bin/grabber 352 288 | ./bin/debter -I imagen | ./bin/TX imagen $imsize $paysize $delay $maxAge
 
 
