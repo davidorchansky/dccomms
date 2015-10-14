@@ -29,16 +29,16 @@ $(BINDIR)TX: TX.cpp
 $(BINDIR)TX_noArduino: TX_noArduino.cpp
 	$(CXX) -std=c++0x -I"../includes/" -L $(LIBDIR)  $< -o $@ -lradio -lcrypto
 
-$(BINDIR)TX_dynamic: TX_dynamic.cpp
+$(BINDIR)TX_dynamic: TX_dynamic.cpp includes/videoServer.h
 	$(CXX) -std=c++0x -I"../includes/" -I $(INCLUDES) -L $(LIBDIR)  $< -o $@ -lradio -lcrypto
 
-$(BINDIR)TX_dynamic_noArduino: TX_dynamic_noArduino.cpp
+$(BINDIR)TX_dynamic_noArduino: TX_dynamic_noArduino.cpp includes/videoServer.h
 	$(CXX) -std=c++0x -I"../includes/" -I $(INCLUDES) -L $(LIBDIR)  $< -o $@ -lradio -lcrypto
 
-$(BINDIR)videoServer: videoServer.c
+$(BINDIR)videoServer: videoServer.c includes/videoServer.h
 	$(CC) $< -lpthread -I $(INCLUDES)  -o $@ 
 
-$(BINDIR)videoServer_noArduino: videoServer_noArduino.c
+$(BINDIR)videoServer_noArduino: videoServer_noArduino.c includes/videoServer.h
 	$(CC) $< -lpthread -I $(INCLUDES)  -o $@ 
 
 $(BINDIR)RX: RX.cpp

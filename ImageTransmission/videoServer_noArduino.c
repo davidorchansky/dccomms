@@ -42,7 +42,7 @@ void *connection_handler(void *socket_desc)
     int read_size,n;
 
     char c = ' ';
-    char buffer[500];
+    char buffer[300];
      
     //Receive a message from client
     while( (read_size = recv(sock , &c , 1, 0)) > 0 )
@@ -50,6 +50,9 @@ void *connection_handler(void *socket_desc)
 
 	if( c == '{')
 	{
+		fprintf(stdout, "***************\n\nPARECE QUE HAY NUEVAS SETTINGS EN EL BUFFER DE ENTRADA...\n\n***************\n\n");
+		fflush(stdout);
+
 		if(getVideoTransmissionConfig(sock, &config)==-1)continue;
 		n = buildVideoTransmissionConfigMsg(buffer, &config);
 		fprintf(stdout, "SERVIDOR DE CONFIGURACION DE VIDEO: Enviando configuracion (%d): %s\n",n,buffer);
@@ -58,6 +61,7 @@ void *connection_handler(void *socket_desc)
     		pthread_mutex_lock(&lock); 
 		write(server_transmitter_pipe[1], buffer, n);
     		pthread_mutex_unlock(&lock); 
+
 	}
 
     }
@@ -126,7 +130,8 @@ int runServer()
 
     while( (client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c)) )
     {
-	    puts("Connection accepted");
+	    puts("\n*********\nConnection accepted\n*********\n");
+	    fflush(stdout);
 
 	    if( pthread_create( &thread_id , NULL ,  connection_handler , (void*) &client_sock) < 0)
 	    {
@@ -135,7 +140,8 @@ int runServer()
 	    }
 	    //Now join the thread , so that we dont terminate before the thread
 	    //pthread_join( thread_id , NULL);
-	    puts("Handler assigned");
+	    puts("Handler assigned\n***********\n");
+	    fflush(stdout);
     }
 
     if (client_sock < 0)
@@ -202,7 +208,7 @@ int main(int argc , char *argv[])
 			fflush(stderr);
 
 
-			execlp("./bin/TX_dynamic_noArduino", "TX_dynamic_noArduino", "imagen", "1400", "1450", "0","200",NULL);
+			execlp("./bin/TX_dynamic_noArduino", "TX_dynamic_noArduino", "imagen", "1400", "1450", "0","1000",NULL);
 
 			fprintf(stderr, "Ha pasado algun problema al ejecutar el transmitter\n");
 			fflush(stderr);

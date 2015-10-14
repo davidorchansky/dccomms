@@ -21,7 +21,7 @@ readint(int fd, unsigned int *x, char next)
 {
 	int error = -1;
 	int v = 0;
-	int c;
+	char c;
 	int n = read(fd, &c, 1);
 	if (n > 0 && isdigit(c)) {
 		v = c - '0';
@@ -62,10 +62,12 @@ int waitFor(int fd, char* str)
 
 int getParameter(int fd, const char *par, unsigned int *value, char end)
 {
-	char buffer[50];
+	char buffer[30];
 	sprintf(buffer, "%s:",par);	
 	if(waitFor(fd, buffer)==-1)return -1;
 	return readint(fd, value, end);
+
+	return 0;
 }
 
 int getVideoTransmissionConfig(int sock,
