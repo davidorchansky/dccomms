@@ -1,3 +1,6 @@
+#ifndef VIDEOSERVER_H
+#define VIDEOSERVER_H
+
 #include<stdio.h>
 #include<string.h>    
 #include<stdlib.h>   
@@ -92,3 +95,4 @@ int buildVideoTransmissionConfigMsg(char *buffer, videoTransmissionConfig *confi
 	return n;
 }
 
+#endif
