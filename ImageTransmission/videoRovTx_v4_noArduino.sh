@@ -18,7 +18,7 @@ maxAge=$6
 
 #./bin/grabber 352 288 | 
 
-sudo python radioSetup.py &
+#sudo python radioSetup.py &
 
 sudo ./bin/grabberDebter -I imagen -W $width -H $height | ./bin/TX_noArduino imagen $imsize $paysize $delay $maxAge
 

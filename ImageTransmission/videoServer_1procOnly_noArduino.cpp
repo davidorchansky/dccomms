@@ -23,7 +23,9 @@
 #include <unistd.h>
 #include <sys/time.h>
 #include <videoServer.h>
-#include <pthread.h>
+#include<pthread.h> //for threading , link with lpthread
+#include<sys/socket.h>
+
 
 extern "C"
 {
@@ -36,45 +38,21 @@ using namespace radiotransmission;
 
 pthread_mutex_t lock;
 
-#define VIDEO_SERVER_RX 3
+int socket_desc;
+videoTransmissionConfig config;
 
-void *serverInterface(void * conf)
-{
-	videoTransmissionConfig *config = (videoTransmissionConfig*) conf;
-
-	int n;
-	char c;
-	fd_set fds;
-	char msg[100];
-
-	while(1)
-	{
-		FD_ZERO(&fds);
-		FD_SET(VIDEO_SERVER_RX, &fds);
-		struct timeval tv = {0};
-		tv.tv_sec = 0;
-		int r = select(VIDEO_SERVER_RX+1, &fds, NULL, NULL, &tv);
-
-		if(r == 1)
-		{
-			read(VIDEO_SERVER_RX,&c,1);
-			if( c == '{')
-			{
-
-    				pthread_mutex_lock(&lock); 
-				if(getVideoTransmissionConfig(VIDEO_SERVER_RX, config)==-1)
-				{
-    					pthread_mutex_unlock(&lock); 
-					continue;
-				}
-
-    				pthread_mutex_unlock(&lock); 
-			}
-
-		}
-
-	}
+void sigint_handler (int sig)
+{ 
+	printf ("Recibida la senyal %d.\nCerrando socket del servidor...\n",sig);
+	close(socket_desc);
+	printf("Servidor cerrado correctamente.\n");
+	fflush(stdout);
+	exit(0);
 }
+
+
+
+
 int
 readId(char* id, int len)
 {
@@ -302,28 +280,12 @@ int main(int argc, char ** argv) {
 
 	char * imId;
 
-	videoTransmissionConfig config;
-
 	int bIdLength;
 	int isEncoder = 0, isDecoder = 0;
 	int act = getOptions(argc, argv, &e, &d, &imId, &bIdLength, &config);
 
 	int ret = (act == -1) ? graph(&e, &d) : (!act ? isDec(&isDecoder) : isEnc(&isEncoder));
-	
-	//SETTING THE SERVER INTERFACE
-	if (pthread_mutex_init(&lock, NULL) != 0)
-	{
-		printf("\n mutex init failed\n");
-		return 1;
-	}
 
-	pthread_t thread_id;
-	
-	if( pthread_create( &thread_id , NULL ,  serverInterface , (void*) &config) < 0)
-	{
-		perror("could not create thread");
-		return 1;
-	}
 
 	//////////// GRABBER AND ENCODER SETUP
 	struct sigaction sa;
@@ -418,12 +380,16 @@ int main(int argc, char ** argv) {
 		uint32_t age;
 
 		fd_set fds;
+		char c;
+		char msg[100];
+		int n;
 
 		unsigned long imagenesEnviadas = 0;
 		while(1)
 		{
 			try
 			{
+
 				/////////CAPTURA
 				fprintf(stderr, "GRABBER: capturando imagen...\n");
 				FD_ZERO(&fds);
@@ -456,7 +422,6 @@ int main(int argc, char ** argv) {
 						if(res)
 						{
 						
-    							pthread_mutex_lock(&lock); 
 							std::cout << "ENVIANDO BLOQUE..." <<std::endl;
 
 							fileTx.Send(imId, buffer, config.frameSize, 255, config.maxPacketLength, config.delayBetweenPackets);
@@ -467,8 +432,6 @@ int main(int argc, char ** argv) {
 							std::cout << "------------------" <<std::endl;
 							imagenesEnviadas++;
 							std::cout << "Imagenes enviadas: "<< imagenesEnviadas << std::endl;
-
-    							pthread_mutex_unlock(&lock); 
 						}
 
 					}

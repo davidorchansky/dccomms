@@ -8,4 +8,4 @@
 #	Nota: Parece que el SO tiene problemas al cuando se escriben demasiados bytes a la vez por el puerto Serie con write... 
 #	      Por eso lo de las opciones "BADWRITE". Esto no es correcto, hay que investigar por que pasa y arreglarlo mejor.
 
-make PRIVATELIBDIR=./libraries/arm RARGS="-DBADWRITE2=8 -DBBB"
+make PRIVATELIBDIR=./libraries/arm RARGS="-DBADWRITE2=15 -DBBB"
