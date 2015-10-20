@@ -1,0 +1,12 @@
+Cómo cambiar servidor emisor de video para el plugin de testeo de video comprimido por RF:
+
+- En la beaglebone:
+	- En el fichero /opt/openrov/rf-src/plugins/video_conf/index.js:
+		videoAddr = ip del servidor de video.
+
+Cómo cambiar el servidor receptor de video RF:
+
+- En la beaglebone:
+	- En el fichero /opt/openrov/rf-src/views/index.ejs
+		var videoServer = io.connect(direccion);
+		Por ejemplo: 'http://192.168.1.108:8081'

@@ -10,6 +10,9 @@ function NXServer(httpUIDir, httpPort, streamIP, streamPort) {
 	this.streamIP = streamIP;
 	this.streamPort = streamPort;
 
+	this.videoWidth = process.argv[2];
+	this.videoHeight = process.argv[3];
+
 	var connect = require('connect'),
 		http = require('http'),
 		serveStatic = require('serve-static'),
@@ -22,7 +25,10 @@ function NXServer(httpUIDir, httpPort, streamIP, streamPort) {
 
 	// get stream and send to canvas
 	// way for linux
-	var ffmpeg = require('child_process').spawn("./videoRovRx_v2_noFFplay.sh");
+	console.log("Video width: "+ this.videoWidth);
+	console.log("Video height: "+ this.videoHeight);
+	//var ffmpeg = require('child_process').spawn("./videoRovRx_noFFplay.sh "+this.videoWidth+" "+this.videoHeight);
+	var ffmpeg = require('child_process').spawn("./videoRovRx_noFFplay.sh",[this.videoWidth,this.videoHeight]);
 	
 //	var ffmpeg = require('child_process').spawn("ffmpeg", [
 //		"-re", 
