@@ -43,5 +43,13 @@
 #define FIFO_STATUS     0x17  // 'FIFO Status Register' register address
 
 //************************************************
+//EXTRA
+#define STATUS_TX_FULL 0x1
+/** FOR FIFO_STATUS REGISTER **/
+#define TX_FULL 0x20
+#define TX_EMPTY 0x10
+#define RX_FULL 0x02
+#define RX_EMPTY 0x01
+/*******************************/
 #endif
 

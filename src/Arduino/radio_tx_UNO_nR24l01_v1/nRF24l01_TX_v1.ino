@@ -30,6 +30,7 @@
 //***************************************************
 #define TX_ADR_WIDTH    5   // 5 unsigned chars TX(RX) address width
 #define TX_PLOAD_WIDTH  32  // 32 unsigned chars TX payload
+#define TX_UNIT 32
 
 #define FCS_SIZE 4 
 #define INFO_SIZE 4
@@ -41,7 +42,7 @@
 #define BUFFER_SIZE 1100
 
 char buf[BUFFER_SIZE];
-//#define PAYLOAD_SIZE 1008
+
 bool BigEndian;
 
 char preamble[] = "juanito";
@@ -158,34 +159,17 @@ void clearStatus()
 
 void sendRfPayload(unsigned char ** ptr, uint8_t nb)
 {
-  /*
-    unsigned char status;
-    do
-    {
-      //Con el NO_ACK a HIGH, TX_DS se pone a HIGH cuando se acaba de enviar el paquete sin esperar ACK
-      status = SPI_Read(STATUS);                   // read register STATUS's value
-    }
-    while(! status&TX_DS);
-//    if(status&MAX_RT) 
-    SPI_RW_Reg(FLUSH_TX,0);                                  
-
-    SPI_Write_Buf(WR_TX_PLOAD, *ptr,nb);       // write playload to TX_FIFO
-    *ptr += nb;
-    SPI_RW_Reg(WRITE_REG+STATUS,status);      // clear RX_DR or TX_DS or MAX_RT interrupt flag
-    */
+    
     boolean enviado = false;
     while(!enviado)
     {
         clearStatus();
-        
         SPI_Write_Buf(WR_TX_PLOAD, *ptr,nb);       // write playload to TX_FIFO
         unsigned char status;
         do
         {
-          //Con el NO_ACK a HIGH, TX_DS se pone a HIGH cuando se acaba de enviar el paquete sin esperar ACK
-          status = SPI_Read(STATUS);                   // read register STATUS's value
-        }
-        while(!(status&TX_DS) && !(status&MAX_RT));
+          status = SPI_Read(STATUS);
+        } while(!(status&TX_DS) && !(status&MAX_RT));
         
         if(!(status&MAX_RT))
         {
@@ -193,19 +177,19 @@ void sendRfPayload(unsigned char ** ptr, uint8_t nb)
         }
         
     }
+
     *ptr += nb;
-    delay(2);
 }
 
 void radioWrite(void * _buf, uint32_t tam)
 {
-  unsigned int units = tam / TX_PLOAD_WIDTH;
-  unsigned int left = tam % TX_PLOAD_WIDTH;
+  unsigned int units = tam / TX_UNIT;
+  unsigned int left = tam % TX_UNIT;
   uint8_t * ptr = (uint8_t *)_buf;
-  uint8_t * maxptr = ptr + (TX_PLOAD_WIDTH)*units;
+  uint8_t * maxptr = ptr + (TX_UNIT)*units;
   while(ptr != maxptr)
   {
-    sendRfPayload(&ptr, TX_PLOAD_WIDTH);
+    sendRfPayload(&ptr, TX_UNIT);
   }
   if(left>0)
   {
@@ -244,21 +228,7 @@ void setup()
 
 void loop() 
 {
-  /** TEST **/
-  /*
-   int k = 0;
-   for(;;)
-  {
-    for(int i=0; i<32; i++)
-        tx_buf[i] = k++;  
-    unsigned char * auxbuf = tx_buf;
-    ///sendRfPayload(&auxbuf, 32);  
-    radioWrite(auxbuf, 32);
-    delay(1000);
-  }
-  */
-  /** FIN TEST **/
-  
+
   if (Serial.available()>0)
 	{
       	    caracterActual = Serial.peek();
@@ -425,8 +395,8 @@ void TX_Mode(void)
   SPI_Write_Buf(WRITE_REG + TX_ADDR, TX_ADDRESS, TX_ADR_WIDTH);    // Writes TX_Address to nRF24L01
   SPI_Write_Buf(WRITE_REG + RX_ADDR_P0, TX_ADDRESS, TX_ADR_WIDTH); // RX_Addr0 same as TX_Adr for Auto.Ack
 
-  SPI_RW_Reg(WRITE_REG + EN_AA, 0x01);      // Disable Auto.Ack:Pipe0
-  //SPI_RW_Reg(WRITE_REG + EN_AA, 0x00);      // Disable Auto.Ack:PipeX
+  SPI_RW_Reg(WRITE_REG + EN_AA, 0x01);      // Enable Auto.Ack:Pipe0
+ // SPI_RW_Reg(WRITE_REG + EN_AA, 0x00);      // Disable Auto.Ack:PipeX
   SPI_RW_Reg(WRITE_REG + EN_RXADDR, 0x01);  // Enable Pipe0
   SPI_RW_Reg(WRITE_REG + SETUP_RETR, 0x1a); // 500us + 86us, 10 retrans...
   SPI_RW_Reg(WRITE_REG + RF_CH, 40);        // Select RF channel 40
@@ -444,22 +414,4 @@ void TX_Mode(void)
 }
 
 
-
-/*
- int k = 0;
-  for(;;)
-  {
-    for(int i=0; i<32; i++)
-        tx_buf[i] = k++;        
-    unsigned char status = SPI_Read(STATUS);                   // read register STATUS's value
-    if(status&TX_DS)                                           // if receive data ready (TX_DS) interrupt
-    {
-      SPI_RW_Reg(FLUSH_TX,0);                                  
-      SPI_Write_Buf(WR_TX_PLOAD,tx_buf,24);       // write playload to TX_FIFO
-    }
-
-    SPI_RW_Reg(WRITE_REG+STATUS,status);                     // clear RX_DR or TX_DS or MAX_RT interrupt flag
-    delay(1000);
-  }
-*/
 
