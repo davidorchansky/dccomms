@@ -194,7 +194,7 @@ int main(int argc , char *argv[])
 		fflush(stderr);
 
 
-		execlp("./bin/TX_allInOne", "TX_allInOne", "-W", width, "-H",height, "-I","imagen", "-F","1400", "-L","1450", "-D","0", "-A", "1000",NULL);
+		execlp("./bin/TX_allInOne", "TX_allInOne", "-W", width, "-H",height, "-I","imagen","-i","540,260,740,460","-l","5-1", "-F","1400", "-L","1450", "-D","0", "-A", "1000",NULL);
 
 		fprintf(stderr, "Ha pasado algun problema al ejecutar el transmitter\n");
 		fflush(stderr);
