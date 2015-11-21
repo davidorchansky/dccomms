@@ -24,13 +24,11 @@
 **   IRQ - to digital pin 13 (MISO pin)                             **
 *********************************************************************/
 
-
 #include "NRF24L01.h"
 
 //***************************************************
 #define TX_ADR_WIDTH    5   // 5 unsigned chars TX(RX) address width
 #define TX_PLOAD_WIDTH  32  // 32 unsigned chars TX payload
-#define TX_UNIT 32
 
 #define FCS_SIZE 4 
 #define INFO_SIZE 4
@@ -39,7 +37,7 @@
 #define AREYOU_SIZE 18
 #define IMFROM_SIZE 11
 
-#define BUFFER_SIZE 1100
+#define BUFFER_SIZE 1500
 
 char buf[BUFFER_SIZE];
 
@@ -48,17 +46,127 @@ bool BigEndian;
 char preamble[] = "juanito";
 unsigned char * MaxPrePos; //preamble + PREAMBLE_SIZE
 
-char areyou[] = "Hello, are you TX?"; //18
+char areyou[] = "Hello, are you RX?"; //18
 unsigned char * MaxAreYouPos; //areyou + PREAMBLE_SIZE
 
-char imfrom[] = "Yes, I'm TX"; //11
+char imfrom[] = "Yes, I'm RX"; //11
 
 unsigned char *serialPreamblePos;
 unsigned char *serialAreYouPos;
 
-char caracterActual = -1;
-int paylsize;
+unsigned char TX_ADDRESS[TX_ADR_WIDTH]  = 
+{
+  0x34,0x43,0x10,0x10,0x01
+}; // Define a static TX address
 
+//unsigned char rx_buf[TX_PLOAD_WIDTH];
+//unsigned char tx_buf[TX_PLOAD_WIDTH];
+//***************************************************
+
+//unsigned char g_status;
+
+char caracterActual = -1;
+
+void mycopy(void * dst, void * orig, unsigned int tam)
+{
+  uint8_t * dptr, *optr;
+  dptr = (uint8_t*) dst;
+  optr = (uint8_t*) orig;
+  
+  unsigned int count = 0;
+  for(count = 0; count<tam;count++)
+  {
+     *dptr = *optr;
+     dptr++;
+     optr++;
+  }
+}
+class Radio
+{
+  public:
+    Radio()
+    {
+       _available = 0;
+    }
+    ~Radio(){};
+
+    int Available()
+    {
+       if (_available)
+         return _available;
+       
+       return _readyForRead();
+    }
+
+    
+    void ReadBytes(void * dst, unsigned int req) //Blocking call
+    {
+       if(req <= _available)
+       {
+         mycopy(dst, _buff, req);
+         _available = _available - req;
+         mycopy(_buff, _buff+req, _available);
+         return;
+       }
+       else
+       {
+         uint8_t * ptr = (uint8_t *) dst;
+         mycopy(ptr, _buff, _available);
+         ptr += _available;
+         unsigned int left = req - _available;
+         
+         _available = 0;
+         while(left > 0)
+         {
+             while(!_readyForRead());
+             uint8_t dataLength;
+             dataLength = SPI_Read(0x60);
+             SPI_Read_Buf(RD_RX_PLOAD, _buff, dataLength);
+             if(dataLength > TX_PLOAD_WIDTH) continue; //Esto es por si acaso...
+             if(dataLength <= left)
+             {
+               mycopy(ptr, _buff, dataLength);
+               ptr += dataLength;
+               left -= dataLength;
+             }
+             else
+             {
+               mycopy(ptr, _buff, left);
+               _available = dataLength - left;
+               mycopy(_buff, _buff+left, _available);
+               left = 0;
+             }
+             /*
+             Despues de leer, siempre resetear STATUS register
+             Si no se hace, no funciona correctamente... Consultar
+             Datasheet 
+             */
+             _status = SPI_Read(STATUS);
+             SPI_RW_Reg(WRITE_REG+STATUS,_status);
+         }
+       }
+        
+    }
+    private:
+       uint8_t _buff[TX_PLOAD_WIDTH+1];
+       uint8_t _available = 0;
+       uint8_t _status;
+       uint8_t _fifostatus;
+       
+       int _readyForRead()
+       {
+             _status = SPI_Read(STATUS);
+             _fifostatus = SPI_Read(FIFO_STATUS); 
+             //En teoria, con comprobar RX_EMPTY es suficiente...
+             boolean result =  ((_status&RX_DR) || !(_fifostatus&RX_EMPTY)) && (_fifostatus&TX_EMPTY);
+             
+             SPI_RW_Reg(WRITE_REG+STATUS,_status); //RESETEAMOS LOS BITS RX_DR, (y TX_DR y MAX_RT, aunque no los tenemos en cuenta)
+             return result;
+       }
+        
+    
+};
+Radio radio;
 bool IsBigEndian()
 {
 	uint32_t word = 0x1;
@@ -68,20 +176,22 @@ bool IsBigEndian()
 
 void readNBytes(char* buff, int tam, Stream * stream)
 {
-	int bytes = 0;
-	while (bytes < tam)
-	{
-		if (stream->available()>0)
-			buff[bytes++] = stream->read();
-	}
+  int bytes = 0;
+  while (bytes < tam)
+  {
+    if (stream->available() > 0)
+      buff[bytes++] = stream->read();
+  }
 }
 
-uint16_t radioFrameReceived(Stream * s, char* buffer, unsigned char* pre, unsigned char* maxPrePos, unsigned char **preamblePos)
+
+uint16_t radioFrameReceived(char* buffer, unsigned char* pre, unsigned char* maxPrePos, unsigned char **preamblePos)
 {
   if (*preamblePos == maxPrePos)
   {
+    //Serial.println("Preambulo recibido");
     *preamblePos = pre;
-    readNBytes(buffer, INFO_SIZE , s);
+    radio.ReadBytes(buffer, INFO_SIZE);
     uint16_t dsize;
     uint16_t *fdsize = (uint16_t *)(buffer+2);
     if(BigEndian)
@@ -92,17 +202,44 @@ uint16_t radioFrameReceived(Stream * s, char* buffer, unsigned char* pre, unsign
     {
       dsize = ((*fdsize) << 8) | ((*fdsize) >> 8);
     }
-    
     if(dsize <= BUFFER_SIZE-FCS_SIZE)
     {
-      readNBytes(buffer+INFO_SIZE, dsize + FCS_SIZE, s);
+      
+      radio.ReadBytes(buffer+INFO_SIZE, dsize + FCS_SIZE);
       return dsize;
     }
-    
+    //Serial.println("ERROR");
     return 0;
   }
 
+  char car;
+  
+  radio.ReadBytes(&car,1); 
+  //Serial.print("leido: ");Serial.println(car);  
+  if (car == **preamblePos)
+  {
+    (*preamblePos)++;
+  }
+  else
+  {
+   
+    *preamblePos = pre;
+  }
+
+  return 0;
+}
+
+boolean commandReceived(Stream * s, char* buffer, int buffSize, unsigned char* pre, unsigned char* maxPrePos, unsigned char **preamblePos)
+{
+  if (*preamblePos == maxPrePos)
+  {
+    readNBytes(buffer, buffSize, s);
+    *preamblePos = pre;
+    return true;
+  }
+
   char car = caracterActual;
+
   if (car == **preamblePos)
   {
     (*preamblePos)++;
@@ -112,98 +249,17 @@ uint16_t radioFrameReceived(Stream * s, char* buffer, unsigned char* pre, unsign
     *preamblePos = pre;
   }
 
-  return 0;
-}
 
-boolean commandReceived(Stream * s, char* buffer, int buffSize, unsigned char* pre, unsigned char* maxPrePos, unsigned char **preamblePos)
-{
-	if (*preamblePos == maxPrePos)
-	{
-		readNBytes(buffer, buffSize, s);
-		*preamblePos = pre;
-		return true;
-	}
-
-	char car = caracterActual;
-		
-
-	if (car == **preamblePos)
-	{
-		(*preamblePos)++;
-	}
-	else
-	{
-		*preamblePos = pre;
-	}
-
-
-	return false;
-}
-
-
-unsigned char TX_ADDRESS[TX_ADR_WIDTH]  = 
-{
-  0x34,0x43,0x10,0x10,0x01
-}; // Define a static TX address
-
-unsigned char rx_buf[TX_PLOAD_WIDTH] = {0}; // initialize value
-unsigned char tx_buf[TX_PLOAD_WIDTH] = {0};
-//***************************************************
-
-void clearStatus()
-{
-  unsigned char status;
-  status = SPI_Read(STATUS);
-  SPI_RW_Reg(WRITE_REG+STATUS,status);// clear RX_DR or TX_DS or MAX_RT interrupt flag
-}
-
-void sendRfPayload(unsigned char ** ptr, uint8_t nb)
-{
-    
-    boolean enviado = false;
-    while(!enviado)
-    {
-        clearStatus();
-        SPI_Write_Buf(WR_TX_PLOAD, *ptr,nb);       // write playload to TX_FIFO
-        unsigned char status;
-        do
-        {
-          status = SPI_Read(STATUS);
-        } while(!(status&TX_DS) && !(status&MAX_RT));
-        
-        if(!(status&MAX_RT))
-        {
-           enviado = true;
-        }
-        
-    }
-
-    *ptr += nb;
-}
-
-void radioWrite(void * _buf, uint32_t tam)
-{
-  unsigned int units = tam / TX_UNIT;
-  unsigned int left = tam % TX_UNIT;
-  uint8_t * ptr = (uint8_t *)_buf;
-  uint8_t * maxptr = ptr + (TX_UNIT)*units;
-  while(ptr != maxptr)
-  {
-    sendRfPayload(&ptr, TX_UNIT);
-  }
-  if(left>0)
-  {
-    sendRfPayload(&ptr, left);
-  }
+  return false;
 }
 
 void setup() 
 {
   BigEndian = IsBigEndian();
-	
+  
   MaxPrePos = (unsigned char *) preamble + PREAMBLE_SIZE;
   MaxAreYouPos = (unsigned char*) areyou + AREYOU_SIZE;
-    
+
   serialPreamblePos = (unsigned char*)preamble;
   serialAreYouPos = (unsigned char*)areyou;
   
@@ -213,37 +269,42 @@ void setup()
   pinMode(MOSI,  OUTPUT);
   pinMode(MISO, INPUT);
   pinMode(IRQ, INPUT);
-  //  attachInterrupt(1, _ISR, LOW);// interrupt enable
+  //  attachInterrupt(1, _ISR, LOW); // interrupt enable
   Serial.begin(115200);
-  while (!Serial) {
-; // wait for serial port to connect. Needed for Leonardo only
-}
   init_io();                        // Initialize IO port
   unsigned char status=SPI_Read(STATUS);
-  Serial.print("status = ");    
-  Serial.println(status,HEX);     // There is read the mode’s status register, the default value should be ‘E’
-  Serial.println("*******************TX_Mode Start****************************");
-  TX_Mode();                       // set TX mode
+  Serial.print("status = ");
+  Serial.println(status,HEX);      // There is read the mode’s status register, the default value should be ‘E’  
+  Serial.println("*****************RX_Mode start******************************R");
+  RX_Mode();                        // set RX mode
 }
+
+int paylsize;
 
 void loop() 
 {
+  
+  if (radio.Available())
+  {
+    if (paylsize=radioFrameReceived(buf, (unsigned char*)preamble, MaxPrePos, &serialPreamblePos))
+    {
+        Serial.write(preamble, PREAMBLE_SIZE);   
+        Serial.write(buf, INFO_SIZE + paylsize + FCS_SIZE);
+        Serial.flush();
+    }
+   
+  }
+  else if (Serial.available() > 0)
+  {
+    caracterActual = Serial.peek();
 
-  if (Serial.available()>0)
-	{
-      	    caracterActual = Serial.peek();
+    
+    if (commandReceived(&Serial, NULL, 0, (unsigned char*)areyou, MaxAreYouPos, &serialAreYouPos))
+      Serial.write(imfrom, IMFROM_SIZE);
 
-	    if (paylsize=radioFrameReceived(&Serial, buf, (unsigned char*)preamble, MaxPrePos, &serialPreamblePos))
-	    {
-		 radioWrite(preamble, PREAMBLE_SIZE);
-		 radioWrite(buf, INFO_SIZE + paylsize + FCS_SIZE);
-            }
-
-	    else if (commandReceived(&Serial, NULL, 0, (unsigned char*)areyou, MaxAreYouPos, &serialAreYouPos))
-		Serial.write(imfrom, IMFROM_SIZE);
-
-    	    Serial.read();
-	}
+    Serial.read();
+    
+  }
 }
 
 //**************************************************
@@ -273,19 +334,19 @@ unsigned char SPI_RW(unsigned char Byte)
   {
     if(Byte&0x80)
     {
-      digitalWrite(MOSI, 1);
+      digitalWrite(MOSI, 1);    // output 'unsigned char', MSB to MOSI
     }
     else
     {
       digitalWrite(MOSI, 0);
     }
-    digitalWrite(SCK, 1);
+    digitalWrite(SCK, 1);                      // Set SCK high..
     Byte <<= 1;                         // shift next bit into MSB..
     if(digitalRead(MISO) == 1)
     {
       Byte |= 1;       	                // capture current MISO bit
     }
-    digitalWrite(SCK, 0);
+    digitalWrite(SCK, 0);         	// ..then set SCK low again
   }
   return(Byte);           	        // return read unsigned char
 }
@@ -324,7 +385,7 @@ unsigned char SPI_Read(unsigned char reg)
   SPI_RW(reg);                   // Select register to read from..
   reg_val = SPI_RW(0);           // ..then read register value
   digitalWrite(CSN, 1);          // CSN high, terminate SPI communication
-  
+
   return(reg_val);               // return register value
 }
 /**************************************************/
@@ -365,53 +426,86 @@ unsigned char SPI_Write_Buf(unsigned char reg, unsigned char *pBuf, unsigned cha
 {
   unsigned char status,i;
 
-  digitalWrite(CSN, 0);                  // Set CSN low, init SPI tranaction
+  digitalWrite(CSN, 0);                   // Set CSN low, init SPI tranaction
   status = SPI_RW(reg);             // Select register to write to and read status unsigned char
   for(i=0;i<bytes; i++)             // then write all unsigned char in buffer(*pBuf)
   {
     SPI_RW(*pBuf++);
   }
-  digitalWrite(CSN, 1);                   // Set CSN high again
+  digitalWrite(CSN, 1);                  // Set CSN high again
   return(status);                  // return nRF24L01 status unsigned char
 }
 /**************************************************/
 
 /**************************************************
- * Function: TX_Mode();
+ * Function: RX_Mode();
  * 
  * Description:
  * This function initializes one nRF24L01 device to
- * TX mode, set TX address, set RX address for auto.ack,
- * fill TX payload, select RF channel, datarate & TX pwr.
- * PWR_UP is set, CRC(2 unsigned chars) is enabled, & PRIM:TX.
- * 
- * ToDo: One high pulse(>10us) on CE will now send this
- * packet and expext an acknowledgment from the RX device.
- **************************************************/
-void TX_Mode(void)
+ * RX Mode, set RX address, writes RX payload width,
+ * select RF channel, datarate & LNA HCURR.
+ * After init, CE is toggled high, which means that
+ * this device is now ready to receive a datapacket.
+/**************************************************/
+void RX_Mode(void)
 {
   digitalWrite(CE, 0);
-
-  SPI_Write_Buf(WRITE_REG + TX_ADDR, TX_ADDRESS, TX_ADR_WIDTH);    // Writes TX_Address to nRF24L01
-  SPI_Write_Buf(WRITE_REG + RX_ADDR_P0, TX_ADDRESS, TX_ADR_WIDTH); // RX_Addr0 same as TX_Adr for Auto.Ack
-
+  SPI_Write_Buf(WRITE_REG + RX_ADDR_P0, TX_ADDRESS, TX_ADR_WIDTH); // Use the same address on the RX device as the TX device
   SPI_RW_Reg(WRITE_REG + EN_AA, 0x01);      // Enable Auto.Ack:Pipe0
- // SPI_RW_Reg(WRITE_REG + EN_AA, 0x00);      // Disable Auto.Ack:PipeX
+  //SPI_RW_Reg(WRITE_REG + EN_AA, 0x00);      // Disable Auto.Ack:PipeX
   SPI_RW_Reg(WRITE_REG + EN_RXADDR, 0x01);  // Enable Pipe0
-  SPI_RW_Reg(WRITE_REG + SETUP_RETR, 0x1a); // 500us + 86us, 10 retrans...
   SPI_RW_Reg(WRITE_REG + RF_CH, 40);        // Select RF channel 40
+  SPI_RW_Reg(WRITE_REG + RX_PW_P0, TX_PLOAD_WIDTH); // Select same RX payload width as TX Payload width
   //SPI_RW_Reg(WRITE_REG + RF_SETUP, 0x07);   // TX_PWR:0dBm, Datarate:2Mbps, LNA:HCURR
-  SPI_RW_Reg(WRITE_REG + RF_SETUP, 0x27);
-  SPI_RW_Reg(WRITE_REG + CONFIG, 0x0e);     // Set PWR_UP bit, enable CRC(2 unsigned chars) & Prim:TX. MAX_RT & TX_DS enabled..
+  SPI_RW_Reg(WRITE_REG + RF_SETUP, 0x27); 
+  SPI_RW_Reg(WRITE_REG + CONFIG, 0x0f);     // Set PWR_UP bit, enable CRC(2 unsigned chars) & Prim:RX. RX_DR enabled..
   
   SPI_RW_Reg(WRITE_REG + 0x1D, 0x04);  //Activar DPL (EN_DPL bit) DPL = Dynamic Payload Length (en registro FEATURE)
   SPI_RW_Reg(WRITE_REG + 0x1C, 0x01);    //Activar DPL en Pipe0 (DPL_PO) (en registro DYNPD)
-  SPI_Write_Buf(WR_TX_PLOAD,tx_buf,TX_PLOAD_WIDTH);
-
+  
   //SPI_RW_Reg(WRITE_REG + SETUP_RETR, 0x0A);
-
-  digitalWrite(CE, 1);
+  digitalWrite(CE, 1);                             // Set CE pin high to enable RX device
+  //  This device is now ready to receive one packet of 16 unsigned chars payload from a TX device sending to address
+  //  '3443101001', with auto acknowledgment, retransmit count of 10, RF channel 40 and datarate = 2Mbps.
 }
+/**************************************************/
 
 
+   
+  /*** TEST 2 ***/
+ /* 
+  unsigned int tam = 32;
+  unsigned char auxbuf[tam];
+  int reqs = tam;//TX_PLOAD_WIDTH;
+  unsigned int  dataLength;
+  for(;;)
+  {
+    if(radio.Available())
+    {
+  
+      radio.ReadBytes(auxbuf,reqs);
+     //delay(1000);
+     // Serial.println("###########");
+      for(int i=0; i<reqs; i++)
+      {
+          Serial.print(" ");
+        //Serial.print((char)auxbuf[i]);                              // print rx_buf
+          Serial.print(auxbuf[i], HEX);                              // print rx_buf
 
+      }
+      
+      Serial.println();
+    }
+    else if (Serial.available() > 0)
+    {
+      caracterActual = Serial.peek();
+  
+      
+      if (commandReceived(&Serial, NULL, 0, (unsigned char*)areyou, MaxAreYouPos, &serialAreYouPos))
+        Serial.write(imfrom, IMFROM_SIZE);
+  
+      Serial.read();
+      
+    }
+  }
+*/

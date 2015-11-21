@@ -5,7 +5,7 @@
 #define AREYOU_SIZE 18
 #define IMFROM_SIZE 11
 
-#define BUFFER_SIZE 1100
+#define BUFFER_SIZE 1500
 
 //#include <Mensajero.h>
 #include <VirtualWire.h>
@@ -157,7 +157,7 @@ void setup() {
         vw_set_rx_pin(receive_pin);
         //vw_set_ptt_pin(transmit_en_pin);
         vw_set_ptt_inverted(true); // Required for DR3100
-        vw_setup(1200);	 // Bits per sec
+        vw_setup(5000);	 // Bits per sec
 }
 
 int paylsize;
@@ -175,14 +175,14 @@ void radioWrite(void * buf, uint32_t tam)
     vw_send(ptr, MAX_RADIOUNIT_SIZE);
     ptr += MAX_RADIOUNIT_SIZE;
     vw_wait_tx(); // Wait until the whole message is gone
-    delay(25);
+    delay(23);
   }
   if(left>0)
   {
     vw_send(ptr, left);
     ptr += left;
     vw_wait_tx(); // Wait until the whole message is gone
-    delay(25);
+    delay(23);
   }
 }
 

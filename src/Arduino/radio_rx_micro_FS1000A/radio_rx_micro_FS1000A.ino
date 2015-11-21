@@ -5,7 +5,7 @@
 #define AREYOU_SIZE 18
 #define IMFROM_SIZE 11
 
-#define BUFFER_SIZE 1100
+#define BUFFER_SIZE 1500
 
 
 #include <VirtualWire.h>
@@ -211,7 +211,7 @@ void setup() {
     vw_set_rx_pin(receive_pin);
     vw_set_ptt_pin(transmit_en_pin);
     vw_set_ptt_inverted(true); // Required for DR3100
-    vw_setup(1200);	 // Bits per sec
+    vw_setup(5000);	 // Bits per sec
 
     vw_rx_start();       // Start the receiver PLL running
 }
