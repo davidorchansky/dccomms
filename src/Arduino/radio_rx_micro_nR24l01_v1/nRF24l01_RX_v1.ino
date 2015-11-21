@@ -37,7 +37,7 @@
 #define AREYOU_SIZE 18
 #define IMFROM_SIZE 11
 
-#define BUFFER_SIZE 1100
+#define BUFFER_SIZE 1500
 
 char buf[BUFFER_SIZE];
 

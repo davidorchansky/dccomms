@@ -132,7 +132,7 @@ boolean commandReceived(Stream * s, char* buffer, int buffSize, unsigned char* p
 }
 void setup() {
   Serial.begin(115200);
-  radioStream->begin(9600);
+  radioStream->begin(19200);
   //radioStream->begin(57600);
 
   BigEndian = IsBigEndian();

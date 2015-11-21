@@ -144,7 +144,7 @@ char sensorsInfo[40];
 
 void setup() {
 	Serial.begin(115200);
-	radioStream->begin(9600);
+	radioStream->begin(19200);
 
 	for (int i = 0; i < 40; i++)
 		sensorsInfo[i] = 'i';
