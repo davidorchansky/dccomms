@@ -29,6 +29,7 @@ o no errores.
 	* **BBB**: Se tienen en cuenta los puertos serie */dev/ttyO[1-5]* de una *Beablebone Black* cuando se llama al método *FindArduino* de un objeto de tipo *Arduino*.
 	* **BADWRITE**: Indica que se escriba en el puerto serie 1 byte por llamada a la función POSIX write.
 	* **BADWRITE2=X**: Indica que cada llamada a la función de POSIX write escriba un maximo de X bytes.
+
 > Nota: Parece que el SO de la Beablebone Black tiene problemas al cuando se escriben demasiados bytes a la vez por el puerto Serie con la llamada a *write*... Por eso lo de las opciones "BADWRITE". Esto no es correcto, hay que investigar por que pasa y arreglarlo mejor.
 
 Ejemplo con varias opciones de compilación:
@@ -76,4 +77,4 @@ Cargar el programa de cada Arduino (TX y RX) según módulo de radio a utilizar.
 * [*BiM2A 433 MHz*](http://www.radiometrix.com/content/bim2a).
 * [*BiM3B 868 MHz*](http://www.radiometrix.com/content/bim3b) (El mismo programa que para BiM2A).
 * [*FS1000A 315 MHz*](http://www.ananiahelectronics.com/fs100a.gif).
-* [*nR24l01 2.4 GHz*](http://elecfreaks.com/store/download/datasheet/rf/rf24l01_PA_LAN/nRF24L01P.PDF
+* [*nR24l01 2.4 GHz*](http://elecfreaks.com/store/download/datasheet/rf/rf24l01_PA_LAN/nRF24L01P.PDF).
