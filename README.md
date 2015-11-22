@@ -92,7 +92,7 @@ En el directorio "*ImageTransmission*":
         * *DelayBetweenFrames*: Es el tiempo, en milisegundos, que hay entre el envío de una trama y la siguiente.
 		* *MaxFrameAge*: Es el tiempo máximo permitido, en milisegundos, desde que se comprime la imagen hasta que el modulo transmisor (proceso) decide procesarla para enviarla a través del canal de radio. Si el módulo transmisor recibe una imagen comprimida muy antigua, la descarta. De esta manera podemos conseguir que el video en la recepción sea lo más reciente posible.
 		
-     * Segunda implementación:
+    * Segunda implementación:
     
     		./videoRovTx_v2_noFFmpeg.sh <ImageWidth> <ImageHeight> <EncodedImageSize> <MaxPayloadSizePerRadioFrame> <DelayBetweenFrames> <MaxFrameAge>
         >  Nota: El significado de los parámetros es el mismo que en la primera implementación.	
