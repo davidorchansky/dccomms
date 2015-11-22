@@ -1,7 +1,7 @@
 # ROVRadioTransmission
 
 ### DESCRIPCIÓN:
-Interfaz de control de dos Arduinos que forman un sistema de comunicación por radio *half-duplex*.
+Interfaz de control de dos Arduinos que forman un sistema de comunicación por radio *half-duplex* (ver [TFM Diego Centelles](https://drive.google.com/file/d/0ByiyD66UpEnfc3BMVE1abFF1TGM/view?usp=sharing)).
 
 ### DEPENDENCIAS: 
 Dependencia (temporal) con la Biblioteca "*crypto*". Para instalar:
