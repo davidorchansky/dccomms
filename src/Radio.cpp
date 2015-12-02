@@ -90,8 +90,8 @@ void Radio::SendBytes(const void * buf, uint32_t size, uint8_t dirTo, uint32_t p
 	uint32_t bytesLeft = size % packetSize;
 	if(bytesLeft)
 	{
-
-		std::this_thread::sleep_for(std::chrono::milliseconds(ms));
+		if(numPackets > 0)
+			std::this_thread::sleep_for(std::chrono::milliseconds(ms));
 		DataLinkFrame dlf(dirTo, dir, bytesLeft, buffer, FCSType);
 #ifdef DEBUG
 		std::cout << "Enviando paquete..." << std::endl;
