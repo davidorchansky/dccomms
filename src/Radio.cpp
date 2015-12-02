@@ -22,7 +22,30 @@ Radio::Radio(unsigned char d, SerialPortInterface & s, Radio::fcsType fcst, uint
 	_bytesInBuffer = 0;
 	_rxBufferLastPos = 0;
 	_rxBufferFirstPos = 0;
-	FCSType = fcst;
+
+	switch(fcst)
+	{
+		case Radio::fcsType::crc32:
+			FCSType = DataLinkFrame::fcsType::crc32;
+#ifdef DEBUG
+		std::cout << "Configurado crc32" << std::endl;
+#endif
+
+			break;
+		case Radio::fcsType::crc16:
+			FCSType = DataLinkFrame::fcsType::crc16;
+#ifdef DEBUG
+		std::cout << "Configurado crc16" << std::endl;
+#endif
+			break;
+		case Radio::fcsType::nofcs:
+			FCSType = DataLinkFrame::fcsType::nofcs;
+#ifdef DEBUG
+		std::cout << "Configurado crc16" << std::endl;
+#endif
+			break;
+	}
+	//FCSType = (DataLinkFrame::fcsType) fcst;
 }
 
 Radio::~Radio()
@@ -38,7 +61,7 @@ void Radio::SendBytes(const void * buf, uint32_t size, uint8_t dirTo, uint32_t p
 	uint32_t np;
 	for(np = 1 ; np < numPackets; np++)
 	{
-		DataLinkFrame dlf(dirTo, dir, packetSize, buffer, DataLinkFrame::crc32);
+		DataLinkFrame dlf(dirTo, dir, packetSize, buffer, FCSType);
 #ifdef DEBUG
 		std::cout << "Enviando paquete..." << std::endl;
 		dlf.printFrame(std::cout);
@@ -53,7 +76,7 @@ void Radio::SendBytes(const void * buf, uint32_t size, uint8_t dirTo, uint32_t p
 	if(numPackets > 0)
 	{
 
-		DataLinkFrame dlf(dirTo, dir, packetSize, buffer, DataLinkFrame::crc32);
+		DataLinkFrame dlf(dirTo, dir, packetSize, buffer, FCSType);
 #ifdef DEBUG
 		std::cout << "Enviando paquete..." << std::endl;
 		dlf.printFrame(std::cout);
@@ -69,7 +92,7 @@ void Radio::SendBytes(const void * buf, uint32_t size, uint8_t dirTo, uint32_t p
 	{
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(ms));
-		DataLinkFrame dlf(dirTo, dir, bytesLeft, buffer, DataLinkFrame::crc32);
+		DataLinkFrame dlf(dirTo, dir, bytesLeft, buffer, FCSType);
 #ifdef DEBUG
 		std::cout << "Enviando paquete..." << std::endl;
 		dlf.printFrame(std::cout);
@@ -105,7 +128,7 @@ void Radio::ReceiveBytes(void * buf, uint32_t size, uint8_t dirFrom, unsigned lo
 {
 	uint8_t * buffer = (uint8_t *) buf;
 	uint32_t bytes = 0;
-	DataLinkFrame dlf(DataLinkFrame::crc32);
+	DataLinkFrame dlf(FCSType);
 	uint16_t i;
 	unsigned long currentTimeout = serial.GetTimeout();
 	serial.SetTimeout(ms >= 0 ? ms : 0);
