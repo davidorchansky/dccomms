@@ -26,7 +26,7 @@ using namespace radiotransmission;
 
 int main(int argc, char ** argv) {
 	int frameSize = 100;//atoi(argv[2]);
-	int milis = 500;//atoi(argv[3]);
+	int milis = 5000;//atoi(argv[3]);
 
 
 	unsigned char * buffer;
@@ -57,12 +57,68 @@ int main(int argc, char ** argv) {
 		{
 			try
 			{
-				const char fw[50] = "fw 1,2,3,4,5 75\n";
-				const char rv[50] = "rv 1,2,3,4,5 75\n";
-				const char stop[50] = "stop 1,2,3,4,5\n";
+				const char fw1[50] = "fw 1,2,3,4,5,6 50\n";
+				const char fw2[50] = "fw 1,2,3,4,5,6 75\n";
+				const char fw3[50] = "fw 1,2,3,4,5,6 100\n";
+				
+				const char rv1[50] = "rv 1,2,3,4,5,6 50\n";
+				const char rv2[50] = "rv 1,2,3,4,5,6 75\n";
+				const char rv3[50] = "rv 1,2,3,4,5,6 100\n";
+				
+				const char stop[50] = "sp 1,2,3,4,5,6\n";
 
-				radioTx.SendBytes(fw, strlen(fw), 255, frameSize, milis);
-				radioTx.SendBytes(rv, strlen(rv), 255, frameSize, milis);
+				std::this_thread::sleep_for(std::chrono::milliseconds(milis));
+
+				std::cout << "Enviando orden de MARCHA hacia ADELANTE a los motores 1,2,3,4,5 y 6 al 50%..." << std::endl;
+				radioTx.SendBytes(fw1, strlen(fw1), 255, frameSize, milis);
+
+				std::this_thread::sleep_for(std::chrono::milliseconds(milis));
+				std::cout << "Enviando orden de PARADA a los motores 1,2,3,4,5 y 6" << std::endl;
+				radioTx.SendBytes(stop, strlen(stop), 255, frameSize, milis);
+
+				std::this_thread::sleep_for(std::chrono::milliseconds(milis));
+				std::cout << "Enviando orden de MARCHA hacia ATRAS a los motores 1,2,3,4,5 y 6 al 50%..." << std::endl;
+				radioTx.SendBytes(rv1, strlen(rv1), 255, frameSize, milis);
+				
+				std::this_thread::sleep_for(std::chrono::milliseconds(milis));
+				std::cout << "Enviando orden de PARADA a los motores 1,2,3,4,5 y 6" << std::endl;
+				radioTx.SendBytes(stop, strlen(stop), 255, frameSize, milis);
+
+				//-----------------------------------
+
+				std::this_thread::sleep_for(std::chrono::milliseconds(milis));
+				std::cout << "Enviando orden de MARCHA hacia ADELANTE a los motores 1,2,3,4,5 y 6 al 75%..." << std::endl;
+				radioTx.SendBytes(fw2, strlen(fw2), 255, frameSize, milis);
+
+				std::this_thread::sleep_for(std::chrono::milliseconds(milis));
+				std::cout << "Enviando orden de PARADA a los motores 1,2,3,4,5 y 6" << std::endl;
+				radioTx.SendBytes(stop, strlen(stop), 255, frameSize, milis);
+
+				std::this_thread::sleep_for(std::chrono::milliseconds(milis));
+				std::cout << "Enviando orden de MARCHA hacia ATRAS a los motores 1,2,3,4,5 y 6 al 75%..." << std::endl;
+				radioTx.SendBytes(rv2, strlen(rv2), 255, frameSize, milis);
+				
+				std::this_thread::sleep_for(std::chrono::milliseconds(milis));
+				std::cout << "Enviando orden de PARADA a los motores 1,2,3,4,5 y 6" << std::endl;
+				radioTx.SendBytes(stop, strlen(stop), 255, frameSize, milis);
+
+
+				//-----------------------------------
+
+				std::this_thread::sleep_for(std::chrono::milliseconds(milis));
+				std::cout << "Enviando orden de MARCHA hacia ADELANTE a los motores 1,2,3,4,5 y 6 al 100%..." << std::endl;
+				radioTx.SendBytes(fw3, strlen(fw3), 255, frameSize, milis);
+
+				std::this_thread::sleep_for(std::chrono::milliseconds(milis));
+				std::cout << "Enviando orden de PARADA a los motores 1,2,3,4,5 y 6" << std::endl;
+				radioTx.SendBytes(stop, strlen(stop), 255, frameSize, milis);
+
+				std::this_thread::sleep_for(std::chrono::milliseconds(milis));
+				std::cout << "Enviando orden de MARCHA hacia ATRAS a los motores 1,2,3,4,5 y 6 al 100%..." << std::endl;
+				radioTx.SendBytes(rv3, strlen(rv3), 255, frameSize, milis);
+
+				std::this_thread::sleep_for(std::chrono::milliseconds(milis));
+				std::cout << "Enviando orden de PARADA a los motores 1,2,3,4,5 y 6" << std::endl;
 				radioTx.SendBytes(stop, strlen(stop), 255, frameSize, milis);
 
 				delete buffer;
