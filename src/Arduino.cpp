@@ -19,6 +19,7 @@
 namespace radiotransmission {
 
 
+Arduino::Arduino(){}
 Arduino::Arduino(const char * p, SerialPortInterface::BaudRate baud):SerialPortInterface(p, baud){}
 
 Arduino::Arduino(SerialPortInterface s):SerialPortInterface(s){}
