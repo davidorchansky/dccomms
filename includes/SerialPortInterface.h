@@ -81,10 +81,13 @@ public:
 		}
 	};
 
+	SerialPortInterface();
 	SerialPortInterface(const char *);
 	SerialPortInterface(const char *, SerialPortInterface::BaudRate);
 	SerialPortInterface(const char *, SerialPortInterface::PortSettings);
 	bool Open();
+	bool Open(const char *, SerialPortInterface::BaudRate);
+	bool Open(const char *, SerialPortInterface::PortSettings);
 	void Close();
 
 	int Read(void *, uint32_t, unsigned long msTimeout=0);

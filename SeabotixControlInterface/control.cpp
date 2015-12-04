@@ -12,9 +12,7 @@
 #include <BlockRadioTransmitter.h>
 #include <thread>         // std::this_thread::sleep_for
 #include <chrono>			// std::chrono::seconds
-#include <DataLinkFrame.h>
 #include <stdint.h>
-#include <Utils.h>
 #include <RadioException.h>
 #include <stdlib.h>
 #include <cstdio>

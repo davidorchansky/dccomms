@@ -35,6 +35,7 @@ public:
 	        BAUD_115200  = SerialPortInterface::BAUD_115200
 	    };
 
+	Arduino();
 	Arduino(const char * p, SerialPortInterface::BaudRate baud);
 	Arduino(SerialPortInterface s);
 	Arduino(SerialPortInterface, const char* port, Arduino::BaudRate, const char * hello, const char * validReply);
@@ -49,7 +50,6 @@ public:
 
 private:
 
-	Arduino();
 	static bool _checkDevice(Stream *s, const char* h, const char* r, unsigned long long m=0);
 };
 
