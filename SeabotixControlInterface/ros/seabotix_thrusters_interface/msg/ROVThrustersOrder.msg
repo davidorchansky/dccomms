@@ -1,0 +1,6 @@
+seabotix_thrusters_interface/ThrusterOrder motor1
+seabotix_thrusters_interface/ThrusterOrder motor2
+seabotix_thrusters_interface/ThrusterOrder motor3
+seabotix_thrusters_interface/ThrusterOrder motor4
+seabotix_thrusters_interface/ThrusterOrder motor5
+seabotix_thrusters_interface/ThrusterOrder motor6
