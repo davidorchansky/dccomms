@@ -70,59 +70,101 @@ void getMotorOrderByNumber(int n, uint8_t * speed, bool * s)
 
 }
 
-std::list<std::string> buildCommands()
+std::list<string> buildCommands()
 {
 	pthread_mutex_lock(&lock);
-	std::list<std::string> orders;
 
 	bool m1=false, m2=false, m3=false, m4=false,
 	m5=false, m6=false;
-
-	for(int i = 0; i < 6; i++)
+	std::list<string> orders;
+	for(int i = 1; i <= 6; i++)
 	{
+		switch(i)
+		{
+			case 1:
+				if(!m1) m1=true;
+				else continue;
+				break;
+			case 2:
+				if(!m2) m2=true;
+				else continue;
+				break;
+			case 3: 
+				if(!m3) m3=true;
+				else continue;
+				break;
+			case 4:
+				if(!m4) m4=true;
+				else continue;
+				break;
+			case 5:
+				if(!m5) m5=true;
+				else continue;
+				break;
+			case 6:
+				if(!m6) m6=true;
+				else continue;
+				break;
+		}
 		std::string order;
 		uint8_t speed;
 		bool s;
 
 		getMotorOrderByNumber(i,&speed,&s);
+		
+		order.reserve(50);
 
 		if(s) order = "fw ";
 		else  order = "rv ";
 
-		for(int c = i+1; c < 6; c++)
+		order += std::to_string(i);
+
+
+		for(int c = i+1; c <= 6; c++)
 		{
 			uint8_t speed2;
 			bool s2;
 
-			getMotorOrderByNumber(c,&speed, &s);
+			getMotorOrderByNumber(c,&speed2, &s2);
 
-			bool comp = false;
-			switch(c)
+			if(speed == speed2 && s == s2)
 			{
-				case 1:
-					if(!m1) {comp=true; m1=true;}
-					break;
-				case 2:
-					if(!m1) {comp=true; m1=true;}
-					break;
-				case 3: 
-					if(!m1) {comp=true; m1=true;}
-					break;
-				case 4:
-					if(!m1) {comp=true; m1=true;}
-					break;
-				case 5:
-					if(!m1) {comp=true; m1=true;}
-					break;
-				case 6:
-					if(!m1) {comp=true; m1=true;}
-					break;
+
+				bool comp = false;
+				switch(c)
+				{
+					case 1:
+						if(!m1) {comp=true; m1=true;}
+						break;
+					case 2:
+						if(!m2) {comp=true; m2=true;}
+						break;
+					case 3: 
+						if(!m3) {comp=true; m3=true;}
+						break;
+					case 4:
+						if(!m4) {comp=true; m4=true;}
+						break;
+					case 5:
+						if(!m5) {comp=true; m5=true;}
+						break;
+					case 6:
+						if(!m6) {comp=true; m6=true;}
+						break;
+				}
+
+				if(comp)
+				{
+					order += "," + std::to_string(c);
+				}
 			}
-
 		}
-
+		order += " " + std::to_string(speed) + "\n";
+		orders.push_front(order);
 	}
+
 	pthread_mutex_unlock(&lock);
+	return orders;
 }
 
 void* transmitterInterface(void * r)
@@ -130,15 +172,27 @@ void* transmitterInterface(void * r)
 	ROS_INFO("Interfaz con el transmisor creada.");
 	Radio * radioTx = (Radio*) r;
 	int frameSize = 100;//atoi(argv[2]);
-	int milis = 5000;//atoi(argv[3]);
+	int milis = 50;//atoi(argv[3]);
 
 	while(1)
 	{
 		try
 		{
-			ROS_INFO("Enviando ordenes a los motores...");
-		//	radioTx->SendBytes(stop, strlen(stop), 255, frameSize, milis);
-			std::this_thread::sleep_for(std::chrono::milliseconds(milis));
+
+			std::list<string> orders;
+			orders = buildCommands();
+
+			for(std::list<string>::iterator it = orders.begin();
+				it != orders.end();
+				it++)
+			{
+				ROS_INFO("Enviando %s (%d)", it->c_str(), it->length());
+				radioTx->SendBytes(it->c_str(), it->length() , 255, frameSize, milis);
+				std::this_thread::sleep_for(std::chrono::milliseconds(milis));
+			}
+
+			std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
 		}
 		catch(RadioException& e) //Control de excepciones
 		{
@@ -174,11 +228,6 @@ void* transmitterInterface(void * r)
 
 int main(int argc, char ** argv) {
 
-	ros::init(argc, argv, "ROVThrustersControlInterface");
-
-	ros::NodeHandle n;	
-
-	ros::Subscriber sub = n.subscribe("ROVThrusters", 1000, rovOrderCallback);
 	try
 	{
 		arduTx = Arduino::FindArduino(Arduino::BAUD_115200,
@@ -190,10 +239,10 @@ int main(int argc, char ** argv) {
 			std::cerr << "No ha sido posible encontrar la arduino" << std::endl;
 			exit(4);
 		}
-
 		std::cout <<"TX listo\n";
 
 		Radio radioTx(0,arduTx, Radio::fcsType::crc16);
+	
 		
 		if (pthread_mutex_init(&lock, NULL) != 0)
 		{
@@ -203,12 +252,20 @@ int main(int argc, char ** argv) {
 
 		pthread_t thread_id;
 		ROS_INFO("Creando interfaz con el transmisor RF...");	
-		if( pthread_create( &thread_id , NULL ,  transmitterInterface , (void*) &radioTx) < 0)
+		if( pthread_create( &thread_id , NULL ,  transmitterInterface ,  &radioTx) < 0)
 		{
 			perror("could not create thread");
 			ROS_ERROR("No se pudo crear la interfaz con el transmisor RF");
 			return 1;
 		}
+
+		ros::init(argc, argv, "ROVThrustersControlInterface");
+
+		ros::NodeHandle n;	
+
+		ros::Subscriber sub = n.subscribe("ROVThrusters", 1, rovOrderCallback);
+
+		ros::spin();
 
 
 	}catch(RadioException& e)
@@ -225,9 +282,6 @@ int main(int argc, char ** argv) {
 		std::cout << "Radio Exception: " << e.what() << std::endl << std::flush;
 		exit(1);
 	}
-
-	ros::spin();
-
 
 	return 0;
 }
