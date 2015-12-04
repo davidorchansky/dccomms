@@ -50,10 +50,28 @@ SerialPortInterface::SerialPortInterface(const char * p, SerialPortInterface::Po
 	portSettings = ps;
 }
 
+bool SerialPortInterface::Open(const char * p, SerialPortInterface::BaudRate baud)
+{
+	int s = strlen(p);
+	port = new char[s+1];
+	strcpy(port, p);
+	portSettings.baudrate = baud;
+	return Open();
+}
+
+
+bool SerialPortInterface::Open(const char * p, SerialPortInterface::PortSettings ps)
+{
+	int s = strlen(p);
+	port = new char[s+1];
+	strcpy(port, p);
+	portSettings = ps;
+	return Open();
+}
+
 bool SerialPortInterface::Open()
 {
 	struct termios options;
-
 
 	fd = open(port, O_RDWR );
 	if (fd != -1)
