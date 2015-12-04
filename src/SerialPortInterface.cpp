@@ -25,7 +25,7 @@
 
 namespace radiotransmission {
 
-
+SerialPortInterface::SerialPortInterface(){}
 SerialPortInterface::SerialPortInterface(const char * p)
 {
 	int s = strlen(p);
