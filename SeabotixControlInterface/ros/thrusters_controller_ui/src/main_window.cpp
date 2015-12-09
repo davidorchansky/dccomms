@@ -50,6 +50,8 @@ MainWindow::MainWindow(int argc, char** argv, QWidget *parent)
     if ( ui.checkbox_remember_settings->isChecked() ) {
         on_button_connect_clicked(true);
     }
+
+    QObject::connect(this, SIGNAL(thrustersControlsUpdated()), &qnode, SLOT(thrustersUiUpdated()));
 }
 
 MainWindow::~MainWindow() {}
@@ -101,6 +103,22 @@ void MainWindow::on_checkbox_use_environment_stateChanged(int state) {
 	ui.line_edit_master->setEnabled(enabled);
 	ui.line_edit_host->setEnabled(enabled);
 	//ui.line_edit_topic->setEnabled(enabled);
+}
+
+/*
+QStringListModel * logging_model =  ((QStringListModel*) ui.view_logging->model());
+
+logging_model->insertRows(logging_model->rowCount(),1);
+std::stringstream logging_model_msg;
+logging_model_msg << "Slider changed!";
+QVariant new_row(QString(logging_model_msg.str().c_str()));
+logging_model->setData(logging_model->index(logging_model->rowCount()-1),new_row);
+updateLoggingView(); // used to readjust the scrollbar
+*/
+
+void MainWindow::on_th1Sp_valueChanged(int value)
+{
+    Q_EMIT thrustersControlsUpdated();
 }
 
 /*****************************************************************************

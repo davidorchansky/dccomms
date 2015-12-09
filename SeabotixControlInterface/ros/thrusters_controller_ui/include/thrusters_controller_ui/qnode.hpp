@@ -54,16 +54,18 @@ public:
 
 	QStringListModel* loggingModel() { return &logging_model; }
 	void log( const LogLevel &level, const std::string &msg);
+public Q_SLOTS:
+        void thrustersUiUpdated();
 
 Q_SIGNALS:
 	void loggingUpdated();
-    void rosShutdown();
+        void rosShutdown();
 
 private:
 	int init_argc;
 	char** init_argv;
 	ros::Publisher chatter_publisher;
-    QStringListModel logging_model;
+        QStringListModel logging_model;
 };
 
 }  // namespace thrusters_controller_ui

@@ -92,6 +92,13 @@ void QNode::run() {
 void QNode::log( const LogLevel &level, const std::string &msg) {
 	logging_model.insertRows(logging_model.rowCount(),1);
 	std::stringstream logging_model_msg;
+        if ( ! ros::master::check() ) {
+                logging_model_msg << "[ERROR] no conectado a ROS master";
+                QVariant new_row(QString(logging_model_msg.str().c_str()));
+                logging_model.setData(logging_model.index(logging_model.rowCount()-1),new_row);
+                Q_EMIT loggingUpdated(); // used to readjust the scrollbar
+                return;
+        }
 	switch ( level ) {
 		case(Debug) : {
 				ROS_DEBUG_STREAM(msg);
@@ -99,7 +106,7 @@ void QNode::log( const LogLevel &level, const std::string &msg) {
 				break;
 		}
 		case(Info) : {
-				ROS_INFO_STREAM(msg);
+                                ROS_INFO_STREAM(msg);
 				logging_model_msg << "[INFO] [" << ros::Time::now() << "]: " << msg;
 				break;
 		}
@@ -118,10 +125,15 @@ void QNode::log( const LogLevel &level, const std::string &msg) {
 				logging_model_msg << "[FATAL] [" << ros::Time::now() << "]: " << msg;
 				break;
 		}
-	}
-	QVariant new_row(QString(logging_model_msg.str().c_str()));
-	logging_model.setData(logging_model.index(logging_model.rowCount()-1),new_row);
-	Q_EMIT loggingUpdated(); // used to readjust the scrollbar
+        }
+        QVariant new_row(QString(logging_model_msg.str().c_str()));
+        logging_model.setData(logging_model.index(logging_model.rowCount()-1),new_row);
+        Q_EMIT loggingUpdated(); // used to readjust the scrollbar
+}
+
+void QNode::thrustersUiUpdated()
+{
+    log(Info,"Nueva orden para los thrusters");
 }
 
 }  // namespace thrusters_controller_ui

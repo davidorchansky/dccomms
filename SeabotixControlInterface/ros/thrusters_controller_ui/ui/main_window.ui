@@ -299,16 +299,6 @@
         </layout>
        </item>
       </layout>
-      <zorder>th1Sp</zorder>
-      <zorder>th1Fw</zorder>
-      <zorder>th1Rv</zorder>
-      <zorder>th1Label</zorder>
-      <zorder>layoutWidget</zorder>
-      <zorder>layoutWidget_2</zorder>
-      <zorder>layoutWidget_3</zorder>
-      <zorder>layoutWidget_4</zorder>
-      <zorder>th6Sp</zorder>
-      <zorder>layoutWidget_5</zorder>
      </widget>
     </item>
     <item>
@@ -340,10 +330,13 @@
             <layout class="QVBoxLayout" name="verticalLayout_4">
              <item>
               <layout class="QFormLayout" name="formLayout">
+               <property name="labelAlignment">
+                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+               </property>
                <item row="0" column="0">
                 <widget class="QLabel" name="label">
                  <property name="frameShape">
-                  <enum>QFrame::StyledPanel</enum>
+                  <enum>QFrame::NoFrame</enum>
                  </property>
                  <property name="frameShadow">
                   <enum>QFrame::Raised</enum>
@@ -362,8 +355,11 @@
                </item>
                <item row="1" column="0">
                 <widget class="QLabel" name="label_2">
+                 <property name="layoutDirection">
+                  <enum>Qt::LeftToRight</enum>
+                 </property>
                  <property name="frameShape">
-                  <enum>QFrame::StyledPanel</enum>
+                  <enum>QFrame::NoFrame</enum>
                  </property>
                  <property name="frameShadow">
                   <enum>QFrame::Raised</enum>
@@ -383,7 +379,7 @@
                <item row="2" column="0">
                 <widget class="QLabel" name="label_3">
                  <property name="frameShape">
-                  <enum>QFrame::StyledPanel</enum>
+                  <enum>QFrame::NoFrame</enum>
                  </property>
                  <property name="frameShadow">
                   <enum>QFrame::Raised</enum>
@@ -524,11 +520,11 @@
   </connection>
  </connections>
  <buttongroups>
-  <buttongroup name="buttonGroup"/>
   <buttongroup name="buttonGroup_2"/>
   <buttongroup name="buttonGroup_3"/>
   <buttongroup name="buttonGroup_4"/>
   <buttongroup name="buttonGroup_5"/>
   <buttongroup name="buttonGroup_6"/>
+  <buttongroup name="buttonGroup"/>
  </buttongroups>
 </ui>

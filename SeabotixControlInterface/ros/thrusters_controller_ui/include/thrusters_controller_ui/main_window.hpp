@@ -15,7 +15,6 @@
 #include <QtGui/QMainWindow>
 #include "ui_main_window.h"
 #include "qnode.hpp"
-
 /*****************************************************************************
 ** Namespace
 *****************************************************************************/
@@ -39,7 +38,11 @@ public:
 	void WriteSettings(); // Save qt program settings when closing
 
 	void closeEvent(QCloseEvent *event); // Overloaded function
+
 	void showNoMasterMessage();
+
+Q_SIGNALS:
+        void thrustersControlsUpdated();
 
 public Q_SLOTS:
 	/******************************************
@@ -48,6 +51,9 @@ public Q_SLOTS:
 	void on_actionAbout_triggered();
 	void on_button_connect_clicked(bool check );
 	void on_checkbox_use_environment_stateChanged(int state);
+
+        //void on_th1Sp_sliderMoved(int value);
+        void on_th1Sp_valueChanged(int value);
 
     /******************************************
     ** Manual connections
