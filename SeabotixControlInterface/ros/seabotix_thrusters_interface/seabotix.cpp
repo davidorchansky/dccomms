@@ -172,7 +172,7 @@ void* transmitterInterface(void * r)
 	ROS_INFO("Interfaz con el transmisor creada.");
 	Radio * radioTx = (Radio*) r;
 	int frameSize = 100;//atoi(argv[2]);
-	int milis = 50;//atoi(argv[3]);
+	int milis = 140;//atoi(argv[3]);
 
 	while(1)
 	{
@@ -191,7 +191,7 @@ void* transmitterInterface(void * r)
 				std::this_thread::sleep_for(std::chrono::milliseconds(milis));
 			}
 
-			std::this_thread::sleep_for(std::chrono::milliseconds(200));
+		//	std::this_thread::sleep_for(std::chrono::milliseconds(milis));
 
 		}
 		catch(RadioException& e) //Control de excepciones
