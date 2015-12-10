@@ -172,7 +172,7 @@ void* transmitterInterface(void * r)
 	ROS_INFO("Interfaz con el transmisor creada.");
 	Radio * radioTx = (Radio*) r;
 	int frameSize = 100;//atoi(argv[2]);
-	int milis = 140;//atoi(argv[3]);
+	int milis = 200;//atoi(argv[3]);
 
 	while(1)
 	{
