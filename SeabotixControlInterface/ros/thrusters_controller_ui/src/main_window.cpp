@@ -13,6 +13,8 @@
 #include <QMessageBox>
 #include <iostream>
 #include "../include/thrusters_controller_ui/main_window.hpp"
+#include <seabotix_thrusters_interface/ROVThrustersOrder.h>
+#include <QtGlobal>
 
 /*****************************************************************************
 ** Namespaces
@@ -51,7 +53,36 @@ MainWindow::MainWindow(int argc, char** argv, QWidget *parent)
         on_button_connect_clicked(true);
     }
 
-    QObject::connect(this, SIGNAL(thrustersControlsUpdated()), &qnode, SLOT(thrustersUiUpdated()));
+    ui.th1Sp->setRange(0,100);
+    ui.th2Sp->setRange(0,100);
+    ui.th3Sp->setRange(0,100);
+    ui.th4Sp->setRange(0,100);
+    ui.th5Sp->setRange(0,100);
+    ui.th6Sp->setRange(0,100);
+
+    ui.th1Sp->setSingleStep(1);
+    ui.th2Sp->setSingleStep(1);
+    ui.th3Sp->setSingleStep(1);
+    ui.th4Sp->setSingleStep(1);
+    ui.th5Sp->setSingleStep(1);
+    ui.th6Sp->setSingleStep(1);
+
+    QObject::connect(this, SIGNAL(thrustersControlsUpdated(seabotix_thrusters_interface::ROVThrustersOrder)), &qnode, SLOT(thrustersUiUpdated(seabotix_thrusters_interface::ROVThrustersOrder)));
+
+    QObject::connect(ui.th1Sp, SIGNAL(valueChanged(int)), this, SLOT(thrusters_controls_valueChanged()));
+    QObject::connect(ui.th2Sp, SIGNAL(valueChanged(int)), this, SLOT(thrusters_controls_valueChanged()));
+    QObject::connect(ui.th3Sp, SIGNAL(valueChanged(int)), this, SLOT(thrusters_controls_valueChanged()));
+    QObject::connect(ui.th4Sp, SIGNAL(valueChanged(int)), this, SLOT(thrusters_controls_valueChanged()));
+    QObject::connect(ui.th5Sp, SIGNAL(valueChanged(int)), this, SLOT(thrusters_controls_valueChanged()));
+    QObject::connect(ui.th6Sp, SIGNAL(valueChanged(int)), this, SLOT(thrusters_controls_valueChanged()));
+
+    QObject::connect(ui.th1Fw, SIGNAL(toggled(bool)), this, SLOT(thrusters_controls_valueChanged()));
+    QObject::connect(ui.th2Fw, SIGNAL(toggled(bool)), this, SLOT(thrusters_controls_valueChanged()));
+    QObject::connect(ui.th3Fw, SIGNAL(toggled(bool)), this, SLOT(thrusters_controls_valueChanged()));
+    QObject::connect(ui.th4Fw, SIGNAL(toggled(bool)), this, SLOT(thrusters_controls_valueChanged()));
+    QObject::connect(ui.th5Fw, SIGNAL(toggled(bool)), this, SLOT(thrusters_controls_valueChanged()));
+    QObject::connect(ui.th6Fw, SIGNAL(toggled(bool)), this, SLOT(thrusters_controls_valueChanged()));
+
 }
 
 MainWindow::~MainWindow() {}
@@ -116,9 +147,25 @@ logging_model->setData(logging_model->index(logging_model->rowCount()-1),new_row
 updateLoggingView(); // used to readjust the scrollbar
 */
 
-void MainWindow::on_th1Sp_valueChanged(int value)
+void MainWindow::thrusters_controls_valueChanged()
 {
-    Q_EMIT thrustersControlsUpdated();
+    seabotix_thrusters_interface::ROVThrustersOrder thrusters_msg;
+
+    thrusters_msg.motor1.speed = ui.th1Sp->value();
+    thrusters_msg.motor2.speed = ui.th2Sp->value();
+    thrusters_msg.motor3.speed = ui.th3Sp->value();
+    thrusters_msg.motor4.speed = ui.th4Sp->value();
+    thrusters_msg.motor5.speed = ui.th5Sp->value();
+    thrusters_msg.motor6.speed = ui.th6Sp->value();
+
+    thrusters_msg.motor1.forward = ui.th1Fw->isChecked();
+    thrusters_msg.motor2.forward = ui.th2Fw->isChecked();
+    thrusters_msg.motor3.forward = ui.th3Fw->isChecked();
+    thrusters_msg.motor4.forward = ui.th4Fw->isChecked();
+    thrusters_msg.motor5.forward = ui.th5Fw->isChecked();
+    thrusters_msg.motor6.forward = ui.th6Fw->isChecked();
+
+    Q_EMIT thrustersControlsUpdated(thrusters_msg);
 }
 
 /*****************************************************************************

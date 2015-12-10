@@ -16,6 +16,8 @@
 #include <std_msgs/String.h>
 #include <sstream>
 #include "../include/thrusters_controller_ui/qnode.hpp"
+#include <seabotix_thrusters_interface/ROVThrustersOrder.h>
+#include <QDebug>
 
 /*****************************************************************************
 ** Namespaces
@@ -48,7 +50,7 @@ bool QNode::init() {
 	ros::start(); // explicitly needed since our nodehandle is going out of scope.
 	ros::NodeHandle n;
 	// Add your ros communications here.
-	chatter_publisher = n.advertise<std_msgs::String>("chatter", 1000);
+        ROVThrusters_publisher = n.advertise<seabotix_thrusters_interface::ROVThrustersOrder>("ROVThrusters", 1000);
 	start();
 	return true;
 }
@@ -64,7 +66,7 @@ bool QNode::init(const std::string &master_url, const std::string &host_url) {
 	ros::start(); // explicitly needed since our nodehandle is going out of scope.
 	ros::NodeHandle n;
 	// Add your ros communications here.
-	chatter_publisher = n.advertise<std_msgs::String>("chatter", 1000);
+        ROVThrusters_publisher = n.advertise<seabotix_thrusters_interface::ROVThrustersOrder>("ROVThrusters", 1000);
 	start();
 	return true;
 }
@@ -74,12 +76,18 @@ void QNode::run() {
 	int count = 0;
 	while ( ros::ok() ) {
 
+                /*
 		std_msgs::String msg;
 		std::stringstream ss;
 		ss << "hello world " << count;
 		msg.data = ss.str();
 		chatter_publisher.publish(msg);
 		log(Info,std::string("I sent: ")+msg.data);
+
+                */
+                mutex.lock();
+                ROVThrusters_publisher.publish(thrusters_msg);
+                mutex.unlock();
 		ros::spinOnce();
 		loop_rate.sleep();
 		++count;
@@ -96,6 +104,9 @@ void QNode::log( const LogLevel &level, const std::string &msg) {
                 logging_model_msg << "[ERROR] no conectado a ROS master";
                 QVariant new_row(QString(logging_model_msg.str().c_str()));
                 logging_model.setData(logging_model.index(logging_model.rowCount()-1),new_row);
+                logging_model.insertRows(logging_model.rowCount(),1);
+                QVariant new_row2(QString(msg.c_str()));
+                logging_model.setData(logging_model.index(logging_model.rowCount()-1),new_row2);
                 Q_EMIT loggingUpdated(); // used to readjust the scrollbar
                 return;
         }
@@ -131,9 +142,23 @@ void QNode::log( const LogLevel &level, const std::string &msg) {
         Q_EMIT loggingUpdated(); // used to readjust the scrollbar
 }
 
-void QNode::thrustersUiUpdated()
+
+void QNode::thrustersUiUpdated(seabotix_thrusters_interface::ROVThrustersOrder msg)
 {
-    log(Info,"Nueva orden para los thrusters");
+    std::stringstream logging_msg;
+
+    logging_msg << "\nMotor 1:\n\tspeed = " << QString::number(msg.motor1.speed).toStdString() <<"\tD. = " << (msg.motor1.forward ? "Forward" : "Reverse")
+                << "\nMotor 2:\n\tspeed = " << QString::number(msg.motor2.speed).toStdString() <<"\tD. = " << (msg.motor2.forward ? "Forward" : "Reverse")
+                << "\nMotor 3:\n\tspeed = " << QString::number(msg.motor3.speed).toStdString() <<"\tD. = " << (msg.motor3.forward ? "Forward" : "Reverse")
+                << "\nMotor 4:\n\tspeed = " << QString::number(msg.motor4.speed).toStdString() <<"\tD. = " << (msg.motor4.forward ? "Forward" : "Reverse")
+                << "\nMotor 5:\n\tspeed = " << QString::number(msg.motor5.speed).toStdString() <<"\tD. = " << (msg.motor5.forward ? "Forward" : "Reverse")
+                << "\nMotor 6:\n\tspeed = " << QString::number(msg.motor6.speed).toStdString() <<"\tD. = " << (msg.motor6.forward ? "Forward" : "Reverse");
+
+    log(Info,logging_msg.str());
+    mutex.lock();
+    thrusters_msg = msg;
+    ROVThrusters_publisher.publish(thrusters_msg);
+    mutex.unlock();
 }
 
 }  // namespace thrusters_controller_ui

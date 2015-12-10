@@ -20,7 +20,8 @@
 #include <string>
 #include <QThread>
 #include <QStringListModel>
-
+#include <seabotix_thrusters_interface/ROVThrustersOrder.h>
+#include <QMutex>
 
 /*****************************************************************************
 ** Namespaces
@@ -55,7 +56,7 @@ public:
 	QStringListModel* loggingModel() { return &logging_model; }
 	void log( const LogLevel &level, const std::string &msg);
 public Q_SLOTS:
-        void thrustersUiUpdated();
+        void thrustersUiUpdated(seabotix_thrusters_interface::ROVThrustersOrder msg);
 
 Q_SIGNALS:
 	void loggingUpdated();
@@ -64,8 +65,10 @@ Q_SIGNALS:
 private:
 	int init_argc;
 	char** init_argv;
-	ros::Publisher chatter_publisher;
+        ros::Publisher ROVThrusters_publisher;
         QStringListModel logging_model;
+        seabotix_thrusters_interface::ROVThrustersOrder thrusters_msg;
+        QMutex mutex;
 };
 
 }  // namespace thrusters_controller_ui

@@ -15,6 +15,7 @@
 #include <QtGui/QMainWindow>
 #include "ui_main_window.h"
 #include "qnode.hpp"
+#include <seabotix_thrusters_interface/ROVThrustersOrder.h>
 /*****************************************************************************
 ** Namespace
 *****************************************************************************/
@@ -42,7 +43,7 @@ public:
 	void showNoMasterMessage();
 
 Q_SIGNALS:
-        void thrustersControlsUpdated();
+        void thrustersControlsUpdated(seabotix_thrusters_interface::ROVThrustersOrder);
 
 public Q_SLOTS:
 	/******************************************
@@ -52,8 +53,8 @@ public Q_SLOTS:
 	void on_button_connect_clicked(bool check );
 	void on_checkbox_use_environment_stateChanged(int state);
 
-        //void on_th1Sp_sliderMoved(int value);
-        void on_th1Sp_valueChanged(int value);
+
+        void thrusters_controls_valueChanged();
 
     /******************************************
     ** Manual connections
