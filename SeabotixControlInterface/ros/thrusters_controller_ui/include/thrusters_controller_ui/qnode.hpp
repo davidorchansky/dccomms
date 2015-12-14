@@ -55,17 +55,22 @@ public:
 
 	QStringListModel* loggingModel() { return &logging_model; }
 	void log( const LogLevel &level, const std::string &msg);
+        void rovOrderCallback(const seabotix_thrusters_interface::ROVThrustersOrder &msg);
+
+        seabotix_thrusters_interface::ROVThrustersOrder getThrustersState();
 public Q_SLOTS:
         void thrustersUiUpdated(seabotix_thrusters_interface::ROVThrustersOrder msg);
 
 Q_SIGNALS:
 	void loggingUpdated();
         void rosShutdown();
+        void newThrustersState();
 
 private:
 	int init_argc;
 	char** init_argv;
         ros::Publisher ROVThrusters_publisher;
+        ros::Subscriber ROVThrusters_subscriber;
         QStringListModel logging_model;
         seabotix_thrusters_interface::ROVThrustersOrder thrusters_msg;
         QMutex mutex;

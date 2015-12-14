@@ -71,6 +71,7 @@ public Q_SLOTS:
         void maxThruster6();
 
         void thrusters_controls_valueChanged();
+        void thrusters_ROSState_changed();
 
     /******************************************
     ** Manual connections
@@ -80,6 +81,7 @@ public Q_SLOTS:
 private:
 	Ui::MainWindowDesign ui;
 	QNode qnode;
+        bool publish;
 };
 
 }  // namespace thrusters_controller_ui

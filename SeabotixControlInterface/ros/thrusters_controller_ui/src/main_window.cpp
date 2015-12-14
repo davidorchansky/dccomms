@@ -68,6 +68,7 @@ MainWindow::MainWindow(int argc, char** argv, QWidget *parent)
     ui.th6Sp->setSingleStep(1);
 
     QObject::connect(this, SIGNAL(thrustersControlsUpdated(seabotix_thrusters_interface::ROVThrustersOrder)), &qnode, SLOT(thrustersUiUpdated(seabotix_thrusters_interface::ROVThrustersOrder)));
+    QObject::connect(&qnode, SIGNAL(newThrustersState()), this, SLOT(thrusters_ROSState_changed()));
 
     QObject::connect(ui.th1Sp, SIGNAL(valueChanged(int)), this, SLOT(thrusters_controls_valueChanged()));
     QObject::connect(ui.th2Sp, SIGNAL(valueChanged(int)), this, SLOT(thrusters_controls_valueChanged()));
@@ -99,6 +100,7 @@ MainWindow::MainWindow(int argc, char** argv, QWidget *parent)
 
     QObject::connect(ui.stopAllButton, SIGNAL(clicked()), this, SLOT(stopAllThrusters()));
 
+    publish = true;
 
 }
 
@@ -201,36 +203,51 @@ void MainWindow::maxThruster6() {
     ui.th6Sp->setSliderPosition(100);
 }
 
-/*
-QStringListModel * logging_model =  ((QStringListModel*) ui.view_logging->model());
+void MainWindow::thrusters_ROSState_changed()
+{
+    publish = false;
+    seabotix_thrusters_interface::ROVThrustersOrder thrusters_msg = qnode.getThrustersState();
 
-logging_model->insertRows(logging_model->rowCount(),1);
-std::stringstream logging_model_msg;
-logging_model_msg << "Slider changed!";
-QVariant new_row(QString(logging_model_msg.str().c_str()));
-logging_model->setData(logging_model->index(logging_model->rowCount()-1),new_row);
-updateLoggingView(); // used to readjust the scrollbar
-*/
+    qDebug("Nuevo estado de los motores recibido de ROS!");
+    ui.th1Sp->setSliderPosition(thrusters_msg.motor1.speed);
+    ui.th2Sp->setSliderPosition(thrusters_msg.motor2.speed);
+    ui.th3Sp->setSliderPosition(thrusters_msg.motor3.speed);
+    ui.th4Sp->setSliderPosition(thrusters_msg.motor4.speed);
+    ui.th5Sp->setSliderPosition(thrusters_msg.motor5.speed);
+    ui.th6Sp->setSliderPosition(thrusters_msg.motor6.speed);
+
+    thrusters_msg.motor1.forward ? ui.th1Fw->click() : ui.th1Rv->click();
+    thrusters_msg.motor2.forward ? ui.th2Fw->click() : ui.th2Rv->click();
+    thrusters_msg.motor3.forward ? ui.th3Fw->click() : ui.th3Rv->click();
+    thrusters_msg.motor4.forward ? ui.th4Fw->click() : ui.th4Rv->click();
+    thrusters_msg.motor5.forward ? ui.th5Fw->click() : ui.th5Rv->click();
+    thrusters_msg.motor6.forward ? ui.th6Fw->click() : ui.th6Rv->click();
+
+    publish = true;
+}
 
 void MainWindow::thrusters_controls_valueChanged()
 {
-    seabotix_thrusters_interface::ROVThrustersOrder thrusters_msg;
+    if(publish)
+    {
+        seabotix_thrusters_interface::ROVThrustersOrder thrusters_msg;
 
-    thrusters_msg.motor1.speed = ui.th1Sp->value();
-    thrusters_msg.motor2.speed = ui.th2Sp->value();
-    thrusters_msg.motor3.speed = ui.th3Sp->value();
-    thrusters_msg.motor4.speed = ui.th4Sp->value();
-    thrusters_msg.motor5.speed = ui.th5Sp->value();
-    thrusters_msg.motor6.speed = ui.th6Sp->value();
+        thrusters_msg.motor1.speed = ui.th1Sp->value();
+        thrusters_msg.motor2.speed = ui.th2Sp->value();
+        thrusters_msg.motor3.speed = ui.th3Sp->value();
+        thrusters_msg.motor4.speed = ui.th4Sp->value();
+        thrusters_msg.motor5.speed = ui.th5Sp->value();
+        thrusters_msg.motor6.speed = ui.th6Sp->value();
 
-    thrusters_msg.motor1.forward = ui.th1Fw->isChecked();
-    thrusters_msg.motor2.forward = ui.th2Fw->isChecked();
-    thrusters_msg.motor3.forward = ui.th3Fw->isChecked();
-    thrusters_msg.motor4.forward = ui.th4Fw->isChecked();
-    thrusters_msg.motor5.forward = ui.th5Fw->isChecked();
-    thrusters_msg.motor6.forward = ui.th6Fw->isChecked();
+        thrusters_msg.motor1.forward = ui.th1Fw->isChecked();
+        thrusters_msg.motor2.forward = ui.th2Fw->isChecked();
+        thrusters_msg.motor3.forward = ui.th3Fw->isChecked();
+        thrusters_msg.motor4.forward = ui.th4Fw->isChecked();
+        thrusters_msg.motor5.forward = ui.th5Fw->isChecked();
+        thrusters_msg.motor6.forward = ui.th6Fw->isChecked();
 
-    Q_EMIT thrustersControlsUpdated(thrusters_msg);
+        Q_EMIT thrustersControlsUpdated(thrusters_msg);
+    }
 }
 
 /*****************************************************************************
