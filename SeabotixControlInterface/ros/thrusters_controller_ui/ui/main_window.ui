@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>532</width>
-    <height>536</height>
+    <width>885</width>
+    <height>547</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -23,283 +23,468 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout_8">
     <item>
-     <widget class="QGroupBox" name="groupBox_3">
-      <property name="title">
-       <string>ROV Thrusters Controls</string>
-      </property>
-      <layout class="QVBoxLayout" name="verticalLayout_7">
-       <item>
-        <layout class="QHBoxLayout" name="horizontalLayout_2">
+     <layout class="QHBoxLayout" name="horizontalLayout_13">
+      <item>
+       <widget class="QGroupBox" name="SensorsBox">
+        <property name="title">
+         <string>ROV Sensors</string>
+        </property>
+        <layout class="QVBoxLayout" name="verticalLayout_7">
          <item>
-          <widget class="QLabel" name="th1Label">
+          <widget class="QGraphicsView" name="graphicsView"/>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item>
+       <widget class="QGroupBox" name="ThrustersControlsBox">
+        <property name="title">
+         <string>ROV Thrusters Controls</string>
+        </property>
+        <layout class="QGridLayout" name="gridLayout_2">
+         <item row="0" column="0">
+          <widget class="QPushButton" name="stopAllButton">
            <property name="text">
-            <string>Thruster 1</string>
+            <string>Stop All</string>
            </property>
           </widget>
          </item>
-         <item>
-          <widget class="QSlider" name="th1Sp">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <layout class="QHBoxLayout" name="horizontalLayout">
+         <item row="2" column="0">
+          <layout class="QHBoxLayout" name="horizontalLayout_3">
            <item>
-            <widget class="QRadioButton" name="th1Fw">
+            <widget class="QLabel" name="th2Label">
              <property name="text">
-              <string>Forward</string>
+              <string>Thruster 2</string>
              </property>
-             <property name="checked">
-              <bool>true</bool>
-             </property>
-             <attribute name="buttonGroup">
-              <string notr="true">buttonGroup</string>
-             </attribute>
             </widget>
            </item>
            <item>
-            <widget class="QRadioButton" name="th1Rv">
-             <property name="text">
-              <string>Reverse</string>
+            <widget class="QSlider" name="th2Sp">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
              </property>
-             <attribute name="buttonGroup">
-              <string notr="true">buttonGroup</string>
-             </attribute>
             </widget>
+           </item>
+           <item>
+            <layout class="QHBoxLayout" name="horizontalLayout_4">
+             <item>
+              <widget class="QRadioButton" name="th2Fw">
+               <property name="text">
+                <string>Forward</string>
+               </property>
+               <property name="checked">
+                <bool>true</bool>
+               </property>
+               <attribute name="buttonGroup">
+                <string notr="true">buttonGroup_2</string>
+               </attribute>
+              </widget>
+             </item>
+             <item>
+              <widget class="QRadioButton" name="th2Rv">
+               <property name="text">
+                <string>Reverse</string>
+               </property>
+               <attribute name="buttonGroup">
+                <string notr="true">buttonGroup_2</string>
+               </attribute>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="th2Stop">
+               <property name="maximumSize">
+                <size>
+                 <width>40</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="text">
+                <string>Stop</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="th2Max">
+               <property name="maximumSize">
+                <size>
+                 <width>40</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="text">
+                <string>Max.</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+          </layout>
+         </item>
+         <item row="5" column="0">
+          <layout class="QHBoxLayout" name="horizontalLayout_9">
+           <item>
+            <widget class="QLabel" name="th5Label">
+             <property name="text">
+              <string>Thruster 5</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QSlider" name="th5Sp">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <layout class="QHBoxLayout" name="horizontalLayout_10">
+             <item>
+              <widget class="QRadioButton" name="th5Fw">
+               <property name="text">
+                <string>Forward</string>
+               </property>
+               <property name="checked">
+                <bool>true</bool>
+               </property>
+               <attribute name="buttonGroup">
+                <string notr="true">buttonGroup_5</string>
+               </attribute>
+              </widget>
+             </item>
+             <item>
+              <widget class="QRadioButton" name="th5Rv">
+               <property name="text">
+                <string>Reverse</string>
+               </property>
+               <attribute name="buttonGroup">
+                <string notr="true">buttonGroup_5</string>
+               </attribute>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="th5Stop">
+               <property name="maximumSize">
+                <size>
+                 <width>40</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="text">
+                <string>Stop</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="th5Max">
+               <property name="maximumSize">
+                <size>
+                 <width>40</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="text">
+                <string>Max.</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+          </layout>
+         </item>
+         <item row="1" column="0">
+          <layout class="QHBoxLayout" name="horizontalLayout_2">
+           <item>
+            <widget class="QLabel" name="th1Label">
+             <property name="text">
+              <string>Thruster 1</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QSlider" name="th1Sp">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <layout class="QHBoxLayout" name="horizontalLayout">
+             <item>
+              <widget class="QRadioButton" name="th1Fw">
+               <property name="text">
+                <string>Forward</string>
+               </property>
+               <property name="checked">
+                <bool>true</bool>
+               </property>
+               <attribute name="buttonGroup">
+                <string notr="true">buttonGroup</string>
+               </attribute>
+              </widget>
+             </item>
+             <item>
+              <widget class="QRadioButton" name="th1Rv">
+               <property name="text">
+                <string>Reverse</string>
+               </property>
+               <attribute name="buttonGroup">
+                <string notr="true">buttonGroup</string>
+               </attribute>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="th1Stop">
+               <property name="minimumSize">
+                <size>
+                 <width>0</width>
+                 <height>0</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>40</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="text">
+                <string>Stop</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="th1Max">
+               <property name="maximumSize">
+                <size>
+                 <width>40</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="text">
+                <string>Max.</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+          </layout>
+         </item>
+         <item row="6" column="0">
+          <layout class="QHBoxLayout" name="horizontalLayout_11">
+           <item>
+            <widget class="QLabel" name="th6Label">
+             <property name="text">
+              <string>Thruster 6</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QSlider" name="th6Sp">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <layout class="QHBoxLayout" name="horizontalLayout_12">
+             <item>
+              <widget class="QRadioButton" name="th6Fw">
+               <property name="text">
+                <string>Forward</string>
+               </property>
+               <property name="checked">
+                <bool>true</bool>
+               </property>
+               <attribute name="buttonGroup">
+                <string notr="true">buttonGroup_6</string>
+               </attribute>
+              </widget>
+             </item>
+             <item>
+              <widget class="QRadioButton" name="th6Rv">
+               <property name="text">
+                <string>Reverse</string>
+               </property>
+               <attribute name="buttonGroup">
+                <string notr="true">buttonGroup_6</string>
+               </attribute>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="th6Stop">
+               <property name="maximumSize">
+                <size>
+                 <width>40</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="text">
+                <string>Stop</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="th6Max">
+               <property name="maximumSize">
+                <size>
+                 <width>40</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="text">
+                <string>Max.</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+          </layout>
+         </item>
+         <item row="3" column="0">
+          <layout class="QHBoxLayout" name="horizontalLayout_5">
+           <item>
+            <widget class="QLabel" name="th3Label">
+             <property name="text">
+              <string>Thruster 3</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QSlider" name="th3Sp">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <layout class="QHBoxLayout" name="horizontalLayout_6">
+             <item>
+              <widget class="QRadioButton" name="th3Fw">
+               <property name="text">
+                <string>Forward</string>
+               </property>
+               <property name="checked">
+                <bool>true</bool>
+               </property>
+               <attribute name="buttonGroup">
+                <string notr="true">buttonGroup_3</string>
+               </attribute>
+              </widget>
+             </item>
+             <item>
+              <widget class="QRadioButton" name="th3Rv">
+               <property name="text">
+                <string>Reverse</string>
+               </property>
+               <attribute name="buttonGroup">
+                <string notr="true">buttonGroup_3</string>
+               </attribute>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="th3Stop">
+               <property name="maximumSize">
+                <size>
+                 <width>40</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="text">
+                <string>Stop</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="th3Max">
+               <property name="maximumSize">
+                <size>
+                 <width>40</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="text">
+                <string>Max.</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+          </layout>
+         </item>
+         <item row="4" column="0">
+          <layout class="QHBoxLayout" name="horizontalLayout_7">
+           <item>
+            <widget class="QLabel" name="th4Label">
+             <property name="text">
+              <string>Thruster 4</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QSlider" name="th4Sp">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <layout class="QHBoxLayout" name="horizontalLayout_8">
+             <item>
+              <widget class="QRadioButton" name="th4Fw">
+               <property name="text">
+                <string>Forward</string>
+               </property>
+               <property name="checked">
+                <bool>true</bool>
+               </property>
+               <attribute name="buttonGroup">
+                <string notr="true">buttonGroup_4</string>
+               </attribute>
+              </widget>
+             </item>
+             <item>
+              <widget class="QRadioButton" name="th4Rv">
+               <property name="text">
+                <string>Reverse</string>
+               </property>
+               <attribute name="buttonGroup">
+                <string notr="true">buttonGroup_4</string>
+               </attribute>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="th4Stop">
+               <property name="maximumSize">
+                <size>
+                 <width>40</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="text">
+                <string>Stop</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="th4Max">
+               <property name="maximumSize">
+                <size>
+                 <width>40</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="text">
+                <string>Max.</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
            </item>
           </layout>
          </item>
         </layout>
-       </item>
-       <item>
-        <layout class="QHBoxLayout" name="horizontalLayout_3">
-         <item>
-          <widget class="QLabel" name="th2Label">
-           <property name="text">
-            <string>Thruster 2</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QSlider" name="th2Sp">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <layout class="QHBoxLayout" name="horizontalLayout_4">
-           <item>
-            <widget class="QRadioButton" name="th2Fw">
-             <property name="text">
-              <string>Forward</string>
-             </property>
-             <property name="checked">
-              <bool>true</bool>
-             </property>
-             <attribute name="buttonGroup">
-              <string notr="true">buttonGroup_2</string>
-             </attribute>
-            </widget>
-           </item>
-           <item>
-            <widget class="QRadioButton" name="th2Rv">
-             <property name="text">
-              <string>Reverse</string>
-             </property>
-             <attribute name="buttonGroup">
-              <string notr="true">buttonGroup_2</string>
-             </attribute>
-            </widget>
-           </item>
-          </layout>
-         </item>
-        </layout>
-       </item>
-       <item>
-        <layout class="QHBoxLayout" name="horizontalLayout_5">
-         <item>
-          <widget class="QLabel" name="th3Label">
-           <property name="text">
-            <string>Thruster 3</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QSlider" name="th3Sp">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <layout class="QHBoxLayout" name="horizontalLayout_6">
-           <item>
-            <widget class="QRadioButton" name="th3Fw">
-             <property name="text">
-              <string>Forward</string>
-             </property>
-             <property name="checked">
-              <bool>true</bool>
-             </property>
-             <attribute name="buttonGroup">
-              <string notr="true">buttonGroup_3</string>
-             </attribute>
-            </widget>
-           </item>
-           <item>
-            <widget class="QRadioButton" name="th3Rv">
-             <property name="text">
-              <string>Reverse</string>
-             </property>
-             <attribute name="buttonGroup">
-              <string notr="true">buttonGroup_3</string>
-             </attribute>
-            </widget>
-           </item>
-          </layout>
-         </item>
-        </layout>
-       </item>
-       <item>
-        <layout class="QHBoxLayout" name="horizontalLayout_7">
-         <item>
-          <widget class="QLabel" name="th4Label">
-           <property name="text">
-            <string>Thruster 4</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QSlider" name="th4Sp">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <layout class="QHBoxLayout" name="horizontalLayout_8">
-           <item>
-            <widget class="QRadioButton" name="th4Fw">
-             <property name="text">
-              <string>Forward</string>
-             </property>
-             <property name="checked">
-              <bool>true</bool>
-             </property>
-             <attribute name="buttonGroup">
-              <string notr="true">buttonGroup_4</string>
-             </attribute>
-            </widget>
-           </item>
-           <item>
-            <widget class="QRadioButton" name="th4Rv">
-             <property name="text">
-              <string>Reverse</string>
-             </property>
-             <attribute name="buttonGroup">
-              <string notr="true">buttonGroup_4</string>
-             </attribute>
-            </widget>
-           </item>
-          </layout>
-         </item>
-        </layout>
-       </item>
-       <item>
-        <layout class="QHBoxLayout" name="horizontalLayout_9">
-         <item>
-          <widget class="QLabel" name="th5Label">
-           <property name="text">
-            <string>Thruster 5</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QSlider" name="th5Sp">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <layout class="QHBoxLayout" name="horizontalLayout_10">
-           <item>
-            <widget class="QRadioButton" name="th5Fw">
-             <property name="text">
-              <string>Forward</string>
-             </property>
-             <property name="checked">
-              <bool>true</bool>
-             </property>
-             <attribute name="buttonGroup">
-              <string notr="true">buttonGroup_5</string>
-             </attribute>
-            </widget>
-           </item>
-           <item>
-            <widget class="QRadioButton" name="th5Rv">
-             <property name="text">
-              <string>Reverse</string>
-             </property>
-             <attribute name="buttonGroup">
-              <string notr="true">buttonGroup_5</string>
-             </attribute>
-            </widget>
-           </item>
-          </layout>
-         </item>
-        </layout>
-       </item>
-       <item>
-        <layout class="QHBoxLayout" name="horizontalLayout_11">
-         <item>
-          <widget class="QLabel" name="th6Label">
-           <property name="text">
-            <string>Thruster 6</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QSlider" name="th6Sp">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <layout class="QHBoxLayout" name="horizontalLayout_12">
-           <item>
-            <widget class="QRadioButton" name="th6Fw">
-             <property name="text">
-              <string>Forward</string>
-             </property>
-             <property name="checked">
-              <bool>true</bool>
-             </property>
-             <attribute name="buttonGroup">
-              <string notr="true">buttonGroup_6</string>
-             </attribute>
-            </widget>
-           </item>
-           <item>
-            <widget class="QRadioButton" name="th6Rv">
-             <property name="text">
-              <string>Reverse</string>
-             </property>
-             <attribute name="buttonGroup">
-              <string notr="true">buttonGroup_6</string>
-             </attribute>
-            </widget>
-           </item>
-          </layout>
-         </item>
-        </layout>
-       </item>
-      </layout>
-     </widget>
+       </widget>
+      </item>
+     </layout>
     </item>
     <item>
      <widget class="QTabWidget" name="tab_manager">
@@ -520,11 +705,11 @@
   </connection>
  </connections>
  <buttongroups>
+  <buttongroup name="buttonGroup"/>
   <buttongroup name="buttonGroup_2"/>
   <buttongroup name="buttonGroup_3"/>
   <buttongroup name="buttonGroup_4"/>
   <buttongroup name="buttonGroup_5"/>
   <buttongroup name="buttonGroup_6"/>
-  <buttongroup name="buttonGroup"/>
  </buttongroups>
 </ui>

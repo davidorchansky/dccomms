@@ -54,6 +54,22 @@ public Q_SLOTS:
 	void on_checkbox_use_environment_stateChanged(int state);
 
 
+        void stopAllThrusters();
+
+        void stopThruster1();
+        void stopThruster2();
+        void stopThruster3();
+        void stopThruster4();
+        void stopThruster5();
+        void stopThruster6();
+
+        void maxThruster1();
+        void maxThruster2();
+        void maxThruster3();
+        void maxThruster4();
+        void maxThruster5();
+        void maxThruster6();
+
         void thrusters_controls_valueChanged();
 
     /******************************************

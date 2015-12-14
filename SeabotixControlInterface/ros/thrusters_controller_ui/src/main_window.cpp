@@ -83,6 +83,23 @@ MainWindow::MainWindow(int argc, char** argv, QWidget *parent)
     QObject::connect(ui.th5Fw, SIGNAL(toggled(bool)), this, SLOT(thrusters_controls_valueChanged()));
     QObject::connect(ui.th6Fw, SIGNAL(toggled(bool)), this, SLOT(thrusters_controls_valueChanged()));
 
+    QObject::connect(ui.th1Stop, SIGNAL(clicked()), this, SLOT(stopThruster1()));
+    QObject::connect(ui.th2Stop, SIGNAL(clicked()), this, SLOT(stopThruster2()));
+    QObject::connect(ui.th3Stop, SIGNAL(clicked()), this, SLOT(stopThruster3()));
+    QObject::connect(ui.th4Stop, SIGNAL(clicked()), this, SLOT(stopThruster4()));
+    QObject::connect(ui.th5Stop, SIGNAL(clicked()), this, SLOT(stopThruster5()));
+    QObject::connect(ui.th6Stop, SIGNAL(clicked()), this, SLOT(stopThruster6()));
+
+    QObject::connect(ui.th1Max, SIGNAL(clicked()), this, SLOT(maxThruster1()));
+    QObject::connect(ui.th2Max, SIGNAL(clicked()), this, SLOT(maxThruster2()));
+    QObject::connect(ui.th3Max, SIGNAL(clicked()), this, SLOT(maxThruster3()));
+    QObject::connect(ui.th4Max, SIGNAL(clicked()), this, SLOT(maxThruster4()));
+    QObject::connect(ui.th5Max, SIGNAL(clicked()), this, SLOT(maxThruster5()));
+    QObject::connect(ui.th6Max, SIGNAL(clicked()), this, SLOT(maxThruster6()));
+
+    QObject::connect(ui.stopAllButton, SIGNAL(clicked()), this, SLOT(stopAllThrusters()));
+
+
 }
 
 MainWindow::~MainWindow() {}
@@ -134,6 +151,54 @@ void MainWindow::on_checkbox_use_environment_stateChanged(int state) {
 	ui.line_edit_master->setEnabled(enabled);
 	ui.line_edit_host->setEnabled(enabled);
 	//ui.line_edit_topic->setEnabled(enabled);
+}
+
+void MainWindow::stopAllThrusters(){
+    stopThruster1();
+    stopThruster2();
+    stopThruster3();
+    stopThruster4();
+    stopThruster5();
+    stopThruster6();
+
+    thrusters_controls_valueChanged();
+}
+void MainWindow::stopThruster1() {
+    ui.th1Sp->setSliderPosition(0);
+}
+void MainWindow::stopThruster2() {
+    ui.th2Sp->setSliderPosition(0);
+}
+void MainWindow::stopThruster3() {
+    ui.th3Sp->setSliderPosition(0);
+}
+void MainWindow::stopThruster4() {
+    ui.th4Sp->setSliderPosition(0);
+}
+void MainWindow::stopThruster5() {
+    ui.th5Sp->setSliderPosition(0);
+}
+void MainWindow::stopThruster6() {
+    ui.th6Sp->setSliderPosition(0);
+}
+
+void MainWindow::maxThruster1() {
+    ui.th1Sp->setSliderPosition(100);
+}
+void MainWindow::maxThruster2() {
+    ui.th2Sp->setSliderPosition(100);
+}
+void MainWindow::maxThruster3() {
+    ui.th3Sp->setSliderPosition(100);
+}
+void MainWindow::maxThruster4() {
+    ui.th4Sp->setSliderPosition(100);
+}
+void MainWindow::maxThruster5() {
+    ui.th5Sp->setSliderPosition(100);
+}
+void MainWindow::maxThruster6() {
+    ui.th6Sp->setSliderPosition(100);
 }
 
 /*
