@@ -1,0 +1,5 @@
+Per a compilar és necessari tindre qt (última versió) instal·lat.
+Pasos:
+1- qmake
+2- make
+
