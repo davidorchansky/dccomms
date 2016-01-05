@@ -128,6 +128,9 @@ bool SerialPortInterface::Open()
 		//disable software flow controls:
 		options.c_iflag &= ~(IXON | IXOFF | IXANY);
 
+		//...
+		options.c_iflag &= ~ICRNL;
+
 		//Choosing Raw Input
 		options.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
 
