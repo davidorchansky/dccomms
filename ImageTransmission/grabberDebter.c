@@ -149,7 +149,7 @@ int print_caps(int fd)
                 (caps.version>>24)&&0xff,
                 caps.capabilities);
  
- 
+/* 
         struct v4l2_cropcap cropcap = {0};
         cropcap.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         if (-1 == xioctl (fd, VIDIOC_CROPCAP, &cropcap))
@@ -165,7 +165,7 @@ int print_caps(int fd)
                 cropcap.bounds.width, cropcap.bounds.height, cropcap.bounds.left, cropcap.bounds.top,
                 cropcap.defrect.width, cropcap.defrect.height, cropcap.defrect.left, cropcap.defrect.top,
                 cropcap.pixelaspect.numerator, cropcap.pixelaspect.denominator);
- 
+ */
         int support_yuyv422 = 0;
  
         struct v4l2_fmtdesc fmtdesc = {0};

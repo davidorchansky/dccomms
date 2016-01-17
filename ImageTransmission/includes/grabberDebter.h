@@ -149,7 +149,7 @@ int print_caps(int fd)
                 (caps.version>>24)&&0xff,
                 caps.capabilities);
  
- 
+/* 
         struct v4l2_cropcap cropcap = {0};
         cropcap.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         if (-1 == xioctl (fd, VIDIOC_CROPCAP, &cropcap))
@@ -165,7 +165,7 @@ int print_caps(int fd)
                 cropcap.bounds.width, cropcap.bounds.height, cropcap.bounds.left, cropcap.bounds.top,
                 cropcap.defrect.width, cropcap.defrect.height, cropcap.defrect.left, cropcap.defrect.top,
                 cropcap.pixelaspect.numerator, cropcap.pixelaspect.denominator);
- 
+*/
         int support_yuyv422 = 0;
  
         struct v4l2_fmtdesc fmtdesc = {0};
@@ -196,13 +196,14 @@ int print_caps(int fd)
         fmt.fmt.pix.height = height_G;
         fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
         fmt.fmt.pix.field = V4L2_FIELD_NONE;
- 
+
+	printf("width: %d, height: %d\n", width_G, height_G);
         if (-1 == xioctl(fd, VIDIOC_S_FMT, &fmt))
         {
             perror("Setting Pixel Format");
             return 1;
         }
- 
+
         strncpy(fourcc, (char *)&fmt.fmt.pix.pixelformat, 4);
         fprintf(stderr, "Selected Camera Mode:\n"
                 "  Width: %d\n"
@@ -228,7 +229,8 @@ int init_mmap(int fd)
         perror("Requesting Buffer");
         return 1;
     }
- 
+
+    printf("REQ. COUNT: %d\n", req.count); 
     struct v4l2_buffer buf = {0};
     buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     buf.memory = V4L2_MEMORY_MMAP;
@@ -246,6 +248,25 @@ int init_mmap(int fd)
     return 0;
 }
  
+int read_frame_noMap(int fd, unsigned char * buf, unsigned int length)
+{
+	if (-1 == read(fd, buf, length)) {
+		switch (errno) {
+			case EAGAIN:
+				return 0;
+
+			case EIO:
+				/* Could ignore EIO, see spec. */
+
+				/* fall through */
+
+			default:
+				errno_exit("read");
+		}
+	}
+	return 1;	
+}
+
 
 int read_frame(int fd)
 {

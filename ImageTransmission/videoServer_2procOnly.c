@@ -165,13 +165,16 @@ int main(int argc , char *argv[])
 
 	pipe(server_transmitter_pipe);
 
-	if(argc != 3)
+	if(argc != 6)
 	{
-		fprintf(stderr, "Error: Arguments needed: <ImageWidth> <ImageHeight>\n");
+		fprintf(stderr, "Error: Arguments needed: <ImageWidth> <ImageHeight> <imageSize> <packetSize> <delayBetweenPackets>\n");
 		exit(1);
 	}
 	char * width = argv[1];
 	char * height = argv[2];
+	char * imageSize = argv[3];
+	char * packetSize = argv[4];
+	char * delayBP = argv[5];
 
 
 	pid_t rfTransmitter_pid;
@@ -194,8 +197,9 @@ int main(int argc , char *argv[])
 		fflush(stderr);
 
 
-		execlp("./bin/TX_allInOne", "TX_allInOne", "-W", width, "-H",height, "-I","imagen","-i","540,260,740,460","-l","5-1", "-F","1400", "-L","1450", "-D","0", "-A", "1000",NULL);
+		execlp("./bin/TX_allInOne", "TX_allInOne", "-W", width, "-H",height, "-I","imagen", "-F",imageSize, "-L",packetSize, "-D",delayBP, "-A", "0",NULL);
 
+//		execlp("./bin/TX_allInOne", "TX_allInOne", "-W", width, "-H",height, "-I","imagen","-i","540,260,740,460","-l","5-1", "-F",imageSize, "-L",packetSize, "-D","0", "-A", "0",NULL);
 		fprintf(stderr, "Ha pasado algun problema al ejecutar el transmitter\n");
 		fflush(stderr);
 
