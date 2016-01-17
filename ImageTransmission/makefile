@@ -5,7 +5,7 @@ PRIVATELIBDIR = ./libraries/x86_64
 INCLUDES = includes 
 EDULIB_V2_INCLUDES = libraries/debt/src
 EDULIB_V2 = debt
-all: bindir radio improc $(BINDIR)videoServer_2procOnly_noArduino $(BINDIR)TX_allInOne $(BINDIR)TX_allInOne_noArduino $(BINDIR)TX_dynamic_noArduino $(BINDIR)TX_dynamic $(BINDIR)TX_noArduino $(BINDIR)videoServer $(BINDIR)TX $(BINDIR)RX $(BINDIR)debter $(BINDIR)grabber $(BINDIR)grabberDebter_dynamic $(BINDIR)grabberDebter $(BINDIR)header $(BINDIR)fileReceiver $(BINDIR)fileTransmitter $(BINDIR)videoServer_noArduino $(BINDIR)videoServer_2procOnly
+all: bindir radio improc $(BINDIR)videoServer_2procOnly_noArduino $(BINDIR)TX_allInOne $(BINDIR)TX_allInOne_noArduino $(BINDIR)TX_dynamic_noArduino $(BINDIR)TX_dynamic $(BINDIR)TX_noArduino $(BINDIR)videoServer $(BINDIR)TX $(BINDIR)RX $(BINDIR)RX_test $(BINDIR)debter $(BINDIR)grabber $(BINDIR)grabberDebter_dynamic $(BINDIR)grabberDebter $(BINDIR)header $(BINDIR)fileReceiver $(BINDIR)fileTransmitter $(BINDIR)videoServer_noArduino $(BINDIR)videoServer_2procOnly
 
 CC = gcc
 FLAGS = -O3
@@ -63,6 +63,10 @@ $(BINDIR)videoServer_2procOnly: videoServer_2procOnly.c includes/videoServer.h
 
 $(BINDIR)RX: RX.cpp
 	$(CXX) $(FLAGS) -std=c++0x -I"../includes/" -L $(LIBDIR)  $< -o $@ -lradio -lcrypto
+
+$(BINDIR)RX_test: RX_test.cpp
+	$(CXX) $(FLAGS) -std=c++0x -I"../includes/" -L $(LIBDIR)  $< -o $@ -lradio -lcrypto
+
 
 $(BINDIR)header: header.c
 	$(CC) $(FLAGS) -I $(INCLUDES) $< -o $@ 
