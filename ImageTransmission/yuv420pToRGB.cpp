@@ -46,7 +46,7 @@ void getRGB(int y, int u, int v, int * R, int *G, int *B)
 
 }
 
-void yuv420p_to_rgb(int width, int height, uint8_t * y, uint8_t *u, uint8_t *v, uint8_t * buffer)
+void yuv420p_to_rgb(int width, int height, uint8_t * y, uint8_t *u, uint8_t *v, void * buffer)
 {
 	int milis = 1000;
 	int uvwidth = width / 2;
@@ -56,8 +56,10 @@ void yuv420p_to_rgb(int width, int height, uint8_t * y, uint8_t *u, uint8_t *v, 
 	int max=1, min=1;
 	float m, b;
 
-	int _buffer[width*height*3];
-	int * ptr = _buffer;
+	//int _buffer[width*height*3];
+//	int * ptr = _buffer;
+
+	int16_t * ptr = (int16_t*) buffer;
 	for(int row = 0; row < height; row++)
 	{
 
@@ -71,7 +73,7 @@ void yuv420p_to_rgb(int width, int height, uint8_t * y, uint8_t *u, uint8_t *v, 
 			uvcol = col / 2;
 
 			//std::cout << "R : G : B en ("<<row<<","<<col<<"): ";
-			//std::cout << "uvrow: " << uvrow << " uvcol: " << uvcol << std::endl;
+//			std::cout << "uvrow: " << uvrow << " uvcol: " << uvcol << std::endl;
 			int uvoffset = uvrow * uvwidth + uvcol;
 			uptr = u + uvoffset;
 			vptr = v + uvoffset;
@@ -96,9 +98,12 @@ void yuv420p_to_rgb(int width, int height, uint8_t * y, uint8_t *u, uint8_t *v, 
 	b = 0-m*min;
 	int length = width*height*3;
 	std::cout << length << std::endl;
+
+	ptr = (int16_t*) buffer;
+	uint8_t * dst = (uint8_t *) buffer;
 	for(int e = 0; e < length; e++)
 	{
-	   buffer[e] = m*_buffer[e]+b;
+	   dst[e] = m*ptr[e]+b;
 	  // std::cout << (int)*ptr << std::endl;
 	//	std::this_thread::sleep_for(std::chrono::milliseconds(milis));
 	}
@@ -120,7 +125,7 @@ int main(int argc, char ** argv)
 	char * inputFileName = argv[3];
 	char * outputFileName = argv[4];	
 
-	uint8_t inputBuffer[900000];
+	uint8_t inputBuffer[1280*720+1280*720/2];
 
 	FILE * inputFile = fopen(inputFileName, "rb");
 	
@@ -145,8 +150,8 @@ int main(int argc, char ** argv)
 
 	cout << "Bytes read: " << bytesRead << endl;
 
-	int imSize = width * height * 3;
-	uint8_t resBuffer[imSize];
+	int imSize = width * height * 3 * 15;
+	uint8_t  * resBuffer = (uint8_t*)malloc(imSize);
 
 	yuv420p_to_rgb(width, height, y, u, v, resBuffer);
 
@@ -158,7 +163,7 @@ int main(int argc, char ** argv)
 	fclose(outputFile);
 
 		//std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-	Mat image;
+/*	Mat image;
 	image = imread(outputFileName, CV_LOAD_IMAGE_COLOR);   // Read the file
 
 	if(! image.data )                              // Check for invalid input
@@ -166,17 +171,17 @@ int main(int argc, char ** argv)
 		cout <<  "Could not open or find the image" << std::endl ;
 		return -1;
 	}
+*/
+//	namedWindow( "IRS ROV Camera", WINDOW_AUTOSIZE );// Create a window for display.
+//imshow( "IRS ROV Camera", image );                   // Show our image inside it.
 
-	namedWindow( "IRS ROV Camera", WINDOW_AUTOSIZE );// Create a window for display.
-imshow( "IRS ROV Camera", image );                   // Show our image inside it.
-
-Mat image2 = imread("res2.ppm", CV_LOAD_IMAGE_COLOR);
-imshow("IRS ROV Camera", image2);
-	int i = 0;
-	while(1){
-i++;
-	waitKey(1);
-	std::cout << "MERDA "<<i << std::endl;
-	};
+//Mat image2 = imread("res2.ppm", CV_LOAD_IMAGE_COLOR);
+//imshow("IRS ROV Camera", image2);
+//	int i = 0;
+//	while(1){
+//i++;
+//	waitKey(1);
+//	std::cout << "MERDA "<<i << std::endl;
+//	};
 	return 0;
 }
