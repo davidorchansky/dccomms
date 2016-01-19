@@ -6,7 +6,7 @@ INCLUDES = includes
 EDULIB_V2_INCLUDES = libraries/debt/src
 EDULIB_V2 = debt
 
-all: bindir radio improc $(BINDIR)videoServer_2procOnly_noArduino $(BINDIR)TX_allInOne $(BINDIR)TX_allInOne_noServer $(BINDIR)TX_allInOne_noArduino $(BINDIR)TX_dynamic_noArduino $(BINDIR)TX_dynamic $(BINDIR)TX_noArduino $(BINDIR)videoServer $(BINDIR)TX $(BINDIR)RX $(BINDIR)debter $(BINDIR)grabber $(BINDIR)grabberDebter_dynamic $(BINDIR)grabberDebter $(BINDIR)header $(BINDIR)fileReceiver $(BINDIR)fileTransmitter $(BINDIR)videoServer_noArduino $(BINDIR)videoServer_2procOnly $(BINDIR)RX_test $(BINDIR)RX_allInOne
+all: bindir radio improc $(BINDIR)videoServer_2procOnly_noArduino $(BINDIR)TX_allInOne $(BINDIR)TX_allInOne_noServer $(BINDIR)TX_allInOne_noArduino $(BINDIR)TX_dynamic_noArduino $(BINDIR)TX_dynamic $(BINDIR)TX_noArduino $(BINDIR)videoServer $(BINDIR)TX $(BINDIR)RX $(BINDIR)debter $(BINDIR)grabber $(BINDIR)grabberDebter_dynamic $(BINDIR)grabberDebter $(BINDIR)header $(BINDIR)fileReceiver $(BINDIR)fileTransmitter $(BINDIR)videoServer_noArduino $(BINDIR)videoServer_2procOnly $(BINDIR)RX_test $(BINDIR)RX_allInOne $(BINDIR)ppmVisor
 
 CC = gcc
 FLAGS = -O3
@@ -68,6 +68,10 @@ $(BINDIR)RX: RX.cpp
 
 $(BINDIR)RX_allInOne: RX_allInOne.cpp includes/grabberDebter.h includes/videoServer.h
 	$(CXX) $(FLAGS) -std=c++0x -I"../includes/" -I $(INCLUDES) -I $(EDULIB_V2_INCLUDES) -L $(PRIVATELIBDIR) -L $(LIBDIR)  $< -o $@ -lpthread -lradio -lcrypto -l$(EDULIB_V2) -lm $(opencvLibs)
+
+$(BINDIR)ppmVisor: ppmVisor.cpp
+	$(CXX) $(FLAGS) -std=c++0x -I"../includes/" -I $(INCLUDES) -I $(EDULIB_V2_INCLUDES) -L $(PRIVATELIBDIR) -L $(LIBDIR)  $< -o $@ -lpthread -lradio -lcrypto -l$(EDULIB_V2) -lm $(opencvLibs)
+
 
 $(BINDIR)RX_test: RX_test.cpp
 	$(CXX) $(FLAGS) -std=c++0x -I"../includes/" -L $(LIBDIR)  $< -o $@ -lradio -lcrypto

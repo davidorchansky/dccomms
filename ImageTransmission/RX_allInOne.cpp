@@ -356,22 +356,23 @@ int main(int argc, char ** argv) {
 				uint8_t * ppmImg = ppm + hl;
 				yuv420p_to_rgb(img->width, img->height, y, u, v, ppmImg);
 
+				unsigned int rgbLength = img->height * img->width * 3;
+				unsigned int ppmLength = rgbLength + hl;
+
+				/*
 				FILE * outputFile = fopen("RES.ppm", "wb");
-
-				fwrite(ppm, 1, hl+img->width*img->height*3, outputFile);
-
+				fwrite(ppm, 1, ppmLength, outputFile);
 				fclose(outputFile);
-
-				imgBuffer_del(img);
-				
 				//std::vector<uint8_t> ppmv;
 				//ppmv.assign(ppm, ppm + hl + img->width * img->height * 3);
 				Mat decimg = imread("RES.ppm", CV_LOAD_IMAGE_COLOR);
-
 				imshow("ROV",decimg);
-
 				waitKey(1);
+				*/
 
+				//Enviando ppm por la salida estandar
+				write(1, ppm, ppmLength);
+				imgBuffer_del(img);
 				it++;
 				if(it > 3)
 				{
