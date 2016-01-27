@@ -5,6 +5,10 @@
 #include <unistd.h>
 
 #include <iostream>
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+
+using namespace cv;
 
 static int
 readint(int *x, int *next, FILE *f)
@@ -60,12 +64,15 @@ read_header(int *w, int *h)
 	return 0;
 }
 
+
 int main(int argc, char ** argv)
 {
 
 	int width, height;
 	unsigned int rgbLength;
-	uint8_t *rgb;
+	uint8_t *ppm, *rgb;
+
+	namedWindow( "IRS ROV Camera", WINDOW_AUTOSIZE );// Create a window for display.
 	while(true)
 	{
 		if(read_header(&width, &height) == 0)
@@ -73,12 +80,24 @@ int main(int argc, char ** argv)
 			std::cout << "VISOR: Recibido ppm header" << std::endl;
 			rgbLength = width * height  * 3;	
 
-			rgb = (uint8_t*) malloc(rgbLength);
+			ppm = (uint8_t*) malloc(rgbLength+50);
+			
+			int hl = sprintf((char*)ppm, "P6\n%d %d\n255\n", width, height);
 
+			rgb = ppm +  hl;
 			unsigned int n = read(0, rgb, rgbLength);
 			std::cout << "VISOR: Recibido RGB: " << n << " bytes" <<std::endl;
+			
+			std::vector<uint8_t> ppmv(ppm, rgb+rgbLength);
+			std::cout << ppmv.size();
 
-			free(rgb);
+			Mat image = imdecode(ppmv,CV_LOAD_IMAGE_COLOR);
+
+			namedWindow( "IRS ROV Camera", WINDOW_NORMAL );// Create a window for display.
+			imshow("IRS ROV Camera", image);
+			waitKey(1);
+
+			free(ppm);
 		}
 	}
 	return 0;

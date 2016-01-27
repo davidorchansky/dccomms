@@ -130,7 +130,7 @@ int main(int argc, char ** argv)
 	FILE * inputFile = fopen(inputFileName, "rb");
 	
 	int ysize = width*height;
-	int usize = width*height/4;
+	int usize = ysize >> 2;
 	int vsize = usize;
 
 	int rawSize = ysize + usize + vsize;
@@ -150,17 +150,28 @@ int main(int argc, char ** argv)
 
 	cout << "Bytes read: " << bytesRead << endl;
 
-	int imSize = width * height * 3 * 15;
+	int rgbPixelsLength = width * height * 3;
+	int imSize = rgbPixelsLength * 2 + 20;
 	uint8_t  * resBuffer = (uint8_t*)malloc(imSize);
 
-	yuv420p_to_rgb(width, height, y, u, v, resBuffer);
+	int n=sprintf((char*)resBuffer, "P6\n%d %d\n255\n", width, height);
+
+	yuv420p_to_rgb(width, height, y, u, v, resBuffer+n);
 
 	FILE * outputFile = fopen(outputFileName, "wb");
 
-	writePPMHeader(outputFile, width, height);
+//	writePPMHeader(outputFile, width, height);
 	fwrite(resBuffer, 1, imSize, outputFile);
 
+	std::vector<uint8_t> ppmv(resBuffer, resBuffer+rgbPixelsLength+n);
+	std::cout << ppmv.size();
+	
+	Mat image = imdecode(ppmv,CV_LOAD_IMAGE_COLOR);
 	fclose(outputFile);
+
+	namedWindow( "IRS ROV Camera", WINDOW_AUTOSIZE );// Create a window for display.
+	imshow("IRS ROV Camera", image);
+	waitKey(0);
 
 		//std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 /*	Mat image;
@@ -176,7 +187,6 @@ int main(int argc, char ** argv)
 //imshow( "IRS ROV Camera", image );                   // Show our image inside it.
 
 //Mat image2 = imread("res2.ppm", CV_LOAD_IMAGE_COLOR);
-//imshow("IRS ROV Camera", image2);
 //	int i = 0;
 //	while(1){
 //i++;
