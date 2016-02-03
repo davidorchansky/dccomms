@@ -75,3 +75,5 @@ ffmpeg -i cut1.mp4  -filter:v "crop=210:205:20:37" cut01.mp4
 
 
 
+capture desktop audio and video
+ffmpeg -f x11grab -framerate 25 -video_size 1366x768 -i :0.0 -f pulse -ac 2 -i default fps600.mkv -y

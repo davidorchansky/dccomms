@@ -65,6 +65,82 @@ void yuyv422_to_yuv420p(int width, int height, uint8_t * b422, uint8_t * y, uint
 		}
 	}
 }
+void getRGB(int y, int u, int v, int * R, int *G, int *B)
+{
+	int C = y - 16;
+	int D = u - 128;
+	int E = v - 128;
+
+	*R = ( 298 * C           + 409 * E + 128) >> 8;
+	*G = ( 298 * C - 100 * D - 208 * E + 128) >> 8;
+	*B = ( 298 * C + 516 * D           + 128) >> 8;
+
+}
+void yuv420p_to_rgb(int width, int height, uint8_t * y, uint8_t *u, uint8_t *v, void * buffer)
+{
+	int milis = 1000;
+	int uvwidth = width / 2;
+	int uvheight = height / 2;
+	int uvrow;
+	int uvcol;
+	int max=1, min=1;
+	float m, b;
+
+	//int _buffer[width*height*3];
+//	int * ptr = _buffer;
+
+	int16_t * ptr = (int16_t*) buffer;
+	for(int row = 0; row < height; row++)
+	{
+
+		uvrow = row / 2;
+
+		for(int col = 0; col < width; col++)
+		{
+			int R,G,B;
+			uint8_t * yptr, *uptr, *vptr;
+			yptr = y + row * width + col;
+			uvcol = col / 2;
+
+			//std::cout << "R : G : B en ("<<row<<","<<col<<"): ";
+//			std::cout << "uvrow: " << uvrow << " uvcol: " << uvcol << std::endl;
+			int uvoffset = uvrow * uvwidth + uvcol;
+			uptr = u + uvoffset;
+			vptr = v + uvoffset;
+
+			getRGB(*yptr,*uptr,*vptr, &R, &G, &B);
+//			std::cout << R << " : " << G << " : " << B << std::endl;
+			if(R < min)min = R;
+			if(G < min)min = G;
+			if(B < min)min = B;
+			if(R > max)max = R;
+			if(G > max)max = G;
+			if(B > max)max = B;
+			*ptr = R;
+			*(ptr+1) = G;
+			*(ptr+2) = B;
+			ptr+=3;
+//			std::this_thread::sleep_for(std::chrono::milliseconds(milis));
+
+		}
+	}
+	m = 255.0 / (max-min);
+	b = 0-m*min;
+	int length = width*height*3;
+	std::cout << length << std::endl;
+
+	ptr = (int16_t*) buffer;
+	uint8_t * dst = (uint8_t *) buffer;
+	for(int e = 0; e < length; e++)
+	{
+	   dst[e] = m*ptr[e]+b;
+	  // std::cout << (int)*ptr << std::endl;
+	//	std::this_thread::sleep_for(std::chrono::milliseconds(milis));
+	}
+
+	//std::cout << min << " " << max << " " << m << " " << b  <<std::endl;
+	
+}
 
 int
 writep9header(int w, int h)
@@ -457,30 +533,11 @@ write_img(struct imgBuffer *img, FILE *f)
 }
 
 static int
-decode(struct debtDecParam *d)
+decode(struct debtDecParam *d, uint8_t * encoded, struct imgBuffer * dst)
 {
-	int retval = -1;
-	/* read the image up to size */
 	int debtimgsize = ((d->bitlen + 7) >> 3);
-	unsigned char *debtimg = read_img(&debtimgsize, stdin);
-	if (debtimg) {
-		/* prepare an imgBuffer for decoding */
-		struct imgBuffer *dst = imgBuffer_new();
-		if (dst) {
-
-			fprintf(stderr, "DECODER: Intentando descomprimir!!!\n");
-			if (debt_decode_imgbuffer(dst, debtimg, debtimgsize, d, NULL, NULL)) {
-				fprintf(stderr, "DECODER: Descomprimiendo la imagen!!!\n");
-				retval = write_img(dst, stdout);
-			}
-			else
-				fprintf(stderr, "DECODER: ERROR al descomprimir!!!\n");
-			imgBuffer_del(dst);
-		}
-		free(debtimg);
-		clearInputBuffer();
-	}
-	return retval;
+	debt_decode_imgbuffer(dst, encoded, debtimgsize, d, NULL, NULL);
+	return 0;
 }
 
 static int

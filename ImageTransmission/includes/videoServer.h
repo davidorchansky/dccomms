@@ -16,6 +16,8 @@ struct videoTransmissionConfig
 	unsigned int maxPacketLength;
 	unsigned int delayBetweenPackets;
 	unsigned int maxFrameAge;
+	unsigned int width;
+	unsigned int height;
 
 } typedef videoTransmissionConfig;
 

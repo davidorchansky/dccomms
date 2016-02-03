@@ -22,6 +22,7 @@ Radio::Radio(unsigned char d, SerialPortInterface & s, Radio::fcsType fcst, uint
 	_bytesInBuffer = 0;
 	_rxBufferLastPos = 0;
 	_rxBufferFirstPos = 0;
+	TotalErrors = 0;
 
 	switch(fcst)
 	{
@@ -173,7 +174,9 @@ void Radio::ReceiveBytes(void * buf, uint32_t size, uint8_t dirFrom, unsigned lo
 			}
 			else
 			{
-				std::cerr << "Error en frame de radio" <<std::endl << std::flush;
+
+				TotalErrors += 1;
+				std::cerr << "Error en frame de radio (Total Errors: "<<TotalErrors<< ")" <<std::endl << std::flush;
 	#ifdef DEBUG
 			//	std::this_thread::sleep_for(std::chrono::milliseconds(50000));
 	#endif
