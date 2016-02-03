@@ -27,6 +27,8 @@ namespace radiotransmission
 		Radio(unsigned char dir, SerialPortInterface &, fcsType fcst = fcsType::crc32, uint32_t maxRxBufferSize = 5000);
 		void SendBytes(const void *, uint32_t size, uint8_t dirTo = 255, uint32_t packetSize=1000, unsigned long ms=0);
 		void ReceiveBytes(void *, uint32_t size, uint8_t dirFrom = 255, unsigned long ms=10000);
+		
+		int TotalErrors = 0;
 
 	private:
 		uint32_t _maxRxBufferSize;
