@@ -1,3 +1,7 @@
 
 #Capturar una imagen ppm y redireccionarla por la salida estandar
 ffmpeg -f video4linux2 -s 1280x720 -i /dev/video0 -f image2pipe -vframes 1 -vcodec ppm pipe:1 > caca.ppm
+
+
+./test -l 255 -s 5 < noise2.ppm > out.pgm
+255

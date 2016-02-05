@@ -5,6 +5,86 @@
 #include <unistd.h>
 #include <sys/stat.h> 
 #include <fcntl.h>
+#include <string.h>
+#include <math.h>
+#include <getopt.h>
+#include <errno.h>
+
+static char *
+pgmName(char *path)
+{
+	char *name = strrchr(path, '/');
+	return name ? name + 1 : path;
+}
+
+
+static void
+usage(char *pgmname)
+{
+	fprintf(stderr, "%s [options] < infile > outfile\n"
+			"Options:\n"
+			"\t-l               - Tamano del filtro gausiano (>=3 e impar).\n"
+			"\t-s               - Sigma del filtro gausiano.\n", pgmname);
+	exit(-1);
+}
+
+static int
+optGetIntError(char *optarg, int *val, int min)
+{
+	int x = atoi(optarg);
+	if (x <= min)
+		return 1;
+	*val = x;
+	return 0;
+}
+
+static float
+optGetFloatError(char *optarg, float *val, float min)
+{
+	float x = atof(optarg);
+	if (x <= min)
+		return 1;
+	*val = x;
+	return 0;
+}
+
+
+static int
+getOptions(int argc, char *argv[], int * filterSize, float *sigma)
+{
+	int opt;
+	int error = 0;
+	*filterSize = -1; *sigma = -1;
+	while ((opt = getopt(argc, argv, "l:s:")) != -1) {
+		switch (opt) {
+		case 'l':
+			error += optGetIntError(optarg, filterSize, 0);
+			break;
+		case 's':
+			error += optGetFloatError(optarg, sigma, 0);
+			break;
+		default: /* '?' */
+			usage(argv[0]);
+		}
+	}
+	if (error) {
+		usage(pgmName(argv[0]));
+	}
+	if (optind < argc) {
+		fprintf(stderr, "Unexpected argument(s) after options\n");
+		usage(pgmName(argv[0]));
+	}
+	if(*filterSize == -1 || *sigma == -1)
+	{
+		fprintf(stderr, "Missing required options\n");
+		usage(pgmName(argv[0]));
+	}
+	if(*filterSize % 2 == 0 || *filterSize < 3)
+	{
+		fprintf(stderr, "El filtro no es correcto\n");
+		usage(pgmName(argv[0]));
+	}
+}
 
 static int
 readint(int *x, int *next, FILE *f)
@@ -77,29 +157,118 @@ int rgb2gs(unsigned char * rgb, unsigned char * gs, unsigned int width, unsigned
 	return 1;
 }
 
-#define FSIZE 5
+void showFilter(FILE * s, float * filter, int size)
+{
+	fprintf(s, "[ ");
+	int i;
+	for(i=0; i<size; i++)
+	{
+		fprintf(s, " %.4f, ", filter[i]);
+	}
+	fprintf(s, " ]\n");
 
-uint8_t filtro[FSIZE] = {0.05449, 0.24420, 0.40262, 0.24420, 0.05449};
+}
+float gaussianZeroMean(float x, float sigma)
+{
+	float res = pow(M_E, -1./2*pow(x/sigma,2));
 
+	return res;
+}
 
-void filtrar(uint8_t * src, uint8_t * dst, unsigned int height, unsigned int width)
+void getGaussianFilter(float * filtro, unsigned int tam, float sigma)
+{
+	int offset = tam >> 1;
+	int idx;
+	float * ptr;
+	float sum = 0;
+	for(idx = -offset, ptr = filtro; idx <= offset; idx++, ptr++)
+	{
+		*ptr = gaussianZeroMean(idx, sigma);
+		sum += *ptr;
+	}
+	for(idx = 0; idx < tam; idx++)
+	{
+		filtro[idx] /= sum;
+	}
+
+}
+
+void filtrarRuido(uint8_t * src, uint8_t * dst, unsigned int width, unsigned int height, float * filtro, unsigned int tamFiltro)
 {
 	unsigned int size = height * width;
-
-	int foffset = FSIZE >> 1;
-	int ioffset = foffset << 1;
 	
+	//Copiamos todo en dst
+	memcpy(dst, src, size);
+
+	int foffset = tamFiltro >> 1;
+	int ioffset = foffset << 1;
+
+	float * centroFiltro = filtro + foffset;
+
+	//Numero de filas y columnas de la zona central (descartamos bordes de la imagen del grosor del filtro)
 	int filas    = height - ioffset;
 	int columnas = width - ioffset;
 
-	//Pasada por filas
-	for(fila = 0; fila < filas; fila++)
+	
+	//Pasada por filas (aplicación del filtro horizontal)
+	unsigned int offsetInicial = foffset * width + foffset;
+
+	uint8_t * dptr;
+
+	dptr = dst + offsetInicial;
+
+	uint8_t * maxf = dptr + width * filas;
+	
+	fprintf(stderr, "Aplicando filtro horizontal...\n");
+
+//	fprintf(stderr, "Aplicando filtro horizontal...%d -- %d -- %d -- %d\n", foffset, ioffset, filas, columnas);
+	while(dptr < maxf)
 	{
-		uint8_t *sptr, *maxptr;
-		sptr = src + fila * width + foffset;
-
-
+		uint8_t * maxc = dptr + columnas;
+		while(dptr < maxc)
+		{
+			//Aplicamos el filtro horizontalmente
+			uint8_t valorFinal = 0;
+			int idx;
+			for(idx = -foffset; idx <= foffset; idx++)
+			{
+//			fprintf(stderr, "Algo passe %ld -- %d -- %d\n", (unsigned long )dptr,idx, foffset);
+				valorFinal += *(dptr+idx) * *(centroFiltro+idx);
+			}
+			*dptr = valorFinal;
+			dptr += 1;
+		}
+		dptr += ioffset;
 	}
+
+	dptr = dst + offsetInicial;
+	uint8_t * maxc = dptr + columnas;
+
+	fprintf(stderr, "Aplicando filtro vertical...\n");
+	while(dptr < maxc)
+	{
+		uint8_t * dptrc = dptr;
+		maxf = dptr + filas * width;
+		while(dptr < maxf)
+		{
+			//Aplicamos el filtro verticalmente
+			uint8_t valorFinal = 0;
+			int idx;
+			for(idx = -foffset; idx <= foffset; idx++)
+			{
+				valorFinal += *(dptr+idx*(int)width) * *(centroFiltro+idx);
+
+			}
+			*dptr = valorFinal;
+			dptr += width;
+		}
+		dptr = dptrc + 1;
+	}
+}
+
+void showError()
+{
+	fprintf(stderr, "Ha ocurrido algun error: %s\n", strerror(errno));
 }
 
 int main(int argc, char ** argv)
@@ -108,8 +277,20 @@ int main(int argc, char ** argv)
 	int width, height;
 	unsigned int rgbLength, pixelLength;
 	uint8_t *ppm, *rgb, *pgm, *gs;
+	
+	unsigned int tamFiltro;
+	float * filtro;
+	float sigma;
+	
+	getOptions(argc, argv, &tamFiltro, &sigma);
 
+	filtro = (float*) malloc(tamFiltro * sizeof(float));
 
+	getGaussianFilter(filtro, tamFiltro, sigma);
+
+	fprintf(stderr, "Sigma: %f , Size: %d\n", sigma, tamFiltro);
+	showFilter(stderr, filtro, tamFiltro);
+	
 	if(read_header(&width, &height) == 0)
 	{
 		fprintf(stderr, "Recibido ppm header\nEsperando RGB...\n");
@@ -117,16 +298,16 @@ int main(int argc, char ** argv)
 		pixelLength = width * height;
 		rgbLength = pixelLength  * 3;	
 
+		fprintf(stderr, "Width: %d , Height: %d\n", width, height);
 		ppm = (uint8_t*) malloc(rgbLength+50);
-
+	
 		int ppmhl = sprintf((char*)ppm, "P6\n%d %d\n255\n", width, height);
 
 		rgb = ppm +  ppmhl;
-		//			unsigned int n = read(0, rgb, rgbLength);
 
 		unsigned int n = fread(rgb, rgbLength, 1, stdin);
 
-		fprintf(stderr, "Leido RGB: %d (deberia: %d) bytes\nConvirtiendo a GrayScale...\n", n, rgbLength);
+		fprintf(stderr, "Leido RGB: %d (%d bytes)\nConvirtiendo a GrayScale...\n", n, rgbLength*n);
 
 		pgm = (uint8_t*) malloc(pixelLength+50);
 		int pgmhl = sprintf((char*)pgm, "P5\n%d %d\n255\n", width, height);
@@ -136,18 +317,26 @@ int main(int argc, char ** argv)
 		gs = pgm + pgmhl;
 		rgb2gs(rgb, gs, width, height);
 
-		int writen = write(1, pgm, pgmLength);
 
-		int fppm = open("salida.ppm", O_CREAT | O_WRONLY | O_TRUNC);
-		int fpgm = open("salida.pgm", O_CREAT | O_WRONLY | O_TRUNC);
+		int fppm = open("salida.ppm", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
+		if (fppm < 0) showError();
+ 		int fpgm = open("salida.pgm", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
+		if (fpgm < 0) showError();
 
-		write(fppm, ppm, ppmLength);
-		write(fpgm, pgm, pgmLength);
+		int res = write(fppm, ppm, ppmLength);
+		if (res != ppmLength) showError(); 
+		res = write(fpgm, pgm, pgmLength);
+		if (res != pgmLength) showError(); 
 
 		close(fppm);
 		close(fpgm);
 
+		unsigned char * gsFiltrado = (uint8_t*) malloc(pixelLength);
 
+		filtrarRuido(gs, gsFiltrado, width, height, filtro, tamFiltro);
+
+		int writen = write(1, pgm, pgmhl);
+		writen += write(1, gsFiltrado, pixelLength);
 		fprintf(stderr, "Escritos: %d\n", writen);
 
 
@@ -157,19 +346,4 @@ int main(int argc, char ** argv)
 }
 
 
-
-/*
-// TEST	
-	unsigned char * a,*b;
-	a = (unsigned char *) malloc(4);
-	a[0] = 9;
-	a[1] = 1;
-	a[2] = 2;
-	a[3] = 3;
-	b = a;
-	printf("%d\n", 2**++b);
-	printf("%d\n", 2**++b);
-	printf("%d\n", 2**++b);
-	return 0;
-*/
 

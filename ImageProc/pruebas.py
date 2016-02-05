@@ -6,7 +6,7 @@ def gauss(x, sigma, media):
 def gauss2d(x,y,sigma):
 	return e**((-1/2)*(x**2+y**2)/(sigma**2))
 
-size = 5
+size = 3
 li = -int(size/2)
 ls = li*-1
 sigma = 1
