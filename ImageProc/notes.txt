@@ -4,4 +4,5 @@ ffmpeg -f video4linux2 -s 1280x720 -i /dev/video0 -f image2pipe -vframes 1 -vcod
 
 
 ./test -l 255 -s 5 < noise2.ppm > out.pgm
-255
+
+

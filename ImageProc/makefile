@@ -1,3 +1,4 @@
 
+CONSTANTS=UNA
 all:
-	gcc Canny.c -lm -o test
+	gcc Canny.c -D$(CONSTANTS) -lm -o test
