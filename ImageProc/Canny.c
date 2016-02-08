@@ -200,10 +200,13 @@ void aplicarFiltro_Uint8_ConPrecision(uint8_t * src, uint8_t * dst, unsigned int
 	
 	double * bufferDeTrabajo = (double *) malloc(size * sizeof(double));
 	//Copiamos todo en bufferDeTrabajo para trabajar con mayor precision
-	int pos;
-	for(pos = 0; pos < size; pos++)
+
+	uint8_t * sptr, *maxsptr = src + size;
+	double * wptr;
+	
+	for(wptr = bufferDeTrabajo, sptr = src; sptr < maxsptr; sptr++, wptr++)
 	{
-		bufferDeTrabajo[pos] = (double) src[pos];
+		*wptr = (double) *sptr;
 	}
 
 	int foffset = tamFiltro >> 1;
@@ -297,11 +300,19 @@ void aplicarFiltro_Uint8_ConPrecision(uint8_t * src, uint8_t * dst, unsigned int
 #ifdef DEBUG
 	fprintf(stderr, "Valor maximo: %f, Valor minimo: %f\n", valorMaximo, valorMinimo);
 #endif
+	
+	uint8_t * maxdptr = dst + size;
+	uint8_t * res;
+	for(res = dst, wptr = bufferDeTrabajo; res < maxdptr; res++, wptr++)
+	{
+		*res = (uint8_t) *wptr;
+	}
+/*
 	for(pos = 0; pos < size; pos++)
 	{
 		dst[pos] = (uint8_t) bufferDeTrabajo[pos];
 	}
-
+*/
 	free(bufferDeTrabajo);
 
 }
@@ -403,6 +414,7 @@ void aplicarFiltro_Double(uint8_t * src, double * dst, unsigned int width, unsig
 
 
 }
+/*
 void aplicarFiltro_Uint8(uint8_t * src, uint8_t * dst, unsigned int width, unsigned int height, float * hfiltro, float * vfiltro, unsigned int tamFiltro)
 {
 	unsigned int size = height * width;
@@ -492,7 +504,7 @@ void aplicarFiltro_Uint8(uint8_t * src, uint8_t * dst, unsigned int width, unsig
 
 
 }
-
+*/
 static aplicarFiltroNoSeparable(uint8_t * src, double * dst, unsigned int width, unsigned int height, double ** filtro, unsigned int tfiltro)
 {
 
@@ -531,27 +543,34 @@ static aplicarFiltroNoSeparable(uint8_t * src, double * dst, unsigned int width,
 	}
 
 }
-static void obtenerModuloGradiente(uint8_t * xg, uint8_t * yg, uint8_t * mg, unsigned int width, unsigned int height)
+static void obtenerModuloGradiente(double * xg, double * yg, double * mg, unsigned int width, unsigned int height)
 {
 	unsigned int length = width * height;
-	uint8_t * xptr = xg, *yptr = yg, *mptr = mg;
-	uint8_t * maxxptr = xptr + width * height;
+	double * xptr = xg, *yptr = yg, *mptr = mg;
+	double * maxxptr = xptr + width * height;
 
 	while(xptr < maxxptr)
 	{
-
 		*mptr = sqrt(*xptr**xptr +  *yptr**yptr);
-
-	//	fprintf(stderr, "XG: %d , XG: %d, MG = %d (%f)\n", *xptr, *yptr, *mptr,sqrt(*xptr**xptr +  *yptr**yptr));
 		mptr++;		
 		xptr++;
 		yptr++;
 	}
 }
 
-static void obtenerDireccionGradiente(uint8_t * xg, uint8_t * yg, uint8_t * mg, unsigned int width, unsigned int height)
+static void obtenerDireccionGradiente(double * xg, double * yg, double * mg, unsigned int width, unsigned int height)
 {
+	unsigned int length = width * height;
+	double * xptr = xg, *yptr = yg, *mptr = mg;
+	double * maxxptr = xptr + width * height;
 
+	while(xptr < maxxptr)
+	{
+		*mptr = atan(*yptr / *xptr);
+		mptr++;		
+		xptr++;
+		yptr++;
+	}
 }
 
 static void showError()
@@ -624,25 +643,30 @@ int main(int argc, char ** argv)
 	int gsize = 3;
 
 	double ** Gx = (double **) malloc(gsize * sizeof(double*));
-
+	double * Gxc = (double *) malloc(gsize * gsize *  sizeof(double));
 	int f;
-	for(f = 0; f < gsize; f++)
+	double * gptr;
+	for(f = 0, gptr = Gxc; f < gsize; f++, gptr += gsize)
 	{
-		Gx[f] = (double *) malloc(gsize* sizeof(double));
+		Gx[f] = gptr;
 	}
 
 	Gx[0][0] = -1; Gx[0][1] = 0; Gx[0][2] = 1;
 	Gx[1][0] = -2; Gx[1][1] = 0; Gx[1][2] = 2;
 	Gx[2][0] = -1; Gx[2][1] = 0; Gx[2][2] = 1;
 
+	double ** Gy = (double **) malloc(gsize * sizeof(double*));
+	double * Gyc = (double *) malloc(gsize * gsize *  sizeof(double));
+	for(f = 0, gptr = Gyc; f < gsize; f++, gptr += gsize)
+	{
+		Gy[f] = gptr;
+	}
 
-/*
-	float Gxh[3] = {-1, 0, 1};
-	float Gxv[3] = { 1, 2, 1};
+	Gy[0][0] = -1; Gy[0][1] = -2; Gy[0][2] = -1;
+	Gy[1][0] =  0; Gy[1][1] =  0; Gy[1][2] =  0;
+	Gy[2][0] =  1; Gy[2][1] =  2; Gy[2][2] =  1;
 
-	float Gyh[3] = { 1, 2, 1};
-	float Gyv[3] = {-1, 0, 1};
-*/
+
 	unsigned int gSize = 3;
 	if(read_header(&width, &height) == 0)
 	{
@@ -692,26 +716,26 @@ int main(int argc, char ** argv)
 
 		//Filtramos el ruido con la gausiana especificada por el usuario
 		aplicarFiltro_Uint8_ConPrecision(gs, gsFiltrado, width, height, filtro, filtro, tamFiltro);
-		//aplicarFiltroConPrecision(gs, gsFiltrado, width, height, filtro, filtro, tamFiltro);
 	
 		//Obtenemos el cambio de intensidad del gradiente en X
-		//aplicarFiltro_Double(gsFiltrado, xgradiente, width, height, Gxh, Gxv, gSize);
-		aplicarFiltroNoSeparable(gsFiltrado, xgradiente, width, height, Gx, 3);
+		aplicarFiltroNoSeparable(gsFiltrado, xgradiente, width, height, Gx, gsize);
 		uint8_t * xgescalado = (uint8_t*) malloc(pixelLength);
 		escalar_Double_Uint8(xgradiente, xgescalado, width, height);
-		//aplicarFiltroConPrecision(gsFiltrado, xgradiente, width, height, Gxh, Gxv, gSize);
 
 		//Obtenemos el cambio de intensidad del gradiente en Y
-		//aplicarFiltro_Double(gsFiltrado, ygradiente, width, height, Gyh, Gyv, gSize);
+		aplicarFiltroNoSeparable(gsFiltrado, ygradiente, width, height, Gy, gsize);
 		uint8_t * ygescalado = (uint8_t*) malloc(pixelLength);
-		//escalar_Double_Uint8(ygradiente, ygescalado, width, height);
-		//aplicarFiltroConPrecision(gsFiltrado, ygradiente, width, height, Gyh, Gyv, gSize);
+		escalar_Double_Uint8(ygradiente, ygescalado, width, height);
 		
 		//Obtenemos el modulo del gradiente
-		//obtenerModuloGradiente(xgradiente, ygradiente, mgradiente, width, height);
+		obtenerModuloGradiente(xgradiente, ygradiente, mgradiente, width, height);
+		uint8_t * mgescalado = (uint8_t*) malloc(pixelLength);
+		escalar_Double_Uint8(mgradiente, mgescalado, width, height);
 
 		//Obtenemos la direccion del gradiente
-		//obtenerDireccionGradiente(xgradiente, ygradiente, dgradiente, width, height);
+		obtenerDireccionGradiente(xgradiente, ygradiente, dgradiente, width, height);
+		uint8_t * dgescalado = (uint8_t*) malloc(pixelLength);
+		escalar_Double_Uint8(dgradiente, dgescalado, width, height);
 
 
 		int ffiltrado = open("01-filtrada.ppm", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
@@ -729,8 +753,8 @@ int main(int argc, char ** argv)
 		saveImage(ffiltrado, pgm, pgmhl, gsFiltrado, pixelLength);
 		saveImage(fxgradiente, pgm, pgmhl, xgescalado, pixelLength);
 		saveImage(fygradiente, pgm, pgmhl, ygescalado, pixelLength);
-		//saveImage(fmgradiente, pgm, pgmhl, mgradiente, pixelLength);
-		//saveImage(fdgradiente, pgm, pgmhl, dgradiente, pixelLength);
+		saveImage(fmgradiente, pgm, pgmhl, mgescalado, pixelLength);
+		saveImage(fdgradiente, pgm, pgmhl, dgescalado, pixelLength);
 
 		close(ffiltrado);
 		close(fxgradiente);
