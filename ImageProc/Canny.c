@@ -25,12 +25,14 @@ pgmName(char *path)
 static void
 usage(char *pgmname)
 {
-	fprintf(stderr, "%s [options] < infile > outfile\n"
-			"Options:\n"
+	fprintf(stderr, "%s [opciones] < img.ppm\n"
+			"Descripcion:\n"
+			"Recibe por la entrada estandar una imagen RGB en formato ppm y escribe en ficheros pgm (XX-etapa.pgm) el resultado del algoritmo Canny en cada etapa. Tambien genera la version original de 'img.ppm' en ppm (rgb) y ppm (escala de grises).\n"
+			"Opciones:\n"
 			"\t-l               - Tamano del filtro gausiano (>=3 e impar).\n"
 			"\t-s               - Sigma del filtro gausiano.\n"
-			"\t-j               - Umbral inferior para deteccion de borde (0 < x < 255).\n"
-			"\t-k               - Umbral superior para deteccion de borde (0 < x < 255).\n", pgmname);
+			"\t-U               - Umbral superior para deteccion de borde (0 < x < 255).\n"
+			"\t-L               - Umbral inferior para deteccion de borde (0 < x < 255).\n", pgmname);
 	exit(-1);
 }
 
@@ -56,12 +58,12 @@ optGetFloatError(char *optarg, float *val, float min)
 
 
 static int
-getOptions(int argc, char *argv[], int * filterSize, float *sigma, unsigned int *lth, unsigned int * uth)
+getOptions(int argc, char *argv[], int * filterSize, float *sigma, unsigned int *uth, unsigned int * lth)
 {
 	int opt;
 	int error = 0;
 	*filterSize = -1; *sigma = -1;
-	while ((opt = getopt(argc, argv, "l:s:j:k:")) != -1) {
+	while ((opt = getopt(argc, argv, "l:s:U:L:")) != -1) {
 		switch (opt) {
 		case 'l':
 			error += optGetIntError(optarg, filterSize, 0);
@@ -69,11 +71,11 @@ getOptions(int argc, char *argv[], int * filterSize, float *sigma, unsigned int 
 		case 's':
 			error += optGetFloatError(optarg, sigma, 0);
 			break;
-		case 'j':
-			error += optGetIntError(optarg, lth, -1);
-			break;
-		case 'k':
+		case 'U':
 			error += optGetIntError(optarg, uth, -1);
+			break;
+		case 'L':
+			error += optGetIntError(optarg, lth, -1);
 			break;
 		default: /* '?' */
 			usage(argv[0]);
@@ -606,7 +608,7 @@ static void hysteresis(uint8_t * src, uint8_t * dst, uint8_t alto, uint8_t bajo,
 				|| srcM[f+1][c+1] > alto)
 					dstM[f][c] = vmax;
 				else
-					dstM[f][c] = vmax;
+					dstM[f][c] = vmin;
 			}
 			else
 				dstM[f][c] = vmin;
@@ -699,7 +701,7 @@ int main(int argc, char ** argv)
 	float sigma;
 
 	unsigned int lth, uth;
-	getOptions(argc, argv, &tamFiltro, &sigma, &lth, &uth);
+	getOptions(argc, argv, &tamFiltro, &sigma, &uth, &lth);
 
 	filtro = (float*) malloc(tamFiltro * sizeof(float));
 
@@ -722,11 +724,7 @@ int main(int argc, char ** argv)
 	Gx[0][0] = -1; Gx[0][1] = 0; Gx[0][2] = 1;
 	Gx[1][0] = -2; Gx[1][1] = 0; Gx[1][2] = 2;
 	Gx[2][0] = -1; Gx[2][1] = 0; Gx[2][2] = 1;
-/*
-	Gx[0][0] = 1; Gx[0][1] = 0; Gx[0][2] = -1;
-	Gx[1][0] = 2; Gx[1][1] = 0; Gx[1][2] = -2;
-	Gx[2][0] = 1; Gx[2][1] = 0; Gx[2][2] = -1;
-*/
+	
 	double ** Gy = (double **) malloc(gsize * sizeof(double*));
 	double * Gyc = (double *) malloc(gsize * gsize *  sizeof(double));
 	for(f = 0, gptr = Gyc; f < gsize; f++, gptr += gsize)
@@ -737,11 +735,6 @@ int main(int argc, char ** argv)
 	Gy[0][0] = -1; Gy[0][1] = -2; Gy[0][2] = -1;
 	Gy[1][0] =  0; Gy[1][1] =  0; Gy[1][2] =  0;
 	Gy[2][0] =  1; Gy[2][1] =  2; Gy[2][2] =  1;
-/*
-	Gy[0][0] =  1; Gy[0][1] =  2; Gy[0][2] =  1;
-	Gy[1][0] =  0; Gy[1][1] =  0; Gy[1][2] =  0;
-	Gy[2][0] = -1; Gy[2][1] = -2; Gy[2][2] = -1;
-*/
 
 	unsigned int gSize = 3;
 	if(read_header(&width, &height) == 0)
@@ -829,6 +822,7 @@ int main(int argc, char ** argv)
 		uint8_t * bordes = (uint8_t *) malloc(pixelLength);
 		hysteresis(mgthinescalado, bordes, uth, lth, width, height);
 		fprintf(stderr, "alto: %d , bajo: %d\n", uth, lth);
+
 		int ffiltrado = open("01-filtrada.pgm", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
 		if (ffiltrado < 0) showError();
  		int fxgradiente = open("02-xgradiente.pgm", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
