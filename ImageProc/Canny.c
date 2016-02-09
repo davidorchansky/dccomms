@@ -28,7 +28,9 @@ usage(char *pgmname)
 	fprintf(stderr, "%s [options] < infile > outfile\n"
 			"Options:\n"
 			"\t-l               - Tamano del filtro gausiano (>=3 e impar).\n"
-			"\t-s               - Sigma del filtro gausiano.\n", pgmname);
+			"\t-s               - Sigma del filtro gausiano.\n"
+			"\t-j               - Umbral inferior para deteccion de borde (0 < x < 255).\n"
+			"\t-k               - Umbral superior para deteccion de borde (0 < x < 255).\n", pgmname);
 	exit(-1);
 }
 
@@ -54,18 +56,24 @@ optGetFloatError(char *optarg, float *val, float min)
 
 
 static int
-getOptions(int argc, char *argv[], int * filterSize, float *sigma)
+getOptions(int argc, char *argv[], int * filterSize, float *sigma, unsigned int *lth, unsigned int * uth)
 {
 	int opt;
 	int error = 0;
 	*filterSize = -1; *sigma = -1;
-	while ((opt = getopt(argc, argv, "l:s:")) != -1) {
+	while ((opt = getopt(argc, argv, "l:s:j:k:")) != -1) {
 		switch (opt) {
 		case 'l':
 			error += optGetIntError(optarg, filterSize, 0);
 			break;
 		case 's':
 			error += optGetFloatError(optarg, sigma, 0);
+			break;
+		case 'j':
+			error += optGetIntError(optarg, lth, -1);
+			break;
+		case 'k':
+			error += optGetIntError(optarg, uth, -1);
 			break;
 		default: /* '?' */
 			usage(argv[0]);
@@ -86,6 +94,11 @@ getOptions(int argc, char *argv[], int * filterSize, float *sigma)
 	if(*filterSize % 2 == 0 || *filterSize < 3)
 	{
 		fprintf(stderr, "El filtro no es correcto\n");
+		usage(pgmName(argv[0]));
+	}
+	if(*lth > 255 || *uth > 255 || *lth < 0 || *uth < 0)
+	{
+		fprintf(stderr, "El umbral no es correcto\n");
 		usage(pgmName(argv[0]));
 	}
 }
@@ -552,27 +565,55 @@ static void nonMaximum(double * mg, uint8_t * dg, double * mgthin, unsigned int 
 	free(dgM);
 }
 
-static void hysteresis(uint8_t * src, uint8_t * dst, unsigned int width, unsigned int height)
+static void hysteresis(uint8_t * src, uint8_t * dst, uint8_t alto, uint8_t bajo, unsigned int width, unsigned int height)
 {
-/*
-	unsigned int size = width * height;
-	double ** mgM = (double**) malloc(height * sizeof(double*));
-	uint8_t ** dgM = (uint8_t**) malloc(height * sizeof(uint8_t*));
 
-	double * mptr;
+	unsigned int size = width * height;
+
+	uint8_t ** srcM = (uint8_t**) malloc(height * sizeof(uint8_t*));
+	uint8_t ** dstM = (uint8_t**) malloc(height * sizeof(uint8_t*));
+
+	uint8_t * sptr;
 	uint8_t * dptr;
 
 	int pos;
 
-	memcpy(mgthin, mg, size*sizeof(double));
-
-	for(pos = 0, mptr = mg, dptr = dg; pos < height; pos += 1, mptr += width, dptr += width)
+	uint8_t vmax = 255, vmin = 0;
+	for(pos = 0, sptr = src, dptr = dst; pos < height; pos += 1, sptr += width, dptr += width)
 	{
-		mgM[pos] = mptr;
-		dgM[pos] = dptr;
+		srcM[pos] = sptr;
+		dstM[pos] = dptr;
 	}
-*/
 
+	int f, c;
+	for(f = 0; f < height; f++)
+	{
+		for(c = 0; c < width; c++)
+		{
+			uint8_t v = srcM[f][c];
+			if(v > alto)
+				dstM[f][c] = vmax;
+			else if (v > bajo)
+			{
+				//miramos los vecinos
+				if(srcM[f-1][c-1] > alto 
+				|| srcM[f-1][c] > alto
+				|| srcM[f-1][c+1] > alto
+				|| srcM[f][c-1] > alto
+				|| srcM[f][c+1] > alto
+				|| srcM[f+1][c-1] > alto
+				|| srcM[f+1][c] > alto
+				|| srcM[f+1][c+1] > alto)
+					dstM[f][c] = vmax;
+				else
+					dstM[f][c] = vmax;
+			}
+			else
+				dstM[f][c] = vmin;
+		}
+	}
+	
+	free(srcM); free(dstM);
 }
 
 static void getM_B(double smax, double smin, double * m, double *b)
@@ -656,8 +697,9 @@ int main(int argc, char ** argv)
 	unsigned int tamFiltro;
 	float * filtro;
 	float sigma;
-	
-	getOptions(argc, argv, &tamFiltro, &sigma);
+
+	unsigned int lth, uth;
+	getOptions(argc, argv, &tamFiltro, &sigma, &lth, &uth);
 
 	filtro = (float*) malloc(tamFiltro * sizeof(float));
 
@@ -784,8 +826,9 @@ int main(int argc, char ** argv)
 		escalar_Double_Uint8(mgthin, mgthinescalado, width, height);
 
 		//Paso final de Canny: Umbralizacion
-
-
+		uint8_t * bordes = (uint8_t *) malloc(pixelLength);
+		hysteresis(mgthinescalado, bordes, uth, lth, width, height);
+		fprintf(stderr, "alto: %d , bajo: %d\n", uth, lth);
 		int ffiltrado = open("01-filtrada.pgm", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
 		if (ffiltrado < 0) showError();
  		int fxgradiente = open("02-xgradiente.pgm", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
@@ -800,6 +843,9 @@ int main(int argc, char ** argv)
 		if (fdgradiente_discreta < 0) showError();
 		int fmgthin = open("07-mgradiente-nonmaximum.pgm", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
 		if (fmgthin < 0) showError();
+		int fbordes = open("08-bordes.pgm", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
+		if (fbordes < 0) showError();
+
 
 
 	
@@ -810,7 +856,8 @@ int main(int argc, char ** argv)
 		saveImage(fdgradiente, pgm, pgmhl, dgescalado, pixelLength);
 		saveImage(fdgradiente_discreta, pgm, pgmhl, dgdescalado, pixelLength);
 		saveImage(fmgthin, pgm, pgmhl, mgthinescalado, pixelLength);
-		
+		saveImage(fbordes, pgm, pgmhl, bordes, pixelLength);
+
 		close(ffiltrado);
 		close(fxgradiente);
 		close(fygradiente);
@@ -818,6 +865,7 @@ int main(int argc, char ** argv)
 		close(fdgradiente);
 		close(fdgradiente_discreta);
 		close(fmgthin);
+		close(fbordes);
 
 
 

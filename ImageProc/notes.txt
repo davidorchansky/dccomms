@@ -4,7 +4,7 @@ ffmpeg -f video4linux2 -s 1280x720 -i /dev/video0 -f image2pipe -vframes 1 -vcod
 
 
 #Ejecutar el programa enviandole un ppm por la entrada estandar
-./test -l 5 -s 1 < noise2.ppm
+./test -l 5 -s 1 -j 40 -k 150 < noise2.ppm
 
 #Ejecutar el programa enviandole un ppm por la entrada estandar capturado con ffmpeg
 ffmpeg -f video4linux2 -s 1280x720 -i /dev/video0 -f image2pipe -vframes 1 -vcodec ppm pipe:1 | ./test -l 5 -s 1 
