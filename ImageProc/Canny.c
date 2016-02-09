@@ -351,6 +351,9 @@ static aplicarFiltroNoSeparable(uint8_t * src, double * dst, unsigned int width,
 		}
 	}
 
+	free(sM);
+	free(dM);
+
 }
 static void obtenerModuloGradiente(double * xg, double * yg, double * mg, unsigned int width, unsigned int height)
 {
@@ -544,6 +547,32 @@ static void nonMaximum(double * mg, uint8_t * dg, double * mgthin, unsigned int 
 			}
 		}
 	}
+
+	free(mgM);
+	free(dgM);
+}
+
+static void hysteresis(uint8_t * src, uint8_t * dst, unsigned int width, unsigned int height)
+{
+/*
+	unsigned int size = width * height;
+	double ** mgM = (double**) malloc(height * sizeof(double*));
+	uint8_t ** dgM = (uint8_t**) malloc(height * sizeof(uint8_t*));
+
+	double * mptr;
+	uint8_t * dptr;
+
+	int pos;
+
+	memcpy(mgthin, mg, size*sizeof(double));
+
+	for(pos = 0, mptr = mg, dptr = dg; pos < height; pos += 1, mptr += width, dptr += width)
+	{
+		mgM[pos] = mptr;
+		dgM[pos] = dptr;
+	}
+*/
+
 }
 
 static void getM_B(double smax, double smin, double * m, double *b)
@@ -753,6 +782,8 @@ int main(int argc, char ** argv)
 		nonMaximum(mgradiente, dgdiscreta, mgthin, width, height);
 		uint8_t * mgthinescalado = (uint8_t *) malloc(pixelLength);
 		escalar_Double_Uint8(mgthin, mgthinescalado, width, height);
+
+		//Paso final de Canny: Umbralizacion
 
 
 		int ffiltrado = open("01-filtrada.pgm", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
