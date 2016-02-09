@@ -20,12 +20,14 @@ Recibe por la entrada estandar una imagen RGB en formato ppm y escribe en ficher
 
 * Ejecutar el programa enviandole un ppm por la entrada estandar
 
-        $ ./canny -l 5 -s 1 -U 150 -L 50 < noise2.ppm
+		$ ./canny -l 5 -s 1 -U 150 -L 50 < noise2.ppm
+
 
 * Ejecutar el programa enviandole un ppm por la entrada estandar capturado con ffmpeg
 
-        $ ffmpeg -f video4linux2 -s 1280x720 -i /dev/video0 -f image2pipe -vframes 1 -vcodec ppm pipe:1 | ./canny -l 5 -s 1 -U 150 -L 50
+		$ ffmpeg -f video4linux2 -s 1280x720 -i /dev/video0 -f image2pipe -vframes 1 -vcodec ppm pipe:1 | ./canny -l 5 -s 1 -U 150 -L 50
+
 
 * Capturar una imagen ppm y redireccionarla por la salida estandar
-
-        $ ffmpeg -f video4linux2 -s 1280x720 -i /dev/video0 -f image2pipe -vframes 1 -vcodec ppm pipe:1 > input.ppm
+		
+		$ ffmpeg -f video4linux2 -s 1280x720 -i /dev/video0 -f image2pipe -vframes 1 -vcodec ppm pipe:1 > input.ppm
