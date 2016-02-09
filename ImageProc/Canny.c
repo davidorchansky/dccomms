@@ -467,6 +467,85 @@ static void discretizarDireccionGradiente(double * dgradiente, uint8_t * dgdiscr
 #endif
 }
 
+static void nonMaximum(double * mg, uint8_t * dg, double * mgthin, unsigned int width, unsigned int height)
+{
+	unsigned int size = width * height;
+	double ** mgM = (double**) malloc(height * sizeof(double*));
+	uint8_t ** dgM = (uint8_t**) malloc(height * sizeof(uint8_t*));
+
+	double * mptr;
+	uint8_t * dptr;
+
+	int pos;
+
+	memcpy(mgthin, mg, size*sizeof(double));
+
+	for(pos = 0, mptr = mg, dptr = dg; pos < height; pos += 1, mptr += width, dptr += width)
+	{
+		mgM[pos] = mptr;
+		dgM[pos] = dptr;
+	}
+
+	unsigned int foffset = 1;
+
+	int f, c;
+	for(f=foffset; f < height-foffset; f++)
+	{
+		for(c=foffset; c < width-foffset; c++)
+		{
+			int mf1,mf2,mc1,mc2;
+			//Miramos la direccion del gradiente
+
+			int caso = -1;
+			switch(dgM[f][c])
+			{
+				case 0:
+					caso = 0;
+					mf1 = f;
+					mc1 = c - 1;
+					mf2 = f;
+					mc2 = c + 1;
+					break;
+				case 45:	
+					caso = 45;
+					mf1 = f - 1;
+					mc1 = c + 1;
+					mf2 = f + 1;
+					mc2 = c - 1;
+					break;
+				case 90:
+					caso = 90;
+					mf1 = f - 1;
+					mc1 = c;
+					mf2 = f + 1;
+					mc2 = c;
+					break;
+				case 135:
+					caso = 135;
+					mf1 = f - 1;
+					mc1 = c - 1;
+					mf2 = f + 1;
+					mc2 = c + 1;
+					break;
+				default:
+					fprintf(stderr, "ERROR: angulo incorrecto en nonMaximum\n");
+					exit(1);
+
+			}
+
+			//fprintf(stderr, "caso %d\n", caso);
+			double v = mgM[f][c];
+
+			if(v < mgM[mf1][mc1] || v < mgM[mf2][mc2])
+			{
+				//fprintf(stderr, "%d-%d , %d-%d, %d-%d\n", mf1,mc1,f,c,mf2,mc2);
+				double * dst = mgthin + f * width + c;
+				*dst = 0;
+			}
+		}
+	}
+}
+
 static void getM_B(double smax, double smin, double * m, double *b)
 {
 	*m = 255. / (smax - smin);
@@ -670,7 +749,11 @@ int main(int argc, char ** argv)
 		escalar_Uint8_Uint8(dgdiscreta, dgdescalado, width, height);
 
 		//Supresion de los no maximos (para adelgazar los bordes resaltados antes de la umbralizacion)
-	
+		double * mgthin = (double*) malloc(pixelLength * sizeof(double));
+		nonMaximum(mgradiente, dgdiscreta, mgthin, width, height);
+		uint8_t * mgthinescalado = (uint8_t *) malloc(pixelLength);
+		escalar_Double_Uint8(mgthin, mgthinescalado, width, height);
+
 
 		int ffiltrado = open("01-filtrada.pgm", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
 		if (ffiltrado < 0) showError();
@@ -683,7 +766,10 @@ int main(int argc, char ** argv)
 		int fdgradiente = open("05-dgradiente.pgm", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
 		if (fdgradiente < 0) showError();
 		int fdgradiente_discreta = open("06-dgradiente-discreta.pgm", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
-		if (fdgradiente < 0) showError();
+		if (fdgradiente_discreta < 0) showError();
+		int fmgthin = open("07-mgradiente-nonmaximum.pgm", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
+		if (fmgthin < 0) showError();
+
 
 	
 		saveImage(ffiltrado, pgm, pgmhl, gsFiltrado, pixelLength);
@@ -692,13 +778,15 @@ int main(int argc, char ** argv)
 		saveImage(fmgradiente, pgm, pgmhl, mgescalado, pixelLength);
 		saveImage(fdgradiente, pgm, pgmhl, dgescalado, pixelLength);
 		saveImage(fdgradiente_discreta, pgm, pgmhl, dgdescalado, pixelLength);
-
+		saveImage(fmgthin, pgm, pgmhl, mgthinescalado, pixelLength);
+		
 		close(ffiltrado);
 		close(fxgradiente);
 		close(fygradiente);
 		close(fmgradiente);
 		close(fdgradiente);
 		close(fdgradiente_discreta);
+		close(fmgthin);
 
 
 
