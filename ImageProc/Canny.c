@@ -11,6 +11,9 @@
 #include <errno.h>
 #include <limits.h>
 
+
+#define RAD_2_DEG 57.29577951308232
+
 static char *
 pgmName(char *path)
 {
@@ -288,7 +291,7 @@ void aplicarFiltro_Uint8_ConPrecision(uint8_t * src, uint8_t * dst, unsigned int
 
 			}
 			*dptr = valorFinal;
-#ifdef TEST
+#ifdef DEBUG
 			if(valorFinal >= valorMaximo) valorMaximo = valorFinal;
 			if(valorFinal <= valorMinimo) valorMinimo = valorFinal;
 #endif
@@ -384,6 +387,86 @@ static void showError()
 	fprintf(stderr, "Ha ocurrido algun error: %s\n", strerror(errno));
 }
 
+static uint8_t getDireccion(double rad)
+{
+
+	double deg = rad * RAD_2_DEG;
+
+	if(deg < 0)
+		deg = 180 + deg;
+
+	double dif180 = abs(deg - 180);
+	double dif135 = abs(deg - 135);
+	double dif90 = abs(deg - 90);
+	double dif45 = abs(deg - 45);
+	double dif0 = deg;
+
+	uint8_t res = 0;
+	double diff = dif180;
+
+	if(dif135 < diff){ res = 135; diff = dif135;}
+	if(dif90 < diff){ res = 90; diff = dif90;}
+	if(dif45 < diff){ res = 45; diff = dif45;}
+	if(dif0 < diff){ res =  0; diff = dif0;}
+
+        return res;
+}
+
+#ifdef DEBUG
+static unsigned int escalarDireccionDiscreta(uint8_t dir)
+{
+	switch(dir)
+	{
+		case 0:
+			return 0;
+		case 45:
+			return 85;
+		case 90:
+			return 170;
+		case 135:
+			return 255;
+		default:
+			return 255;
+	}
+
+}
+#endif
+static void discretizarDireccionGradiente(double * dgradiente, uint8_t * dgdiscretizada, unsigned int width, unsigned int height)
+{
+	unsigned int size = width * height;
+	double * sptr, *maxdg = dgradiente + size;
+	uint8_t * dptr;
+
+#ifdef DEBUG
+	double vmaxr = -999, vminr = 999; 
+#endif
+	for(sptr = dgradiente, dptr = dgdiscretizada; sptr < maxdg; sptr++, dptr++)
+	{
+#ifdef DEBUG
+		if(*sptr > vmaxr) vmaxr = *sptr;
+		if(*sptr < vminr) vminr = *sptr;
+#endif
+		*dptr = getDireccion(*sptr);
+	}
+
+#ifdef DEBUG
+	uint8_t vmaxd, vmind;
+	vmaxd = getDireccion(vmaxr);
+	vmind = getDireccion(vminr);
+	fprintf(stderr, "vmaxr: %f : %d , vminr: %f : %d\n", vmaxr ,vmaxd, vminr, vmind);
+
+	double aux = 0;
+	for(aux = -M_PI/2; aux <= M_PI/2 ; aux += M_PI/30)
+	{
+		double deg = RAD_2_DEG * aux;
+		if(deg > 0)
+			fprintf(stderr, "rad: %f : %f : %d : %d\n", aux, deg, getDireccion(aux), escalarDireccionDiscreta(getDireccion(aux)));
+		else
+			fprintf(stderr, "rad: %f : %f : %d : %d\n", aux, 180+deg, getDireccion(aux), escalarDireccionDiscreta(getDireccion(aux)));
+	}
+#endif
+}
+
 static void getM_B(double smax, double smin, double * m, double *b)
 {
 	*m = 255. / (smax - smin);
@@ -418,6 +501,35 @@ static void escalar_Double_Uint8(double * ygradiente, uint8_t * ygescalado, unsi
 	}
 
 }
+static void escalar_Uint8_Uint8(uint8_t * ygradiente, uint8_t * ygescalado, unsigned int width, unsigned int height)
+{
+	unsigned int size = width * height;
+	uint8_t * sptr,
+	* maxsptr = ygradiente + size;
+
+	uint8_t * dptr,
+	* maxdptr = ygescalado + size;
+
+	double vmax = -9999, vmin = 9999;
+
+	for(sptr = ygradiente; sptr < maxsptr; sptr++)
+	{
+		if(*sptr <= vmin) vmin = *sptr;
+		if(*sptr >= vmax) vmax = *sptr;
+	}
+
+	double M, B;
+
+	getM_B(vmax, vmin, &M, &B);
+	fprintf(stderr, "Maximo: %f , Minimo: %f\n", vmax, vmin);
+
+	for(sptr = ygradiente, dptr = ygescalado; sptr < maxsptr; sptr++, dptr++)
+	{
+		*dptr = (uint8_t)round(*sptr * M + B);	
+	}
+
+}
+
 
 static void saveImage(int fd, uint8_t * header, unsigned int hlength, uint8_t * content, unsigned int clength)
 {
@@ -460,7 +572,11 @@ int main(int argc, char ** argv)
 	Gx[0][0] = -1; Gx[0][1] = 0; Gx[0][2] = 1;
 	Gx[1][0] = -2; Gx[1][1] = 0; Gx[1][2] = 2;
 	Gx[2][0] = -1; Gx[2][1] = 0; Gx[2][2] = 1;
-
+/*
+	Gx[0][0] = 1; Gx[0][1] = 0; Gx[0][2] = -1;
+	Gx[1][0] = 2; Gx[1][1] = 0; Gx[1][2] = -2;
+	Gx[2][0] = 1; Gx[2][1] = 0; Gx[2][2] = -1;
+*/
 	double ** Gy = (double **) malloc(gsize * sizeof(double*));
 	double * Gyc = (double *) malloc(gsize * gsize *  sizeof(double));
 	for(f = 0, gptr = Gyc; f < gsize; f++, gptr += gsize)
@@ -471,7 +587,11 @@ int main(int argc, char ** argv)
 	Gy[0][0] = -1; Gy[0][1] = -2; Gy[0][2] = -1;
 	Gy[1][0] =  0; Gy[1][1] =  0; Gy[1][2] =  0;
 	Gy[2][0] =  1; Gy[2][1] =  2; Gy[2][2] =  1;
-
+/*
+	Gy[0][0] =  1; Gy[0][1] =  2; Gy[0][2] =  1;
+	Gy[1][0] =  0; Gy[1][1] =  0; Gy[1][2] =  0;
+	Gy[2][0] = -1; Gy[2][1] = -2; Gy[2][2] = -1;
+*/
 
 	unsigned int gSize = 3;
 	if(read_header(&width, &height) == 0)
@@ -543,6 +663,14 @@ int main(int argc, char ** argv)
 		uint8_t * dgescalado = (uint8_t*) malloc(pixelLength);
 		escalar_Double_Uint8(dgradiente, dgescalado, width, height);
 
+		//Discretizamos la direccion del gradiente en 4 direcciones (0, 45, 90 y 135º), es decir: 0, 85, 170 y 255
+		uint8_t * dgdiscreta = (uint8_t*) malloc(pixelLength);
+		discretizarDireccionGradiente(dgradiente, dgdiscreta, width, height);
+		uint8_t * dgdescalado = (uint8_t*) malloc(pixelLength);
+		escalar_Uint8_Uint8(dgdiscreta, dgdescalado, width, height);
+
+		//Supresion de los no maximos (para adelgazar los bordes resaltados antes de la umbralizacion)
+	
 
 		int ffiltrado = open("01-filtrada.pgm", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
 		if (ffiltrado < 0) showError();
@@ -554,6 +682,8 @@ int main(int argc, char ** argv)
 		if (fmgradiente < 0) showError();
 		int fdgradiente = open("05-dgradiente.pgm", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
 		if (fdgradiente < 0) showError();
+		int fdgradiente_discreta = open("06-dgradiente-discreta.pgm", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
+		if (fdgradiente < 0) showError();
 
 	
 		saveImage(ffiltrado, pgm, pgmhl, gsFiltrado, pixelLength);
@@ -561,13 +691,14 @@ int main(int argc, char ** argv)
 		saveImage(fygradiente, pgm, pgmhl, ygescalado, pixelLength);
 		saveImage(fmgradiente, pgm, pgmhl, mgescalado, pixelLength);
 		saveImage(fdgradiente, pgm, pgmhl, dgescalado, pixelLength);
+		saveImage(fdgradiente_discreta, pgm, pgmhl, dgdescalado, pixelLength);
 
 		close(ffiltrado);
 		close(fxgradiente);
 		close(fygradiente);
 		close(fmgradiente);
 		close(fdgradiente);
-
+		close(fdgradiente_discreta);
 
 
 
