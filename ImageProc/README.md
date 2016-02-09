@@ -31,3 +31,6 @@ Recibe por la entrada estandar una imagen RGB en formato ppm y escribe en ficher
 * Capturar una imagen ppm y redireccionarla por la salida estandar
 		
 		$ ffmpeg -f video4linux2 -s 1280x720 -i /dev/video0 -f image2pipe -vframes 1 -vcodec ppm pipe:1 > input.ppm
+
+## Hough (EN DESARROLLO)
+Recibe por la entrada estandar una imagen PGM con los pixeles que forman parte del borde de una imagen (resultado final del detector de bordes Canny), y calcula la transformada de Hough (ver [Transformada de Hough](https://ca.wikipedia.org/wiki/Transformada_de_Hough))
