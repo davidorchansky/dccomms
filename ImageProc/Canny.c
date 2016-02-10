@@ -874,7 +874,7 @@ int main(int argc, char ** argv)
 		}
 
 
-
+		//TODO: LIBERAR MEMORIA!!
 	}
 	return 0;
 }
