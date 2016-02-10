@@ -32,7 +32,8 @@ usage(char *pgmname)
 			"\t-l               - Tamano del filtro gausiano (>=3 e impar).\n"
 			"\t-s               - Sigma del filtro gausiano.\n"
 			"\t-U               - Umbral superior para deteccion de borde (0 < x < 255).\n"
-			"\t-L               - Umbral inferior para deteccion de borde (0 < x < 255).\n", pgmname);
+			"\t-L               - Umbral inferior para deteccion de borde (0 < x < 255).\n"
+			"\t-e               - Enviar por la salida estandar la imagen pgm de bordes.\n", pgmname);
 	exit(-1);
 }
 
@@ -58,12 +59,13 @@ optGetFloatError(char *optarg, float *val, float min)
 
 
 static int
-getOptions(int argc, char *argv[], int * filterSize, float *sigma, unsigned int *uth, unsigned int * lth)
+getOptions(int argc, char *argv[], int * filterSize, float *sigma, unsigned int *uth, unsigned int * lth, int *re)
 {
 	int opt;
 	int error = 0;
+	*re = 0;
 	*filterSize = -1; *sigma = -1;
-	while ((opt = getopt(argc, argv, "l:s:U:L:")) != -1) {
+	while ((opt = getopt(argc, argv, "l:s:U:L:e")) != -1) {
 		switch (opt) {
 		case 'l':
 			error += optGetIntError(optarg, filterSize, 0);
@@ -76,6 +78,9 @@ getOptions(int argc, char *argv[], int * filterSize, float *sigma, unsigned int 
 			break;
 		case 'L':
 			error += optGetIntError(optarg, lth, -1);
+			break;
+		case 'e':
+			*re = 1;
 			break;
 		default: /* '?' */
 			usage(argv[0]);
@@ -693,6 +698,7 @@ int main(int argc, char ** argv)
 {
 
 	int width, height;
+	int re; //indica si escribir por la salida estandar el pgm con los bordes
 	unsigned int rgbLength, pixelLength;
 	uint8_t *ppm, *rgb, *pgm, *gs;
 	
@@ -701,7 +707,7 @@ int main(int argc, char ** argv)
 	float sigma;
 
 	unsigned int lth, uth;
-	getOptions(argc, argv, &tamFiltro, &sigma, &uth, &lth);
+	getOptions(argc, argv, &tamFiltro, &sigma, &uth, &lth, &re);
 
 	filtro = (float*) malloc(tamFiltro * sizeof(float));
 
@@ -860,6 +866,12 @@ int main(int argc, char ** argv)
 		close(fdgradiente_discreta);
 		close(fmgthin);
 		close(fbordes);
+
+		if(re)
+		{
+			write(1, pgm, pgmhl);
+			write(1, bordes, pixelLength);
+		}
 
 
 
