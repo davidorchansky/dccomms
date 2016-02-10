@@ -14,6 +14,8 @@ Recibe por la entrada estandar una imagen RGB en formato ppm y escribe en ficher
         -s               - Sigma del filtro gausiano.
         -U               - Umbral superior para deteccion de borde (0 < x < 255).
         -L               - Umbral inferior para deteccion de borde (0 < x < 255).
+        -e               - Enviar por la salida estandar la imagen pgm de bordes.
+  
 * **img.ppm**: imagen RGB en formato ppm.
 
 #### Ejemplos
