@@ -1,4 +1,12 @@
 
 CONSTANTS=UNA
-all:
-	gcc Canny.c -D$(CONSTANTS) -lm -o canny
+all: canny hough
+
+canny: Canny.o
+	gcc $< -D$(CONSTANTS) -lm -o $@
+
+hough: Hough.o
+	gcc $< -D$(CONSTANTS) -lm -o $@
+
+Canny.o: Canny.c
+Hough.o: Hough.c
