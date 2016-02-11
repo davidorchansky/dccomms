@@ -258,13 +258,10 @@ void aplicarFiltro_Uint8_ConPrecision(uint8_t * src, uint8_t * dst, unsigned int
 	//Pasada por filas (aplicación del filtro horizontal)
 	unsigned int offsetInicial = foffset * width + foffset;
 
-	//uint8_t * dptr;
 	double * dptr;
 
-	//dptr = dst + offsetInicial;
 	dptr = bufferDeTrabajo + offsetInicial;
 
-	//uint8_t * maxf = dptr + width * filas;
 	double * maxf = dptr + width * filas;
 	
 
@@ -276,12 +273,10 @@ void aplicarFiltro_Uint8_ConPrecision(uint8_t * src, uint8_t * dst, unsigned int
 #endif
 	while(dptr < maxf)
 	{
-		//uint8_t * maxc = dptr + columnas;
 		double * maxc = dptr + columnas;
 		while(dptr < maxc)
 		{
 			//Aplicamos el filtro horizontalmente
-			//uint8_t valorFinal = 0;
 			double valorFinal = 0;
 			int idx;
 			for(idx = -foffset; idx <= foffset; idx++)
@@ -298,9 +293,7 @@ void aplicarFiltro_Uint8_ConPrecision(uint8_t * src, uint8_t * dst, unsigned int
 		dptr += ioffset;
 	}
 
-	//dptr = dst + offsetInicial;
 	dptr = bufferDeTrabajo + offsetInicial;
-//	uint8_t * maxc = dptr + columnas;
 	double * maxc = dptr + columnas;
 
 #ifdef TEST
@@ -310,13 +303,11 @@ void aplicarFiltro_Uint8_ConPrecision(uint8_t * src, uint8_t * dst, unsigned int
 	centroFiltro = vfiltro + foffset;
 	while(dptr < maxc)
 	{
-		//uint8_t * dptrc = dptr;
 		double * dptrc = dptr;
 		maxf = dptr + filas * width;
 		while(dptr < maxf)
 		{
 			//Aplicamos el filtro verticalmente
-			//uint8_t valorFinal = 0;
 			double valorFinal = 0;
 			int idx;
 			for(idx = -foffset; idx <= foffset; idx++)
@@ -733,10 +724,6 @@ void houghAcc(int x, int y, uint8_t ** houghSp, unsigned int ** acc, float * sin
 #endif
 
 	}
-#ifdef DEBUG
-		
-	//	fprintf(stderr, "x0: %d ; y0: %d ; x: %d ; y: %d ; maxrho0: %f ; minrho0: %f ; rhoMax: %d ; rhoMax/2: %d ; ndist: %d\n", x0,y0,x, y, maxrho0,minrho0, rhoMax, rhoMaxHs, ndistancias);
-#endif
 
 
 	
