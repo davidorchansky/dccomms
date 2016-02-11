@@ -654,7 +654,9 @@ static void escalar_Double_Uint8(double * ygradiente, uint8_t * ygescalado, unsi
 	double M, B;
 
 	getM_B(vmax, vmin, &M, &B);
+#ifdef DEBUG
 	fprintf(stderr, "Maximo: %f , Minimo: %f\n", vmax, vmin);
+#endif
 
 	for(sptr = ygradiente, dptr = ygescalado; sptr < maxsptr; sptr++, dptr++)
 	{
@@ -682,7 +684,9 @@ static void escalar_Uint8_Uint8(uint8_t * ygradiente, uint8_t * ygescalado, unsi
 	double M, B;
 
 	getM_B(vmax, vmin, &M, &B);
+#ifdef DEBUG
 	fprintf(stderr, "Maximo: %f , Minimo: %f\n", vmax, vmin);
+#endif
 
 	for(sptr = ygradiente, dptr = ygescalado; sptr < maxsptr; sptr++, dptr++)
 	{
@@ -696,7 +700,9 @@ static void saveImage(int fd, uint8_t * header, unsigned int hlength, uint8_t * 
 {
 	int writen = write(fd, header, hlength);
 	writen += write(fd, content, clength);
+#ifdef DEBUG
 	fprintf(stderr, "Escritos: %d\n", writen);
+#endif
 }
 
 void houghAcc(int x, int y, uint8_t ** houghSp, unsigned int ** acc, float * sinTable, float * cosTable, unsigned int width, unsigned int height, unsigned int nangulos, unsigned int rhoOffset, int vtrue)
@@ -749,7 +755,10 @@ static void escalar_Int_Uint8(int * src, uint8_t * dst, unsigned int length)
 	double M, B;
 
 	getM_B(vmax, vmin, &M, &B);
+
+#ifdef DEBUG
 	fprintf(stderr, "Maximo: %d , Minimo: %d\n", vmax, vmin);
+#endif
 
 	for(sptr = src, dptr = dst; sptr < maxsptr; sptr++, dptr++)
 	{
@@ -790,9 +799,10 @@ int main(int argc, char ** argv)
 
 	getGaussianFilter(filtro, tamFiltro, sigma);
 
+#ifdef DEBUG
 	fprintf(stderr, "Sigma: %f , Size: %d\n", sigma, tamFiltro);
 	showFilter(stderr, filtro, tamFiltro);
-
+#endif
 	int gsize = 3;
 
 	double ** Gx = (double **) malloc(gsize * sizeof(double*));
@@ -842,12 +852,15 @@ int main(int argc, char ** argv)
 
 	if(read_ppmHeader(&width, &height) == 0)
 	{
+#ifdef DEBUG
 		fprintf(stderr, "Recibido ppm header\nEsperando RGB...\n");
-
+#endif
 		pixelLength = width * height;
 		rgbLength = pixelLength  * 3;	
 
+#ifdef DEBUG
 		fprintf(stderr, "Width: %d , Height: %d\n", width, height);
+#endif
 		ppm = (uint8_t*) malloc(rgbLength+50);
 	
 		int ppmhl = sprintf((char*)ppm, "P6\n%d %d\n255\n", width, height);
@@ -856,7 +869,9 @@ int main(int argc, char ** argv)
 
 		unsigned int n = fread(rgb, rgbLength, 1, stdin);
 
+#ifdef DEBUG
 		fprintf(stderr, "Leido RGB: %d (%d bytes)\nConvirtiendo a GrayScale...\n", n, rgbLength*n);
+#endif
 
 		pgm = (uint8_t*) malloc(pixelLength+50);
 		int pgmhl = sprintf((char*)pgm, "P5\n%d %d\n255\n", width, height);
@@ -924,7 +939,9 @@ int main(int argc, char ** argv)
 		//Paso final de Canny: Umbralizacion
 		uint8_t * bordes = (uint8_t *) malloc(pixelLength);
 		hysteresis(mgthinescalado, bordes, uth, lth, width, height);
+#ifdef DEBUG
 		fprintf(stderr, "alto: %d , bajo: %d\n", uth, lth);
+#endif
 
 		int ffiltrado = open("01-filtrada.pgm", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
 		if (ffiltrado < 0) showError();
@@ -962,6 +979,12 @@ int main(int argc, char ** argv)
 		free(mgthinescalado);
 		saveImage(fbordes, pgm, pgmhl, bordes, pixelLength);
 
+		free(ppm);
+		free(xgradiente);
+		free(ygradiente);
+		free(mgradiente);
+		free(dgradiente);
+
 		close(ffiltrado);
 		close(fxgradiente);
 		close(fygradiente);
@@ -976,7 +999,9 @@ int main(int argc, char ** argv)
 		unsigned int rhoMax = sqrt(width*width + height*height);
 		unsigned int ndistancias = rhoMax;
 
+#ifdef DEBUG
 		fprintf(stderr, "Angulos: %d, Distancias: %d\n", nangulos, ndistancias);
+#endif
 
 		unsigned int houghSpLength = ndistancias*nangulos;
 
@@ -1058,6 +1083,11 @@ int main(int argc, char ** argv)
 		free(houghSpAccEscalado);
 
 	}
+	free(filtro);
+	free(Gx);
+	free(Gxc);
+	free(Gy);
+	free(Gyc);
 	free(cosTable);
 	free(sinTable);
 	return 0;
