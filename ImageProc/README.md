@@ -39,5 +39,24 @@ Recibe por la entrada estandar una imagen RGB en formato ppm y escribe en ficher
 		
 		$ ffmpeg -f video4linux2 -s 1280x720 -i /dev/video0 -f image2pipe -vframes 1 -vcodec ppm pipe:1 > input.ppm
 
-## Hough (EN DESARROLLO)
+## Hough
 Recibe por la entrada estandar una imagen PGM con los pixeles que forman parte del borde de una imagen (resultado final del detector de bordes Canny), y calcula la transformada de Hough (ver [Transformada de Hough](https://ca.wikipedia.org/wiki/Transformada_de_Hough))
+
+### Uso
+        $ ./hough [opciones] < bordes.ppm
+        
+* **[opciones]**:
+
+        -a               - Numero de angulos.
+        -e               - Escribir por la salida estandar los acumuladores del espacio de hough en pgm.
+
+
+#### Ejemplos
+
+* Obtener la transformada de hough de una imagen de bordes en pgm:
+
+		$ ./hough -a 360 -e < bordes.pgm > acc.pgm
+
+* Capturar de la camara /dev/video0, aplicar canny y, finalmente, hough:
+
+		$ ffmpeg -f video4linux2 -s 1280x720 -i /dev/video0 -f image2pipe -vframes 1 -vcodec ppm pipe:1 | ./canny -l 5 -s 1 -U 100 -L 20 -e | ./hough -a 360 -e > acc.pgm
