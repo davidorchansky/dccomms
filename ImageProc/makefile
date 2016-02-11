@@ -1,7 +1,7 @@
 
 CONSTANTS=UNA
 
-exec=canny hough
+exec=canny hough join
 
 CFLAGS=-D$(CONSTANTS)
 
@@ -14,8 +14,12 @@ canny: Canny.o
 hough: Hough.o
 	gcc $< -D$(CONSTANTS) -lm -o $@
 
+join: join.o
+	gcc $< -D$(CONSTANTS) -lm -o $@
+
 clean:
 	rm -f *.o $(exec)
 
 Canny.o: Canny.c
 Hough.o: Hough.c
+join.o: join.c
