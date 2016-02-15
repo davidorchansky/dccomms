@@ -597,15 +597,16 @@ static void hysteresis(uint8_t * src, uint8_t * dst, uint8_t alto, uint8_t bajo,
 				dstM[f][c] = vmax;
 			else if (v > bajo)
 			{
+				int fb = f-1,fa = f+1, cb = c-1, ca =c+1;
 				//miramos los vecinos
-				if(srcM[f-1][c-1] > alto 
-				|| srcM[f-1][c] > alto
-				|| srcM[f-1][c+1] > alto
-				|| srcM[f][c-1] > alto
-				|| srcM[f][c+1] > alto
-				|| srcM[f+1][c-1] > alto
-				|| srcM[f+1][c] > alto
-				|| srcM[f+1][c+1] > alto)
+				if(srcM[fb][cb] > alto 
+				|| srcM[fb][c] > alto
+				|| srcM[fb][ca] > alto
+				|| srcM[f][cb] > alto
+				|| srcM[f][ca] > alto
+				|| srcM[fa][cb] > alto
+				|| srcM[fa][c] > alto
+				|| srcM[fa][ca] > alto)
 					dstM[f][c] = vmax;
 				else
 					dstM[f][c] = vmin;
