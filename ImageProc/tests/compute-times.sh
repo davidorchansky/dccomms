@@ -16,33 +16,62 @@ contador=0
 expdir=experimentacion/
 inputImgExt=.ppm
 tester=../arm-join-v1
+imgSizes=(25 50 75 100)
+filterSizes=(3 7 11 15)
+angles=(100 400 700 1000)
+lowThresholds=(25 35 40 50 60)
+ratios=(3)
+sigmas=(1)
+
 rm -rf $expdir
 for i in $1/*
 do
 	echo Tratando imagen $i
 	
 	imgname=$(basename $i)
-	echo $imgname
 	imgnameNoext=$(basename $imgname $inputImgExt)
-	echo $imgnameNoext
 	imgdir=$expdir/$imgnameNoext
-	echo $imgdir
 	mkdir -p $imgdir
 
 	#Experimentamos con tamanos 25%, 50%, 75%, y 100%
 
-	per=25
-	while [ $per -le 100 ]; do
-		sizeDir=$imgdir/$per
+	for per in ${imgSizes[*]}; do
+
+		sizeDir=$imgdir/resized$per
 		mkdir -p $sizeDir
 		inputImg=$sizeDir/$imgnameNoext\_$per$inputImgExt
 		convert $i -resize $per% $inputImg
 
-		sigma=1
-		filterSize=5
+		for filterSize in ${filterSizes[*]}; do
 
-		$tester -s $sigma -l $filterSize -d 
+			filterSizeDir=$sizeDir/filterSize$filterSize
+			#mkdir -p $filterSizeDir
 
-		let per=per+25 
+			for angles in ${angles[*]}; do
+
+				anglesDir=$filterSizeDir/angles$angles
+				#mkdir -p $anglesDir
+
+				for ratio in ${ratios[*]}; do
+					ratioDir=$anglesDir/ratio$ratio
+					#mkdir -p $ratioDir
+
+					for lthold in ${lowThresholds[*]}; do
+						ltholdDir=$ratioDir/lowThreshold$lthold
+						#mkdir -p $ltholdDir
+						
+						for sigma in ${sigmas[*]}; do
+							sigmaDir=$ltholdDir/sigma$sigma
+							mkdir -p $sigmaDir
+						
+							rawOutputFile=$sigmaDir/rawOutput.txt
+							uthold=$(echo "$lthold * $ratio" | bc)
+							$tester -a $angles -U $uthold -L $lthold -s $sigma -l $filterSize -d $sigmaDir < $inputImg 2> $rawOutputFile
+						done
+
+					done
+				done
+			done
+		done
 	done
 done
