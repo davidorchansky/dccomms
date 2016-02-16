@@ -11,10 +11,12 @@
 #include <getopt.h>
 #include <errno.h>
 #include <limits.h>
+#include <sys/types.h>
 
 #ifdef TIMMING
 #include <sys/time.h>
 #endif
+
 
 #define RAD_2_DEG 57.29577951308232
 
@@ -38,7 +40,8 @@ usage(char *pgmname)
 			"\t-U               - Umbral superior para deteccion de borde (0 < x < 255).\n"
 			"\t-L               - Umbral inferior para deteccion de borde (0 < x < 255).\n"
 			"\t-a               - Numbero de angulos de la transformada de hough.\n"
-			"\t-e               - Enviar por la salida estandar la imagen pgm de acumuladores del espacio de Hough.\n", pgmname);
+			"\t-e               - Enviar por la salida estandar la imagen pgm de acumuladores del espacio de Hough.\n"
+			"\t-d               - Directorio de salida.\n", pgmname);
 	exit(-1);
 }
 
@@ -65,7 +68,7 @@ optGetFloatError(char *optarg, float *val, float min)
 
 static int
 getOptions(int argc, char *argv[], int * filterSize, float *sigma, unsigned int *uth, unsigned int * lth, int *re,
-int *nangulos)
+int *nangulos, char ** outdir)
 {
 	int opt;
 	int error = 0;
@@ -73,7 +76,8 @@ int *nangulos)
 	*filterSize = -1; *sigma = -1;
 	*nangulos = -1;
 	*re = 0;
-	while ((opt = getopt(argc, argv, "l:s:U:L:a:e")) != -1) {
+	*outdir = NULL;
+	while ((opt = getopt(argc, argv, "l:s:U:L:a:ed:")) != -1) {
 		switch (opt) {
 		case 'l':
 			error += optGetIntError(optarg, filterSize, 0);
@@ -92,6 +96,9 @@ int *nangulos)
 			break;
 		case 'e':
 			*re = 1;
+			break;
+		case 'd':
+			*outdir = optarg;
 			break;
 		default: /* '?' */
 			usage(argv[0]);
@@ -123,6 +130,11 @@ int *nangulos)
 	{
 		fprintf(stderr, "Necesario especificar el numero de angulos\n");
 		usage(pgmName(argv[0]));
+	}
+	if(*outdir == NULL)
+	{
+		*outdir = malloc(strlen(".")+1);
+		strcpy(*outdir, ".");
 	}
 
 }
@@ -261,20 +273,17 @@ void aplicarFiltro_Uint8_ConPrecision(uint8_t * src, uint8_t * dst, unsigned int
 	//Pasada por filas (aplicación del filtro horizontal)
 	unsigned int offsetInicial = foffset * width + foffset;
 
+	double * posicionInicial = bufferDeTrabajo + offsetInicial;
 	double * dptr;
-
-	dptr = bufferDeTrabajo + offsetInicial;
-
-	double * maxf = dptr + width * filas;
-	
-
+	double * maxf = posicionInicial + width * filas;
 	float * centroFiltro = hfiltro + foffset;
 
 #ifdef DEBUG
 	fprintf(stderr, "Aplicando filtro horizontal...\n");
 	double valorMaximo = -9999, valorMinimo = 9999;
 #endif
-	for(dptr = bufferDeTrabajo + offsetInicial; dptr < maxf; dptr+=ioffset)
+
+	for(dptr = posicionInicial; dptr < maxf; dptr+=ioffset)
 	{
 		double * maxc;
 		for(maxc = dptr + columnas; dptr < maxc; dptr +=1)
@@ -301,9 +310,9 @@ void aplicarFiltro_Uint8_ConPrecision(uint8_t * src, uint8_t * dst, unsigned int
 
 	centroFiltro = vfiltro + foffset;
 
-	double * maxc;
+	double * maxc = posicionInicial + columnas;
 	double * dptrc;
-	for(dptr = bufferDeTrabajo + offsetInicial, maxc = dptr + columnas, dptrc = dptr; dptr < maxc; dptr = dptrc+1, dptrc = dptr)
+	for(dptr = posicionInicial, dptrc = posicionInicial; dptr < maxc; dptr = dptrc+1, dptrc = dptr)
 	{
 		for(maxf = dptr + filas * width; dptr < maxf; dptr += width)
 		{
@@ -797,17 +806,38 @@ int main(int argc, char ** argv)
 	unsigned int tamFiltro;
 	float * filtro;
 	float sigma;
-
+	char * outdir;
+	struct stat dirInfo;
 
 	unsigned int lth, uth;
-	getOptions(argc, argv, &tamFiltro, &sigma, &uth, &lth, &re, &nangulos);
+	getOptions(argc, argv, &tamFiltro, &sigma, &uth, &lth, &re, &nangulos, &outdir);
 
+	if(stat(outdir, &dirInfo) == -1)
+	{
+		fprintf(stderr, "Error al obtener los metadatos del fichero \"%s\"\n", outdir);
+		exit(1);
+	}
+
+	if(!S_ISDIR(dirInfo.st_mode))
+	{
+		fprintf(stderr, "%s no es un directorio\n", outdir);
+		exit(2);
+	}
+
+	char filePath[256];
+	strcpy(filePath,outdir);
+	strcat(filePath,"/");
+
+	int pathLength = strlen(filePath);
+	
+	char * outputFileName = filePath + pathLength;
 	//Canny set up
 	filtro = (float*) malloc(tamFiltro * sizeof(float));
 
 	getGaussianFilter(filtro, tamFiltro, sigma);
 
 #ifdef DEBUG
+	fprintf(stderr, "Path: %s , pathLength: %d\n", filePath, pathLength);
 	fprintf(stderr, "Sigma: %f , Size: %d\n", sigma, tamFiltro);
 	showFilter(stderr, filtro, tamFiltro);
 #endif
@@ -837,7 +867,6 @@ int main(int argc, char ** argv)
 	Gy[1][0] =  0; Gy[1][1] =  0; Gy[1][2] =  0;
 	Gy[2][0] =  1; Gy[2][1] =  2; Gy[2][2] =  1;
 
-	unsigned int gSize = 3;
 
 	//Hough set up
 	float * cosTable, * sinTable;
@@ -895,9 +924,12 @@ int main(int argc, char ** argv)
 		rgb2gs(rgb, gs, width, height);
 
 
-		int fppm = open("original-color.ppm", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
+		strcpy(outputFileName, "original-color.ppm");
+		int fppm = open(filePath, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
 		if (fppm < 0) showError();
- 		int fpgm = open("original-gs.pgm", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
+
+		strcpy(outputFileName, "original-gs.pgm");
+ 		int fpgm = open(filePath, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
 		if (fpgm < 0) showError();
 
 		int res = write(fppm, ppm, ppmLength);
@@ -927,7 +959,6 @@ int main(int argc, char ** argv)
 #endif
 	
 #ifdef TIMMING
-
 		gettimeofday(&t0, NULL);
 #endif
 		//Obtenemos el cambio de intensidad del gradiente en X
@@ -1015,21 +1046,37 @@ int main(int argc, char ** argv)
 		fprintf(stderr, "alto: %d , bajo: %d\n", uth, lth);
 #endif
 
-		int ffiltrado = open("01-filtrada.pgm", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
+		strcpy(outputFileName, "01-filtrada.pgm");
+		int ffiltrado = open(filePath, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
 		if (ffiltrado < 0) showError();
- 		int fxgradiente = open("02-xgradiente.pgm", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
+
+
+		strcpy(outputFileName, "02-xgradiente.pgm");
+ 		int fxgradiente = open(filePath, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
 		if (fxgradiente < 0) showError();
-		int fygradiente = open("03-ygradiente.pgm", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
+
+		strcpy(outputFileName, "03-ygradiente.pgm");
+		int fygradiente = open(filePath, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
 		if (fygradiente < 0) showError();
-		int fmgradiente = open("04-mgradiente.pgm", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
+
+		strcpy(outputFileName, "04-mgradiente.pgm");
+		int fmgradiente = open(filePath, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
 		if (fmgradiente < 0) showError();
-		int fdgradiente = open("05-dgradiente.pgm", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
+
+		strcpy(outputFileName, "05-dgradiente.pgm");
+		int fdgradiente = open(filePath, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
 		if (fdgradiente < 0) showError();
-		int fdgradiente_discreta = open("06-dgradiente-discreta.pgm", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
+
+		strcpy(outputFileName, "06-dgradiente-discreta.pgm");
+		int fdgradiente_discreta = open(filePath, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
 		if (fdgradiente_discreta < 0) showError();
-		int fmgthin = open("07-mgradiente-nonmaximum.pgm", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
+
+		strcpy(outputFileName, "07-mgradiente-nonmaximum.pgm");
+		int fmgthin = open(filePath, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
 		if (fmgthin < 0) showError();
-		int fbordes = open("08-bordes.pgm", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
+
+		strcpy(outputFileName, "08-bordes.pgm");
+		int fbordes = open(filePath, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
 		if (fbordes < 0) showError();
 
 
@@ -1132,7 +1179,9 @@ int main(int argc, char ** argv)
 #endif
 
 		pgmhl = sprintf((char*)pgm, "P5\n%d %d\n255\n", nangulos, ndistancias);
-		int fhoughSp = open("09-houghSp.pgm", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
+
+		strcpy(outputFileName, "09-houghSp.pgm");
+		int fhoughSp = open(filePath, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
 		if (fhoughSp < 0) showError();
 
 
@@ -1142,7 +1191,8 @@ int main(int argc, char ** argv)
 		
 		escalar_Int_Uint8(acc, houghSpAccEscalado, houghSpLength);
 
-		int fhoughSpAcc = open("10-houghSpAcc.pgm", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
+		strcpy(outputFileName, "10-houghSpAcc.pgm");
+		int fhoughSpAcc = open(filePath, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
 		if (fhoughSpAcc < 0) showError();
 
 		invertirValores(houghSpAccEscalado, houghSpLength);
