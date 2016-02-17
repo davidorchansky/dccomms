@@ -1,24 +1,30 @@
 
-CONSTANTS=UNA
+ARGS=
 
 exec=canny hough join arm-join-v1
 
-CFLAGS=-D$(CONSTANTS)
+CFLAGS=$(ARGS)
 
 CC=gcc
+all: $(exec) install
 
-all: $(exec)
+install:
+	mkdir -p bin
+	mv *.o bin
+	mv $(exec) bin	
+
+	
 canny: Canny.o
-	gcc $< -D$(CONSTANTS) -lm -o $@
+	gcc $< $(ARGS) -lm -o $@
 
 hough: Hough.o
-	gcc $< -D$(CONSTANTS) -lm -o $@
+	gcc $< $(ARGS) -lm -o $@
 
 join: join.o
-	gcc $< -D$(CONSTANTS) -lm -o $@
+	gcc $< $(ARGS) -lm -o $@
 
 arm-join-v1: arm-join-v1.o
-	gcc $< -D$(CONSTANTS) -lm -o $@
+	gcc $< $(ARGS) -lm -o $@
 
 
 
