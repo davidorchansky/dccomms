@@ -6,13 +6,7 @@ then
 	exit 1
 fi
 
-echo $1
-
-#output=$(./test.sh 2>&1 | cat)
-
-
 contador=0
-
 expdir=experimentacion/
 inputImgExt=.ppm
 tester=../arm-join-v1
@@ -22,6 +16,16 @@ angles=(100 400 700 1000)
 lowThresholds=(25 35 40 50 60)
 ratios=(3)
 sigmas=(1)
+iterations=3
+
+function getTiempoPaso
+{
+	reg="$1-[^0-9]*([1-9][0-9]*)"
+	if [[ $2 =~ $reg ]]; then
+		echo ${BASH_REMATCH[1]}
+	fi
+}
+
 
 rm -rf $expdir
 for i in $1/*
@@ -49,7 +53,7 @@ do
 
 			for angles in ${angles[*]}; do
 
-				anglesDir=$filterSizeDir/angles$angles
+				anglesDir=$filterSizeDir/degrees$angles
 				#mkdir -p $anglesDir
 
 				for ratio in ${ratios[*]}; do
@@ -64,9 +68,83 @@ do
 							sigmaDir=$ltholdDir/sigma$sigma
 							mkdir -p $sigmaDir
 						
-							rawOutputFile=$sigmaDir/rawOutput.txt
 							uthold=$(echo "$lthold * $ratio" | bc)
-							$tester -a $angles -U $uthold -L $lthold -s $sigma -l $filterSize -d $sigmaDir < $inputImg 2> $rawOutputFile
+
+
+							it=0
+							t01=0; t02=0; t03=0;
+							t04=0; t05=0; t06=0;
+							t07=0; t08=0; t09=0;
+
+							plotDataFile=$sigmaDir/plotDataFile.txt
+							tiempoTotalFile=$sigmaDir/tiempoTotal.txt
+							histogramFile=$sigmaDir/tiempos.pdf
+							while [ $it -lt $iterations ]; do
+
+								rawOutputFile=$sigmaDir/rawOutput_$it.txt
+								$tester -a $angles -U $uthold -L $lthold -s $sigma -l $filterSize -d $sigmaDir < $inputImg 2> $rawOutputFile
+								rawOutput=$(cat $rawOutputFile)
+
+								t01tmp=$(getTiempoPaso 01 "$rawOutput")
+								t02tmp=$(getTiempoPaso 02 "$rawOutput")
+								t03tmp=$(getTiempoPaso 03 "$rawOutput")
+								t04tmp=$(getTiempoPaso 04 "$rawOutput")
+								t05tmp=$(getTiempoPaso 05 "$rawOutput")
+								t06tmp=$(getTiempoPaso 06 "$rawOutput")
+								t07tmp=$(getTiempoPaso 07 "$rawOutput")
+								t08tmp=$(getTiempoPaso 08 "$rawOutput")
+								t09tmp=$(getTiempoPaso 09 "$rawOutput")
+
+								let t01=t01+t01tmp
+								let t02=t02+t02tmp
+								let t03=t03+t03tmp
+								let t04=t04+t04tmp
+								let t05=t05+t05tmp
+								let t06=t06+t06tmp
+								let t07=t07+t07tmp
+								let t08=t08+t08tmp
+								let t09=t09+t09tmp
+
+								let it=it+1
+							done
+
+							rm -f $plotDataFile
+
+							ut01=$(echo "$t01 / $iterations" | bc)
+							ut02=$(echo "$t02 / $iterations" | bc)
+							ut03=$(echo "$t03 / $iterations" | bc)
+							ut04=$(echo "$t04 / $iterations" | bc)
+							ut05=$(echo "$t05 / $iterations" | bc)
+							ut06=$(echo "$t06 / $iterations" | bc)
+							ut07=$(echo "$t07 / $iterations" | bc)
+							ut08=$(echo "$t08 / $iterations" | bc)
+							ut09=$(echo "$t09 / $iterations" | bc)
+
+							e01=0; e02=0; e03=0; e04=0; e05=0; e06=0; e07=0; e08=0; e09=0
+
+							echo -e "Filtrado \t $ut01 \t $e01 \t 0" >> $plotDataFile
+							echo -e "GradienteX \t $ut02 \t $e02 \t 1" >> $plotDataFile
+							echo -e "GradienteY \t $ut03 \t $e03 \t 2" >> $plotDataFile
+							echo -e "ModuloGrad \t $ut04 \t $e04 \t 3" >> $plotDataFile
+							echo -e "DirGrad \t $ut05 \t $e05 \t 4" >> $plotDataFile
+							echo -e "DirGradDis \t $ut06 \t $e06 \t 5" >> $plotDataFile
+							echo -e "SupNoMax \t $ut07 \t $e07 \t 6" >> $plotDataFile
+							echo -e "Umbralizacion \t $ut08 \t $e08 \t 7" >> $plotDataFile
+							echo -e "HoughSpace \t $ut09 \t $e09 \t 8" >> $plotDataFile
+
+
+							#echo "inputfile=\"$plotDataFile\"; imagen=\"$imgnameNoext\"; sigma=$sigma; tfiltro=$filterSize; ut=$uthold; lt=$lthold; angles=$angles; outputfile=\"comparativa.pdf\""
+							
+
+							gnuplot -e "inputfile=\"$plotDataFile\"; imagen=\"$(basename $imgnameNoext)-$per\\%\"; sigma=$sigma; tfiltro=$filterSize; ut=$uthold; lt=$lthold; angles=$angles; outputfile=\"$histogramFile\"" plotData
+							
+							ttotal=0
+
+
+							let ttotal=ut01+ut02+ut03+ut04+ut05+ut06+ut07+ut08+ut09
+							echo "TIEMPO TOTAL: $ttotal" >> $tiempoTotalFile
+							#exit 0
+
 						done
 
 					done
