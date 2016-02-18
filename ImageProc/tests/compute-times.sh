@@ -1,22 +1,22 @@
 #!/bin/bash
 
-if [ $# -lt 1 ]
+if [ $# -lt 2 ]
 then
 	echo "Numero de argumentos incorrecto"
 	exit 1
 fi
 
 contador=0
-expdir=experimentacion/
+expdir=$2
 inputImgExt=.ppm
-tester=../arm-join-v1
-imgSizes=(25 50 75 100)
-filterSizes=(3 7 11 15)
-angles=(100 400 700 1000)
+tester=../bin/arm-join-v1
+imgSizes=(25 50 100)
+filterSizes=(3 7 15)
+degrees=(360 1000)
 lowThresholds=(25 35 40 50 60)
 ratios=(3)
 sigmas=(1)
-iterations=3
+iterations=2
 
 function getTiempoPaso
 {
@@ -51,7 +51,7 @@ do
 			filterSizeDir=$sizeDir/filterSize$filterSize
 			#mkdir -p $filterSizeDir
 
-			for angles in ${angles[*]}; do
+			for angles in ${degrees[*]}; do
 
 				anglesDir=$filterSizeDir/degrees$angles
 				#mkdir -p $anglesDir
@@ -142,7 +142,7 @@ do
 
 
 							let ttotal=ut01+ut02+ut03+ut04+ut05+ut06+ut07+ut08+ut09
-							echo "TIEMPO TOTAL: $ttotal" >> $tiempoTotalFile
+							echo "TIEMPO TOTAL: $ttotal" > $tiempoTotalFile
 							#exit 0
 
 						done
