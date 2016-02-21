@@ -718,7 +718,7 @@ void aplicarFiltro_Uint8_Uint8_ConPrecision(uint8_t * src, uint8_t * dst, unsign
 	free(bufferDeTrabajo);
 
 }
-static aplicarFiltroGradiente_Double_Double(double * src, double * dst, unsigned int width, unsigned int height, double ** filtro)
+static void aplicarFiltroGradiente_Double_Double(double * src, double * dst, unsigned int width, unsigned int height, double ** filtro)
 {
 
 	unsigned int size = width * height;
@@ -770,7 +770,7 @@ static aplicarFiltroGradiente_Double_Double(double * src, double * dst, unsigned
 }
 
 
-static aplicarFiltroGradiente_Uint8_Double(uint8_t * src, double * dst, unsigned int width, unsigned int height, double ** filtro)
+static void aplicarFiltroGradiente_Uint8_Double(uint8_t * src, double * dst, unsigned int width, unsigned int height, double ** filtro)
 {
 
 	unsigned int size = width * height;
@@ -821,7 +821,7 @@ static aplicarFiltroGradiente_Uint8_Double(uint8_t * src, double * dst, unsigned
 
 }
 
-static aplicarFiltroNoSeparable_Double_Double_staticSize(double * src, double * dst, unsigned int width, unsigned int height, double ** filtro)
+static void aplicarFiltroNoSeparable_Double_Double_staticSize(double * src, double * dst, unsigned int width, unsigned int height, double ** filtro)
 {
 
 	unsigned int size = width * height;
@@ -983,7 +983,7 @@ static aplicarFiltroNoSeparable_Double_Double_staticSize(double * src, double * 
 
 }
 
-static aplicarFiltroNoSeparable_Uint8_Double_staticSize(uint8_t * src, double * dst, unsigned int width, unsigned int height, double ** filtro)
+static void aplicarFiltroNoSeparable_Uint8_Double_staticSize(uint8_t * src, double * dst, unsigned int width, unsigned int height, double ** filtro)
 {
 
 	unsigned int size = width * height;
@@ -1145,7 +1145,7 @@ static aplicarFiltroNoSeparable_Uint8_Double_staticSize(uint8_t * src, double * 
 
 }
 
-static aplicarFiltroNoSeparable_Uint8_Double(uint8_t * src, double * dst, unsigned int width, unsigned int height, double ** filtro, unsigned int tfiltro)
+static void aplicarFiltroNoSeparable_Uint8_Double(uint8_t * src, double * dst, unsigned int width, unsigned int height, double ** filtro, unsigned int tfiltro)
 {
 
 	unsigned int size = width * height;
@@ -1189,7 +1189,7 @@ static aplicarFiltroNoSeparable_Uint8_Double(uint8_t * src, double * dst, unsign
 
 }
 
-static aplicarFiltroNoSeparable_Double_Double(double * src, double * dst, unsigned int width, unsigned int height, double ** filtro, unsigned int tfiltro)
+static void aplicarFiltroNoSeparable_Double_Double(double * src, double * dst, unsigned int width, unsigned int height, double ** filtro, unsigned int tfiltro)
 {
 
 	unsigned int size = width * height;

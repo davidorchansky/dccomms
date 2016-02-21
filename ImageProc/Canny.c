@@ -334,7 +334,7 @@ void aplicarFiltro_Uint8_ConPrecision(uint8_t * src, uint8_t * dst, unsigned int
 
 }
 
-static aplicarFiltroNoSeparable(uint8_t * src, double * dst, unsigned int width, unsigned int height, double ** filtro, unsigned int tfiltro)
+static void aplicarFiltroNoSeparable(uint8_t * src, double * dst, unsigned int width, unsigned int height, double ** filtro, unsigned int tfiltro)
 {
 
 	unsigned int size = width * height;
