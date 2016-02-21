@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ $# -lt 2 ]
+if [ $# -lt 3 ]
 then
 	echo "Numero de argumentos incorrecto"
 	exit 1
@@ -9,10 +9,10 @@ fi
 contador=0
 expdir=$2
 inputImgExt=.ppm
-tester=../bin/arm-join-v1
+tester=$3
 imgSizes=(25 50 100)
-filterSizes=(3 7 15)
-degrees=(360 1000)
+filterSizes=(5)
+degrees=(360)
 lowThresholds=(25 35 40 50 60)
 ratios=(3)
 sigmas=(1)

@@ -1,7 +1,7 @@
 
 ARGS=
 
-exec=canny hough join arm-join-v1
+exec=canny hough join arm-join-v1 arm-join-v2
 
 CFLAGS=$(ARGS)
 
@@ -26,6 +26,10 @@ join: join.o
 arm-join-v1: arm-join-v1.o
 	gcc $< $(ARGS) -lm -o $@
 
+arm-join-v2: arm-join-v2.o
+	gcc $< $(ARGS) -lm -o $@
+
+
 
 
 clean:
@@ -35,3 +39,4 @@ Canny.o: Canny.c
 Hough.o: Hough.c
 join.o: join.c
 arm-join-v1.o: arm-join-v1.c
+arm-join-v2.o: arm-join-v2.c
