@@ -146,11 +146,16 @@ do
 							echo -e "Umbralizacion \t $ut08 \t $e08 \t 7" >> $plotDataFile
 							echo -e "HoughSpace \t $ut09 \t $e09 \t 8" >> $plotDataFile
 
+							let ttotal=ut01+ut02+ut03+ut04+ut05+ut06+ut07+ut08+ut09
+							a=($ut01 $ut02 $ut03 $ut04 $ut05 $ut06 $ut07 $ut08 $ut09)
 
+							maxv=0
+							for v in ${a[@]}; do
+							if (( $v > $maxv )); then maxv=$v; fi; 
+							done
+
+							gnuplot -e "maxv=$maxv; ttotal=$ttotal; inputfile=\"$plotDataFile\"; imagen=\"$(basename $i)-$per\\%\"; sigma=$sigma; tfiltro=$filterSize; ut=$uthold; lt=$lthold; angles=$angles; outputfile=\"$histogramFile\"" plotData
 							
-							
- 							gnuplot -e "inputfile=\"$plotDataFile\"; imagen=\"$(basename $i)-$per\\%\"; sigma=$sigma; tfiltro=$filterSize; ut=$uthold; lt=$lthold; angles=$angles; outputfile=\"$histogramFile\"" plotData
-				
 						done
 
 					done

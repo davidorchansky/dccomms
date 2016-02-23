@@ -181,15 +181,18 @@ do
 
 							#echo "inputfile=\"$plotDataFile\"; imagen=\"$imgnameNoext\"; sigma=$sigma; tfiltro=$filterSize; ut=$uthold; lt=$lthold; angles=$angles; outputfile=\"comparativa.pdf\""
 							
-
-							gnuplot -e "inputfile=\"$plotDataFile\"; imagen=\"$(basename $imgnameNoext)-$per\\%\"; sigma=$sigma; tfiltro=$filterSize; ut=$uthold; lt=$lthold; angles=$angles; outputfile=\"$histogramFile\"" plotData
-							
-							ttotal=0
-
-
 							let ttotal=ut01+ut02+ut03+ut04+ut05+ut06+ut07+ut08+ut09
 							echo "TIEMPO TOTAL: $ttotal" > $tiempoTotalFile
-							#exit 0
+							
+							a=($ut01 $ut02 $ut03 $ut04 $ut05 $ut06 $ut07 $ut08 $ut09)
+
+							maxv=0
+							for v in ${a[@]}; do
+							if (( $v > $maxv )); then maxv=$v; fi; 
+							done
+
+							gnuplot -e "maxv=$maxv; ttotal=$ttotal; inputfile=\"$plotDataFile\"; imagen=\"$(basename $imgnameNoext)-$per\\%\"; sigma=$sigma; tfiltro=$filterSize; ut=$uthold; lt=$lthold; angles=$angles; outputfile=\"$histogramFile\"" plotData
+							
 
 						done
 
