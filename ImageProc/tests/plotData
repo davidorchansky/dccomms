@@ -3,12 +3,9 @@ set output outputfile
 
 unset key
 set style data histogram
-#set style histogram clustered gap 1
 set style histogram errorbars gap 1 lw 2
-#set style fill solid border rgb "black"
-set style fill solid 0.5
+#set style fill solid 0.5 border 1
 set auto x
-#set yrange [0:1000000]
 set auto y
 set ylabel "Time (us)"
 set xlabel "Stage"
@@ -19,8 +16,12 @@ set title (sprintf("Img: %s, Sigma: %.2f, T.Filtro: %d, U.Th: %d, L.Th: %d, Degr
 escalar(y) = y / 1000
 
 #En lo siguiente, hay un FOR, pero no es necesario... ya que solo hay una barra por cluster (solo una iteracion)
-plot for [COL=2:2:1] inputfile using COL:COL+1:xticlabels(1) lc rgb "#00ff00", \
+#plot for [COL=2:2:1] inputfile using COL:COL+1:xticlabels(1) lc rgb "#0000ff", \
+#'' using ($4):($2+$2*0.1):(sprintf("%.1f ms",$2/1000)) with labels
+
+plot inputfile using 2:3:xticlabels(1) lc rgb "#0000ff", \
 '' using ($4):($2+$2*0.1):(sprintf("%.1f ms",$2/1000)) with labels
+#'' using 4:2:3 with yerrorbars ls 1, \
 
 
 #plot for [COL=2:2:1] inputfile using COL:COL+1:xticlabels(1), \

@@ -10,13 +10,13 @@ contador=0
 expdir=$2
 inputImgExt=.ppm
 tester=$3
-imgSizes=(25 50 100)
+imgSizes=(100)
 filterSizes=(5)
 degrees=(360)
-lowThresholds=(25 35 40 50 60)
+lowThresholds=(35)
 ratios=(3)
 sigmas=(1)
-iterations=2
+iterations=4
 
 function getTiempoPaso
 {
@@ -121,6 +121,52 @@ do
 							ut09=$(echo "$t09 / $iterations" | bc)
 
 							e01=0; e02=0; e03=0; e04=0; e05=0; e06=0; e07=0; e08=0; e09=0
+
+							#calculamos la desviacion tipica
+
+							dt01=0
+							dt02=0
+							dt03=0
+							dt04=0
+							dt05=0
+							dt06=0
+							dt07=0
+							dt08=0
+							dt09=0
+							for rawOutputFile in $sigmaDir/rawOutput_*.txt; do
+
+								rawOutput=$(cat $rawOutputFile)
+
+								t01tmp=$(getTiempoPaso 01 "$rawOutput")
+								t02tmp=$(getTiempoPaso 02 "$rawOutput")
+								t03tmp=$(getTiempoPaso 03 "$rawOutput")
+								t04tmp=$(getTiempoPaso 04 "$rawOutput")
+								t05tmp=$(getTiempoPaso 05 "$rawOutput")
+								t06tmp=$(getTiempoPaso 06 "$rawOutput")
+								t07tmp=$(getTiempoPaso 07 "$rawOutput")
+								t08tmp=$(getTiempoPaso 08 "$rawOutput")
+								t09tmp=$(getTiempoPaso 09 "$rawOutput")
+
+								dt01=$(echo "$dt01 + ($t01tmp-$ut01)^2" | bc -l)
+								dt02=$(echo "$dt02 + ($t02tmp-$ut02)^2" | bc -l)
+								dt03=$(echo "$dt03 + ($t03tmp-$ut03)^2" | bc -l)
+								dt04=$(echo "$dt04 + ($t04tmp-$ut04)^2" | bc -l)
+								dt05=$(echo "$dt05 + ($t05tmp-$ut05)^2" | bc -l)
+								dt06=$(echo "$dt06 + ($t06tmp-$ut06)^2" | bc -l)
+								dt07=$(echo "$dt07 + ($t07tmp-$ut07)^2" | bc -l)
+								dt08=$(echo "$dt08 + ($t08tmp-$ut08)^2" | bc -l)
+								dt09=$(echo "$dt09 + ($t09tmp-$ut09)^2" | bc -l)
+							done
+
+							e01=$(echo "sqrt($dt01 / $iterations)" | bc -l)
+							e02=$(echo "sqrt($dt02 / $iterations)" | bc -l)
+							e03=$(echo "sqrt($dt03 / $iterations)" | bc -l)
+							e04=$(echo "sqrt($dt04 / $iterations)" | bc -l)
+							e05=$(echo "sqrt($dt05 / $iterations)" | bc -l)
+							e06=$(echo "sqrt($dt06 / $iterations)" | bc -l)
+							e07=$(echo "sqrt($dt07 / $iterations)" | bc -l)
+							e08=$(echo "sqrt($dt08 / $iterations)" | bc -l)
+							e09=$(echo "sqrt($dt09 / $iterations)" | bc -l)
 
 							echo -e "Filtrado \t $ut01 \t $e01 \t 0" >> $plotDataFile
 							echo -e "GradienteX \t $ut02 \t $e02 \t 1" >> $plotDataFile
