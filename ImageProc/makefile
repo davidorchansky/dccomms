@@ -38,6 +38,7 @@ pruebas: pruebas.o
 
 clean:
 	rm -f *.o $(exec)
+	rm -f ./bin/*
 
 Canny.o: Canny.c
 Hough.o: Hough.c
