@@ -3,8 +3,8 @@ ARGS=
 
 exec=canny hough join arm-join-v1 arm-join-v2 arm-join-v2-opt pruebas
 
-CFLAGS=$(ARGS)
-
+THREADS=2
+CFLAGS=$(ARGS) -DTHREADS=$(THREADS) -fopenmp -O3
 CC=gcc
 all: $(exec) install
 
@@ -32,7 +32,7 @@ arm-join-v2: arm-join-v2.o
 arm-join-v2-opt: arm-join-v2-opt.o
 	gcc $< $(ARGS) -O3 -lm -o $@
 pruebas: pruebas.o
-	gcc $< $(ARGS) -lm -o $@
+	gcc $< $(ARGS) $(CFLAGS) -lm -o $@
 
 
 
