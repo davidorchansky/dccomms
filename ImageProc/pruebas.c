@@ -261,7 +261,7 @@ void showFilterM(FILE * s, double ** filter, int height, int width)
 }
 double gaussianZeroMean(double x, double sigma)
 {
-	double res = pow(M_E, -1./2*pow(x/sigma,2));
+	double res = pow(M_E, (-1./2)*pow(x/sigma,2));
 
 	return res;
 }
@@ -328,6 +328,7 @@ void _aplicarFiltro(double * dst, unsigned int width, unsigned int height, unsig
 	int foffset = tamFiltro >> 1;
 	int ioffset = foffset << 1;
 
+	memcpy(bufferDeTrabajo, dst, size*sizeof(double));
 
 	//Numero de filas y columnas de la zona central (descartamos bordes de la imagen del grosor del filtro)
 	int filas    = height - ioffset;
@@ -396,6 +397,7 @@ void _aplicarFiltro_size3(double * dst, unsigned int width, unsigned int height,
 	double * origBuf = dst;
 	double * destBuf = bufferDeTrabajo;
 
+	memcpy(bufferDeTrabajo, dst, size*sizeof(double));
 	int foffset = 1;
 	double * centroFiltro = hfiltro + foffset;
 	double * fp0 = centroFiltro-1,
@@ -432,6 +434,11 @@ void _aplicarFiltro_size3(double * dst, unsigned int width, unsigned int height,
 
 	centroFiltro = vfiltro + foffset;
 
+	fp0 = centroFiltro-1,
+	fp1 = centroFiltro,
+	fp2 = centroFiltro+1;
+
+
 	origBuf = bufferDeTrabajo;
 	destBuf = dst;
 
@@ -463,6 +470,7 @@ void _aplicarFiltro_staticSize(double * dst, unsigned int width, unsigned int he
 	double * origBuf = dst;
 	double * destBuf = bufferDeTrabajo;
 
+	memcpy(bufferDeTrabajo, dst, size*sizeof(double));
 #ifdef FS_3
 	int foffset = 1;
 	double * centroFiltro = hfiltro + foffset;
@@ -538,6 +546,27 @@ void _aplicarFiltro_staticSize(double * dst, unsigned int width, unsigned int he
 	}
 
 	centroFiltro = vfiltro + foffset;
+
+#ifdef FS_3
+	fp0 = centroFiltro-1,
+	fp1 = centroFiltro,
+	fp2 = centroFiltro+1;
+
+#elif FS_5
+	fp0 = centroFiltro-2,
+	fp1 = centroFiltro-1,
+	fp2 = centroFiltro,
+	fp3 = centroFiltro+1,
+	fp4 = centroFiltro+2;
+#else //7
+	fp0 = centroFiltro-3,
+	fp1 = centroFiltro-2,
+	fp2 = centroFiltro-1,
+	fp3 = centroFiltro,
+	fp4 = centroFiltro+1,
+	fp5 = centroFiltro+2,
+	fp6 = centroFiltro+3;
+#endif
 
 	origBuf = bufferDeTrabajo;
 	destBuf = dst;
@@ -1103,9 +1132,8 @@ static void computeGradientX_Double_Double(double * src, double * dst, unsigned 
 
 	unsigned int size = height * width;
 	memcpy(dst, src, sizeof(double)*size);
-	_aplicarFiltro(dst, width, height, size, sfxa, sfxb, 3);
 
-	//_aplicarFiltro_staticSize(dst, width, height, size, sfxa, sfxb);
+	_aplicarFiltro_size3(dst, width, height, size, sfxa, sfxb);
 }
 
 static void computeGradientY_Double_Double(double * src, double * dst, unsigned int width, unsigned int height)
@@ -1115,9 +1143,8 @@ static void computeGradientY_Double_Double(double * src, double * dst, unsigned 
 
 	unsigned int size = height * width;
 	memcpy(dst, src, sizeof(double)*size);
-	_aplicarFiltro(dst, width, height, size, sfya, sfyb, 3);
 
-	//_aplicarFiltro_size3(dst, width, height, size, sfya, sfyb);
+	_aplicarFiltro_size3(dst, width, height, size, sfya, sfyb);
 }
 
 static void computeGradientX_noSeparable_Double_Double(double * src, double * dst, unsigned int width, unsigned int height)
@@ -1146,8 +1173,7 @@ static void computeGradientX_noSeparable_Double_Double(double * src, double * ds
 	Gx[1][0] = -2; Gx[1][1] = 0; Gx[1][2] = 2;
 	Gx[2][0] = -1; Gx[2][1] = 0; Gx[2][2] = 1;
 
-	fprintf(stderr, "JARLX\n");
-	aplicarFiltro_noSeparable_Double_Double(src, dst, width, height, Gx, 3);
+	aplicarFiltro_noSeparable_Double_Double_size3(src, dst, width, height, Gx);
 
 }
 
@@ -1176,10 +1202,8 @@ static void computeGradientY_noSeparable_Double_Double(double * src, double * ds
 	Gy[0][0] = -1; Gy[0][1] = -2; Gy[0][2] = -1;
 	Gy[1][0] =  0; Gy[1][1] =  0; Gy[1][2] =  0;
 	Gy[2][0] =  1; Gy[2][1] =  2; Gy[2][2] =  1;
-
-	fprintf(stderr, "JARLY\n");
-	aplicarFiltro_noSeparable_Double_Double(src, dst, width, height, Gy, 3);
-
+	
+	aplicarFiltro_noSeparable_Double_Double_size3(src, dst, width, height, Gy);
 }
 
 
@@ -1459,7 +1483,7 @@ static void escalar_Double_Uint8(double * ygradiente, uint8_t * ygescalado, unsi
 
 	for(sptr = ygradiente, dptr = ygescalado; sptr < maxsptr; sptr++, dptr++)
 	{
-		*dptr = *sptr * M + B;	
+		*dptr = round(*sptr * M + B);	
 	}
 
 }
@@ -1789,10 +1813,10 @@ int main(int argc, char ** argv)
 		gettimeofday(&t0, NULL);
 #endif
 		//Obtenemos el cambio de intensidad del gradiente en X
-		#ifdef GRAD_NOSEPARABLE
-		computeGradientX_noSeparable_Double_Double(gsFiltrado, xgradiente, width, height);
-		#else
+		#ifdef GRAD_SEPARABLE
 		computeGradientX_Double_Double(gsFiltrado, xgradiente, width, height);
+		#else
+		computeGradientX_noSeparable_Double_Double(gsFiltrado, xgradiente, width, height);
 		#endif
 
 #ifdef TIMMING
@@ -1805,10 +1829,10 @@ int main(int argc, char ** argv)
 #endif
 
 		//Obtenemos el cambio de intensidad del gradiente en Y
-		#ifdef GRAD_NOSEPARABLE
-		computeGradientY_noSeparable_Double_Double(gsFiltrado, ygradiente, width, height);
-		#else
+		#ifdef GRAD_SEPARABLE
 		computeGradientY_Double_Double(gsFiltrado, ygradiente, width, height);
+		#else
+		computeGradientY_noSeparable_Double_Double(gsFiltrado, ygradiente, width, height);
 		#endif
 
 
