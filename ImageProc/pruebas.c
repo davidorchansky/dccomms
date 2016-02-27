@@ -368,23 +368,68 @@ static uint8_t ** getMatrixFromArray_Uint8(uint8_t* vec, unsigned int width, uns
 static void obtenerModuloGradiente(float * xg, float * yg, float * mg, unsigned int width, unsigned int height)
 {
 	unsigned int length = width * height;
+	
 	float * xptr, *yptr, *mptr, *maxxptr;
+	
 
 	for(xptr = xg, yptr = yg, mptr = mg, maxxptr = xptr + length; xptr < maxxptr; mptr++, xptr++, yptr++)
 	{
 		*mptr = sqrt(*xptr**xptr +  *yptr**yptr);
 	}
+	
+/*
+
+//Da un error de violacion de segmento al paralelizar
+	yptr = yg;
+	mptr = mg;
+	maxxptr = xg + length;
+
+	omp_set_num_threads(THREADS);
+	#pragma omp parallel for schedule(runtime) private(mptr, yptr)
+	for(xptr = xg;  xptr < maxxptr; xptr++)
+	{
+		*mptr = sqrt(*xptr**xptr +  *yptr**yptr);
+		mptr++;
+		yptr++;
+	}
+*/
+/*
+	int i;
+	omp_set_num_threads(THREADS);
+	#pragma omp parallel for schedule(runtime)
+	for(i = 0 ; i < length; i++)
+	{
+		float x = xg[i];
+		float y = yg[i];
+		mg[i]=sqrt(x*x+y*y);
+	}
+	*/
+	
 }
 
 static void obtenerDireccionGradiente(float * xg, float * yg, float * mg, unsigned int width, unsigned int height)
 {
 	unsigned int length = width * height;
+	
 	float * xptr, *yptr, *mptr, *maxxptr;
 
 	for(xptr = xg, yptr = yg, mptr = mg, maxxptr = xptr + length; xptr < maxxptr; mptr++, xptr++, yptr++)
 	{
 		*mptr = atan(*yptr / *xptr);
 	}
+	
+	/*
+	int i;
+	omp_set_num_threads(THREADS);
+	#pragma omp parallel for schedule(runtime)
+	for(i = 0 ; i < length; i++)
+	{
+		float x = xg[i];
+		float y = yg[i];
+		mg[i]=atan(y/x);
+	}
+	*/
+	
 }
 
 static void init(uint8_t * img, unsigned int width, unsigned int height, float sigma, unsigned int tamFiltro)
@@ -556,6 +601,8 @@ static void nonMaximum(float * mg, uint8_t * dg, float * mgthin, unsigned int wi
 	unsigned int foffset = 1;
 
 	int f, c;
+	omp_set_num_threads(THREADS);
+	#pragma omp parallel for schedule(runtime) private(c)
 	for(f=foffset; f < height-foffset; f++)
 	{
 		for(c=foffset; c < width-foffset; c++)
@@ -640,6 +687,8 @@ static void hysteresis(uint8_t * src, uint8_t * dst, uint8_t alto, uint8_t bajo,
 	int maxHeight = height-1;
 	int maxWidth = width-1;
 
+	omp_set_num_threads(THREADS);
+	#pragma omp parallel for schedule(runtime) private(c)
 	for(f = 1; f < maxHeight; f++)
 	{
 		for(c = 1; c < maxWidth; c++)
@@ -861,6 +910,8 @@ static void aplicarFiltro_noSeparable_size5(float ** gsFiltradoM)
 	unsigned int maxWidth = width-foffset;
 	int f;
 
+	omp_set_num_threads(THREADS);
+	#pragma omp parallel for schedule(runtime)
 	for(f=foffset; f < maxHeight; f++)
 	{
 		int c;
@@ -970,8 +1021,10 @@ static void aplicarFiltro_size5(float ** gsFiltradoM)
 	int maxHeight = height-foffset;
 	int maxWidth = width-foffset;
 
-//	omp_set_num_threads(THREADS);
-//	#pragma omp parallel for
+
+	omp_set_num_threads(THREADS);
+	#pragma omp parallel for schedule(runtime)
+//	#pragma omp parallel for schedule(static, 1000)
 	for(f=foffset; f < maxHeight; f++)
 	{
 		int c;
@@ -996,7 +1049,8 @@ static void aplicarFiltro_size5(float ** gsFiltradoM)
 	fp4 = centroFiltro+2;
 	//fin-cambia
 
-//	#pragma omp parallel for
+	#pragma omp parallel for schedule(runtime)
+//	#pragma omp parallel for schedule(static, 1000)
 	for(f=foffset; f < maxHeight; f++)
 	{
 		int c;
@@ -1084,6 +1138,8 @@ static void computeGradientX(float ** gradientxM)
 	unsigned int maxWidth = width-foffset;
 	int f;
 
+	omp_set_num_threads(THREADS);
+	#pragma omp parallel for schedule(runtime)
 	for(f=foffset; f < maxHeight; f++)
 	{
 		int c;
@@ -1123,7 +1179,9 @@ static void computeGradientY(float ** gradientyM)
 	unsigned int maxHeight = height-foffset;
 	unsigned int maxWidth = width-foffset;
 	int f;
-
+	
+	omp_set_num_threads(THREADS);
+	#pragma omp parallel for schedule(runtime)
 	for(f=foffset; f < maxHeight; f++)
 	{
 		int c;
