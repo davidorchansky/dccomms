@@ -601,24 +601,10 @@ static void obtenerDireccionGradienteDiscreta(float * xg, float * yg, uint8_t * 
 		float deg = atan(y/x);
 		dgd[i] = getDireccion(deg);
 #else
-/*
-                float x2 = x; // (int)round(x)+255;
-                float y2 = y; //(int)round(y)+255;
-                if(x2 < vmin ) vmin = x2;
-                if(y2 < vmin ) vmin = y2;
-                if(x2 > vmax) vmax = x2;
-                if(y2 > vmax) vmax = y2;
-*/
-		//fprintf(stderr, "y: %d ; x: %d\n", (int)round(y)+255,(int)round(x)+255);	
 
-		dgd[i] =  LOOKUP_DEG[(int)round(y)+255][(int)round(x)+255];
-
-		//uint8_t temp =  LOOKUP_DEG[(int)round(y)+255][(int)round(x)+255];
-		//dgd[i] = temp;
-		//fprintf(stderr, "HOLA2\n");	
+		dgd[i] =  LOOKUP_DEG[(int)round(y)+LOOKUPTABLE_DEG_VMAX][(int)round(x)+LOOKUPTABLE_DEG_VMAX];
 #endif
 	}
-//fprintf(stderr, "max: %f, min: %f\n", vmax, vmin);
 
 }
 
