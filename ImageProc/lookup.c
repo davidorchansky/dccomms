@@ -71,8 +71,9 @@ int main(int argc, char ** argv)
 			fprintf(stdout, "%d}\n", dis);
 		}
 	}
-	fprintf(stdout, "};\n\n");
 
+	fprintf(stdout, "};\n\n");
+/*
 	fprintf(stdout, "#define LOOKUPTABLE_GRADM_VMAX %d\n", vmax);
 	fprintf(stdout, "float LOOKUP_GRADM[%d][%d] =\n", size, size);
 	fprintf(stdout, "{\n");
@@ -98,5 +99,6 @@ int main(int argc, char ** argv)
 	}
 	fprintf(stdout, "};\n");
 
+*/
 	return 0;
 }

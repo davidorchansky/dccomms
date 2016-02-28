@@ -473,10 +473,10 @@ static void obtenerModuloGradiente(float * xg, float * yg, float * mg, unsigned 
 	{
 		float x = xg[i];
 		float y = yg[i];
-		//mg[i]=sqrt(x*x+y*y);
+		mg[i]=sqrt(x*x+y*y);
 		
 //		fprintf(stderr, "x: %d ; y: %d\n",(int)round(x), (int)round(y));
-		mg[i]=LOOKUP_GRADM[(int)round(x)+LOOKUPTABLE_GRADM_VMAX][(int)round(y)+LOOKUPTABLE_GRADM_VMAX];
+//		mg[i]=LOOKUP_GRADM[(int)round(x)+LOOKUPTABLE_GRADM_VMAX][(int)round(y)+LOOKUPTABLE_GRADM_VMAX];
 	}
 	
 	
