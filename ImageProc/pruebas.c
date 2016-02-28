@@ -437,14 +437,14 @@ static void obtenerModuloGradiente(float * xg, float * yg, float * mg, unsigned 
 {
 	unsigned int length = width * height;
 	
-	float * xptr, *yptr, *mptr, *maxxptr;
+/*	float * xptr, *yptr, *mptr, *maxxptr;
 	
 
 	for(xptr = xg, yptr = yg, mptr = mg, maxxptr = xptr + length; xptr < maxxptr; mptr++, xptr++, yptr++)
 	{
 		*mptr = sqrt(*xptr**xptr +  *yptr**yptr);
 	}
-	
+*/	
 /*
 
 //Da un error de violacion de segmento al paralelizar
@@ -461,17 +461,21 @@ static void obtenerModuloGradiente(float * xg, float * yg, float * mg, unsigned 
 		yptr++;
 	}
 */
-/*
+
 	int i;
 	omp_set_num_threads(THREADS);
-	#pragma omp parallel for schedule(runtime)
+#ifdef RASPI2
+	#pragma omp parallel for schedule(static, 311372) //La mitad del tamano de la imagen que le pasaremos en los tests...
+#else
+	#pragma omp parallel for schedule(static, 622744) //La mitad del tamano de la imagen que le pasaremos en los tests...
+#endif
 	for(i = 0 ; i < length; i++)
 	{
 		float x = xg[i];
 		float y = yg[i];
 		mg[i]=sqrt(x*x+y*y);
 	}
-	*/
+	
 	
 }
 
@@ -1587,6 +1591,9 @@ int main(int argc, char ** argv)
 		//Matriz de bordes
 		uint8_t ** bordesM = (uint8_t**) malloc(sizeof(uint8_t*)*pixelLength);
 		unsigned int rhoOffset = ndistancias >> 1;
+
+		omp_set_num_threads(THREADS);
+		#pragma omp parallel for schedule(runtime)
 		for(fila = 0; fila < height; fila++)
 		{
 			bordesM[fila] = bordes + fila * width;
