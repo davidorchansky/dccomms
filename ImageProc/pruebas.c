@@ -35,6 +35,14 @@ static unsigned int G_height;
 static unsigned int G_tamFiltro;
 static unsigned int G_size;
 
+
+#ifndef THREADS
+#ifdef RASPI2
+#define THREADS 4
+#else
+#define THREADS 2
+#endif
+#endif
 static void getM_B(float smax, float smin, float * m, float *b)
 {
 	*m = 255. / (smax - smin);
@@ -1213,6 +1221,12 @@ int main(int argc, char ** argv)
 	int re; //indica si escribir por la salida estandar el pgm con los bordes
 	unsigned int rgbLength, pixelLength;
 	uint8_t *ppm, *rgb, *pgm, *gs;
+
+	fprintf(stderr, "THREADS: %d\n", THREADS);
+
+#ifdef RASPI2
+	fprintf(stderr, "RASPI2\n");
+#endif
 	
 	float sigma;
 	char * outdir;

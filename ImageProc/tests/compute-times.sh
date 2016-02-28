@@ -13,14 +13,14 @@ tester=$3
 imgSizes=(100)
 filterSizes=(5)
 degrees=(360)
-lowThresholds=(45)
+lowThresholds=(40)
 ratios=(3)
 sigmas=(1)
-schedules=("static")
-#schedules=("static dynamic guided auto")
-chunk_sizes=(482)
+#schedules=("static")
+schedules=("static dynamic guided auto")
+chunk_sizes=(1 2 4 482)
 #chunk_sizes=(1 2 4 241 482 500 700 1000)
-iterations=20
+iterations=10
 
 function getTiempoPaso
 {
