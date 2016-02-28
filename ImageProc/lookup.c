@@ -43,7 +43,7 @@ int main(int argc, char ** argv)
 	int b;
 
 	int vmin = atoi(argv[1]), vmax = atoi(argv[2]);
-
+	
 	int size = vmax*2+1;
 
 	fprintf(stdout, "#define LOOKUPTABLE_DEG_VMAX %d\n", vmax);
@@ -71,6 +71,32 @@ int main(int argc, char ** argv)
 			fprintf(stdout, "%d}\n", dis);
 		}
 	}
+	fprintf(stdout, "};\n\n");
+
+	fprintf(stdout, "#define LOOKUPTABLE_GRADM_VMAX %d\n", vmax);
+	fprintf(stdout, "float LOOKUP_GRADM[%d][%d] =\n", size, size);
+	fprintf(stdout, "{\n");
+	for(a=vmin; a <= vmax; a++)
+	{
+		fprintf(stdout, "{");
+		for(b=vmin; b<vmax; b++)
+		{
+			float mod = sqrt(a*a+b*b);
+			fprintf(stdout, "%f, ",mod);
+		}
+
+		float mod = atan(a*a+vmax*vmax);
+
+		if(a <vmax)
+		{
+			fprintf(stdout, "%f},\n",mod);
+		}
+		else
+		{
+			fprintf(stdout, "%f}\n", mod);
+		}
+	}
 	fprintf(stdout, "};\n");
+
 	return 0;
 }
