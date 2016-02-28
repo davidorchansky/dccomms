@@ -818,12 +818,9 @@ void houghAcc(int x, int y, uint8_t ** houghSp, unsigned int ** acc, float * sin
 	int thetaIndex;
 
 	int x0=x,y0=y;
-	x -= width >> 1;
-	y -= height >> 1;
+	x -= width;
+	y -= height;
 
-#ifdef DEBUG
-	float maxrho0 = -99999, minrho0 =99999;
-#endif
 	for(thetaIndex = 0; thetaIndex < nangulos; thetaIndex++)
 	{
 		float rho0 = x * cosTable[thetaIndex] + y * sinTable[thetaIndex];
@@ -831,10 +828,6 @@ void houghAcc(int x, int y, uint8_t ** houghSp, unsigned int ** acc, float * sin
 		houghSp[rho][thetaIndex] = vtrue;
 
 		acc[rho][thetaIndex] += 1;
-#ifdef DEBUG
-		if(rho0 < minrho0) minrho0 = rho0;
-		if(rho0 > maxrho0) maxrho0 = rho0;
-#endif
 
 	}
 
@@ -1592,6 +1585,8 @@ int main(int argc, char ** argv)
 		uint8_t ** bordesM = (uint8_t**) malloc(sizeof(uint8_t*)*pixelLength);
 		unsigned int rhoOffset = ndistancias >> 1;
 
+		unsigned int width2 = width >> 1;
+		unsigned int height2 = height >> 1;	
 		omp_set_num_threads(THREADS);
 		#pragma omp parallel for schedule(runtime)
 		for(fila = 0; fila < height; fila++)
@@ -1602,7 +1597,7 @@ int main(int argc, char ** argv)
 			{
 				if(bordesM[fila][col] == 255) //255: pertenece a borde, 0: no pertenece a borde
 				{
-					houghAcc(col, fila, houghSpM, accM, sinTable, cosTable, width, height, nangulos, rhoOffset, vtrue);
+					houghAcc(col, fila, houghSpM, accM, sinTable, cosTable, width2, height2, nangulos, rhoOffset, vtrue);
 				}
 			}
 		}
