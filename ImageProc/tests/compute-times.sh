@@ -16,8 +16,10 @@ degrees=(360)
 lowThresholds=(45)
 ratios=(3)
 sigmas=(1)
-schedules=("static dynamic guided auto")
-chunk_sizes=(1 2 4 241 482 500 700 1000)
+schedules=("static")
+#schedules=("static dynamic guided auto")
+chunk_sizes=(482)
+#chunk_sizes=(1 2 4 241 482 500 700 1000)
 iterations=20
 
 function getTiempoPaso

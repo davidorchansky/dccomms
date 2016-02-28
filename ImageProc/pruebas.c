@@ -18,6 +18,7 @@
 #include <sys/time.h>
 #endif
 
+#include "lookupTable.h"
 
 #define RAD_2_DEG 57.29577951308232
 
@@ -33,6 +34,73 @@ static unsigned int G_width;
 static unsigned int G_height;
 static unsigned int G_tamFiltro;
 static unsigned int G_size;
+
+static void getM_B(float smax, float smin, float * m, float *b)
+{
+	*m = 255. / (smax - smin);
+	*b = - (smin * *m);
+}
+		
+static void escalar_Float_Uint8(float * ygradiente, uint8_t * ygescalado, unsigned int size)
+{
+	float * sptr,
+	* maxsptr = ygradiente + size;
+
+	uint8_t * dptr,
+	* maxdptr = ygescalado + size;
+
+	float vmax = ygradiente[0], vmin = ygradiente[0];
+
+	for(sptr = ygradiente; sptr < maxsptr; sptr++)
+	{
+		if(*sptr <= vmin) vmin = *sptr;
+		if(*sptr >= vmax) vmax = *sptr;
+	}
+
+	float M, B;
+
+	getM_B(vmax, vmin, &M, &B);
+#ifdef DEBUG
+	fprintf(stderr, "Maximo: %f , Minimo: %f\n", vmax, vmin);
+#endif
+
+	for(sptr = ygradiente, dptr = ygescalado; sptr < maxsptr; sptr++, dptr++)
+	{
+		*dptr = round(*sptr * M + B);	
+	}
+
+}
+static void escalar_Uint8_Uint8(uint8_t * ygradiente, uint8_t * ygescalado, unsigned int size)
+{
+	uint8_t * sptr,
+	* maxsptr = ygradiente + size;
+
+	uint8_t * dptr,
+	* maxdptr = ygescalado + size;
+
+	float vmax = -9999, vmin = 9999;
+
+	for(sptr = ygradiente; sptr < maxsptr; sptr++)
+	{
+		if(*sptr <= vmin) vmin = *sptr;
+		if(*sptr >= vmax) vmax = *sptr;
+	}
+
+	float M, B;
+
+	getM_B(vmax, vmin, &M, &B);
+#ifdef DEBUG
+	fprintf(stderr, "Maximo: %f , Minimo: %f\n", vmax, vmin);
+#endif
+
+	for(sptr = ygradiente, dptr = ygescalado; sptr < maxsptr; sptr++, dptr++)
+	{
+		*dptr = (uint8_t)round(*sptr * M + B);	
+	}
+
+}
+
+
 
 static void copiarArray_Uint8_Float(float* dst, uint8_t* src, unsigned int size)
 {
@@ -418,18 +486,6 @@ static void obtenerDireccionGradiente(float * xg, float * yg, float * mg, unsign
 		*mptr = atan(*yptr / *xptr);
 	}
 	
-	/*
-	int i;
-	omp_set_num_threads(THREADS);
-	#pragma omp parallel for schedule(runtime)
-	for(i = 0 ; i < length; i++)
-	{
-		float x = xg[i];
-		float y = yg[i];
-		mg[i]=atan(y/x);
-	}
-	*/
-	
 }
 
 static void init(uint8_t * img, unsigned int width, unsigned int height, float sigma, unsigned int tamFiltro)
@@ -507,10 +563,10 @@ static uint8_t getDireccion(float rad)
 	if(deg < 0)
 		deg = 180 + deg;
 
-	float dif180 = abs(deg - 180);
-	float dif135 = abs(deg - 135);
-	float dif90 = abs(deg - 90);
-	float dif45 = abs(deg - 45);
+	float dif180 = fabsf(deg - 180);
+	float dif135 = fabsf(deg - 135);
+	float dif90 = fabsf(deg - 90);
+	float dif45 = fabsf(deg - 45);
 	float dif0 = deg;
 
 	uint8_t res = 0;
@@ -523,6 +579,26 @@ static uint8_t getDireccion(float rad)
 
         return res;
 }
+
+static void obtenerDireccionGradienteDiscreta(float * xg, float * yg, uint8_t * dgd, unsigned int width, unsigned int height)
+{
+	unsigned int length = width * height;
+	
+	int i;
+	omp_set_num_threads(THREADS);
+	#pragma omp parallel for schedule(static, 622744) //La mitad del tamano de la imagen que le pasaremos en los tests...
+	for(i = 0 ; i < length; i++)
+	{
+		float x = xg[i];
+		float y = yg[i];
+		//float deg = atan(y/x);
+		//dgd[i] = getDireccion(deg);
+
+		dgd[i] = LOOKUP_DEG[(int)round(y)+255][(int)round(x)+255];
+	}
+
+}
+
 
 #ifdef DEBUG
 static unsigned int escalarDireccionDiscreta(uint8_t dir)
@@ -545,39 +621,20 @@ static unsigned int escalarDireccionDiscreta(uint8_t dir)
 #endif
 static void discretizarDireccionGradiente(float * dgradiente, uint8_t * dgdiscretizada, unsigned int width, unsigned int height)
 {
+	
 	unsigned int size = width * height;
 	float * sptr, *maxdg = dgradiente + size;
 	uint8_t * dptr;
 
-#ifdef DEBUG
-	float vmaxr = -999, vminr = 999; 
-#endif
 	for(sptr = dgradiente, dptr = dgdiscretizada; sptr < maxdg; sptr++, dptr++)
 	{
-#ifdef DEBUG
-		if(*sptr > vmaxr) vmaxr = *sptr;
-		if(*sptr < vminr) vminr = *sptr;
-#endif
 		*dptr = getDireccion(*sptr);
 	}
+	
 
-#ifdef DEBUG
-	uint8_t vmaxd, vmind;
-	vmaxd = getDireccion(vmaxr);
-	vmind = getDireccion(vminr);
-	fprintf(stderr, "vmaxr: %f : %d , vminr: %f : %d\n", vmaxr ,vmaxd, vminr, vmind);
-
-	float aux = 0;
-	for(aux = -M_PI/2; aux <= M_PI/2 ; aux += M_PI/30)
-	{
-		float deg = RAD_2_DEG * aux;
-		if(deg > 0)
-			fprintf(stderr, "rad: %f : %f : %d : %d\n", aux, deg, getDireccion(aux), escalarDireccionDiscreta(getDireccion(aux)));
-		else
-			fprintf(stderr, "rad: %f : %f : %d : %d\n", aux, 180+deg, getDireccion(aux), escalarDireccionDiscreta(getDireccion(aux)));
-	}
-#endif
+	
 }
+
 
 static void nonMaximum(float * mg, uint8_t * dg, float * mgthin, unsigned int width, unsigned int height)
 {
@@ -719,72 +776,6 @@ static void hysteresis(uint8_t * src, uint8_t * dst, uint8_t alto, uint8_t bajo,
 	
 	free(srcM); free(dstM);
 }
-
-static void getM_B(float smax, float smin, float * m, float *b)
-{
-	*m = 255. / (smax - smin);
-	*b = - (smin * *m);
-}
-		
-static void escalar_Float_Uint8(float * ygradiente, uint8_t * ygescalado, unsigned int size)
-{
-	float * sptr,
-	* maxsptr = ygradiente + size;
-
-	uint8_t * dptr,
-	* maxdptr = ygescalado + size;
-
-	float vmax = -9999, vmin = 9999;
-
-	for(sptr = ygradiente; sptr < maxsptr; sptr++)
-	{
-		if(*sptr <= vmin) vmin = *sptr;
-		if(*sptr >= vmax) vmax = *sptr;
-	}
-
-	float M, B;
-
-	getM_B(vmax, vmin, &M, &B);
-#ifdef DEBUG
-	fprintf(stderr, "Maximo: %f , Minimo: %f\n", vmax, vmin);
-#endif
-
-	for(sptr = ygradiente, dptr = ygescalado; sptr < maxsptr; sptr++, dptr++)
-	{
-		*dptr = round(*sptr * M + B);	
-	}
-
-}
-static void escalar_Uint8_Uint8(uint8_t * ygradiente, uint8_t * ygescalado, unsigned int size)
-{
-	uint8_t * sptr,
-	* maxsptr = ygradiente + size;
-
-	uint8_t * dptr,
-	* maxdptr = ygescalado + size;
-
-	float vmax = -9999, vmin = 9999;
-
-	for(sptr = ygradiente; sptr < maxsptr; sptr++)
-	{
-		if(*sptr <= vmin) vmin = *sptr;
-		if(*sptr >= vmax) vmax = *sptr;
-	}
-
-	float M, B;
-
-	getM_B(vmax, vmin, &M, &B);
-#ifdef DEBUG
-	fprintf(stderr, "Maximo: %f , Minimo: %f\n", vmax, vmin);
-#endif
-
-	for(sptr = ygradiente, dptr = ygescalado; sptr < maxsptr; sptr++, dptr++)
-	{
-		*dptr = (uint8_t)round(*sptr * M + B);	
-	}
-
-}
-
 
 static void saveImage(int fd, uint8_t * header, unsigned int hlength, uint8_t * content, unsigned int clength)
 {
@@ -1409,21 +1400,25 @@ int main(int argc, char ** argv)
 #endif
 #ifdef TIMMING
 
-		gettimeofday(&t0, NULL);
+		//gettimeofday(&t0, NULL);
 #endif
 		//Obtenemos la direccion del gradiente
-		obtenerDireccionGradiente(xgradiente, ygradiente, dgradiente, width, height);
+		//obtenerDireccionGradiente(xgradiente, ygradiente, dgradiente, width, height);
 #ifdef TIMMING
-		gettimeofday(&t1, NULL);
-		mostrarTiempo("05-Direccion gradiente", &t0,&t1,&tacc);
+		//gettimeofday(&t1, NULL);
+		//mostrarTiempo("05-Direccion gradiente", &t0,&t1,&tacc);
+		fprintf(stderr,"06-Direccion gradiente:\t0 us\n");
 
 #endif
 #ifdef TIMMING
 
 		gettimeofday(&t0, NULL);
 #endif
+
 		//Discretizamos la direccion del gradiente en 4 direcciones (0, 45, 90 y 135º), es decir: 0, 85, 170 y 255
-		discretizarDireccionGradiente(dgradiente, dgdiscreta, width, height);
+		//discretizarDireccionGradiente(dgradiente, dgdiscreta, width, height);
+		obtenerDireccionGradienteDiscreta(xgradiente, ygradiente, dgdiscreta, width, height);
+
 #ifdef TIMMING
 		gettimeofday(&t1, NULL);
 		mostrarTiempo("06-Direccion gradiente discreta", &t0,&t1,&tacc);
