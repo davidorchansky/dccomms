@@ -583,19 +583,42 @@ static uint8_t getDireccion(float rad)
 static void obtenerDireccionGradienteDiscreta(float * xg, float * yg, uint8_t * dgd, unsigned int width, unsigned int height)
 {
 	unsigned int length = width * height;
-	
 	int i;
+
+	float vmax=0, vmin=0;
 	omp_set_num_threads(THREADS);
+
+#ifdef RASPI2
+	#pragma omp parallel for schedule(static, 311372) //La mitad del tamano de la imagen que le pasaremos en los tests...
+#else
 	#pragma omp parallel for schedule(static, 622744) //La mitad del tamano de la imagen que le pasaremos en los tests...
+#endif
 	for(i = 0 ; i < length; i++)
 	{
 		float x = xg[i];
 		float y = yg[i];
-		//float deg = atan(y/x);
-		//dgd[i] = getDireccion(deg);
+#ifdef NO_DEG_LOOKUPTABLE
+		float deg = atan(y/x);
+		dgd[i] = getDireccion(deg);
+#else
+/*
+                float x2 = x; // (int)round(x)+255;
+                float y2 = y; //(int)round(y)+255;
+                if(x2 < vmin ) vmin = x2;
+                if(y2 < vmin ) vmin = y2;
+                if(x2 > vmax) vmax = x2;
+                if(y2 > vmax) vmax = y2;
+*/
+		//fprintf(stderr, "y: %d ; x: %d\n", (int)round(y)+255,(int)round(x)+255);	
 
-		dgd[i] = LOOKUP_DEG[(int)round(y)+255][(int)round(x)+255];
+		dgd[i] =  LOOKUP_DEG[(int)round(y)+255][(int)round(x)+255];
+
+		//uint8_t temp =  LOOKUP_DEG[(int)round(y)+255][(int)round(x)+255];
+		//dgd[i] = temp;
+		//fprintf(stderr, "HOLA2\n");	
+#endif
 	}
+//fprintf(stderr, "max: %f, min: %f\n", vmax, vmin);
 
 }
 
