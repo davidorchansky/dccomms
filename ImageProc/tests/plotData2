@@ -8,18 +8,20 @@ set style histogram errorbars gap 1 lw 2
 set auto x
 set auto y
 set ylabel "Time (us)"
-set xlabel "Stage"
+set xlabel "Configuration"
 set xtics rotate by -45
+set xtics font ",8"
+set ytics font ",8"
 
 set title font ",8"
-set title (sprintf("Img: %s, Arch: %s, Schedule: %s, ChunkSize: %d,\nSigma: %.2f, T.Filtro: %d, U.Th: %d, L.Th: %d, Degrees: %d", imagen, arch, schedule, chunkSize, sigma, tfiltro, ut, lt, angles));
+set title (sprintf("Img: %s, Arch: %s\nSigma: %.2f, T.Filtro: %d, U.Th: %d, L.Th: %d, Degrees: %d", imagen, arch, sigma, tfiltro, ut, lt, angles));
 escalar(y) = y / 1000
 
-set label (sprintf("TOTAL: %.1f ms", ttotal / 1000.)) at 6,(maxv*1.05) tc rgb "black" font ",14" front
+#set label (sprintf("TOTAL: %.1f ms", ttotal / 1000.)) at 6,(maxv*1.05) tc rgb "black" font ",14" front
 #set label (sprintf("MAXV: %.1f ms", maxv / 1000.)) at 5,maxv*0.1 tc rgb "black" font ",14" front
 
 plot inputfile using 2:3:xticlabels(1) lc rgb "#0000ff", \
-'' using ($4):($2+maxv*0.1):(sprintf("%.1f ms",$2/1000)) with labels
+'' using ($4):($2+maxv*0.1):(sprintf("%.1f ms",$2/1000)) with labels font ",7"
 
 
 
