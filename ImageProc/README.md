@@ -1,3 +1,4 @@
+#(NECESITA ACTUALIZACION)
 # Canny y Hough
 ## Compilación
 

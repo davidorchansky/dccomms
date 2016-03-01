@@ -13,7 +13,10 @@
 #include <limits.h>
 #include <sys/types.h>
 #include <omp.h>
+
+#ifdef RASPI2
 #include <arm_neon.h>
+#endif
 
 #ifdef TIMMING
 #include <sys/time.h>

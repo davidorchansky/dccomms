@@ -11,9 +11,120 @@
 #include <getopt.h>
 #include <errno.h>
 #include <limits.h>
+#include <sys/types.h>
+#include <omp.h>
 
+#ifdef RASPI2
+#include <arm_neon.h>
+#endif
+
+#ifdef TIMMING
+#include <sys/time.h>
+#endif
+
+#include "lookupTable.h"
 
 #define RAD_2_DEG 57.29577951308232
+
+static float * G_copiaImagen;
+static float * G_bufferDeTrabajo;
+static float * G_filtroRuido1D;
+static float ** G_copiaImagenM;
+static float ** G_bufferDeTrabajoM;
+static float ** G_filtroRuido2D; 
+static float ** G_filtroGradienteX;
+static float ** G_filtroGradienteY;
+static unsigned int G_width;
+static unsigned int G_height;
+static unsigned int G_tamFiltro;
+static unsigned int G_size;
+
+
+#ifndef THREADS
+#ifdef RASPI2
+#define THREADS 4
+#else
+#define THREADS 2
+#endif
+#endif
+static void getM_B(float smax, float smin, float * m, float *b)
+{
+	*m = 255. / (smax - smin);
+	*b = - (smin * *m);
+}
+		
+static void escalar_Float_Uint8(float * ygradiente, uint8_t * ygescalado, unsigned int size)
+{
+	float * sptr,
+	* maxsptr = ygradiente + size;
+
+	uint8_t * dptr,
+	* maxdptr = ygescalado + size;
+
+	float vmax = ygradiente[0], vmin = ygradiente[0];
+
+	for(sptr = ygradiente; sptr < maxsptr; sptr++)
+	{
+		if(*sptr <= vmin) vmin = *sptr;
+		if(*sptr >= vmax) vmax = *sptr;
+	}
+
+	float M, B;
+
+	getM_B(vmax, vmin, &M, &B);
+#ifdef DEBUG
+	fprintf(stderr, "Maximo: %f , Minimo: %f\n", vmax, vmin);
+#endif
+
+	for(sptr = ygradiente, dptr = ygescalado; sptr < maxsptr; sptr++, dptr++)
+	{
+		*dptr = round(*sptr * M + B);	
+	}
+
+}
+static void escalar_Uint8_Uint8(uint8_t * ygradiente, uint8_t * ygescalado, unsigned int size)
+{
+	uint8_t * sptr,
+	* maxsptr = ygradiente + size;
+
+	uint8_t * dptr,
+	* maxdptr = ygescalado + size;
+
+	float vmax = -9999, vmin = 9999;
+
+	for(sptr = ygradiente; sptr < maxsptr; sptr++)
+	{
+		if(*sptr <= vmin) vmin = *sptr;
+		if(*sptr >= vmax) vmax = *sptr;
+	}
+
+	float M, B;
+
+	getM_B(vmax, vmin, &M, &B);
+#ifdef DEBUG
+	fprintf(stderr, "Maximo: %f , Minimo: %f\n", vmax, vmin);
+#endif
+
+	for(sptr = ygradiente, dptr = ygescalado; sptr < maxsptr; sptr++, dptr++)
+	{
+		*dptr = (uint8_t)round(*sptr * M + B);	
+	}
+
+}
+
+
+
+static void copiarArray_Uint8_Float(float* dst, uint8_t* src, unsigned int size)
+{
+	uint8_t * sptr;
+	float *  dptr;
+
+	uint8_t * maxsptr = src + size;
+	for(sptr = src, dptr = dst; sptr < maxsptr; sptr++, dptr++)
+	{
+		*dptr = (float) *sptr;
+	}
+}
 
 static char *
 pgmName(char *path)
@@ -35,7 +146,8 @@ usage(char *pgmname)
 			"\t-U               - Umbral superior para deteccion de borde (0 < x < 255).\n"
 			"\t-L               - Umbral inferior para deteccion de borde (0 < x < 255).\n"
 			"\t-a               - Numbero de angulos de la transformada de hough.\n"
-			"\t-e               - Enviar por la salida estandar la imagen pgm de acumuladores del espacio de Hough.\n", pgmname);
+			"\t-e               - Enviar por la salida estandar la imagen pgm de acumuladores del espacio de Hough.\n"
+			"\t-d               - Directorio de salida.\n", pgmname);
 	exit(-1);
 }
 
@@ -62,7 +174,7 @@ optGetFloatError(char *optarg, float *val, float min)
 
 static int
 getOptions(int argc, char *argv[], int * filterSize, float *sigma, unsigned int *uth, unsigned int * lth, int *re,
-int *nangulos)
+int *nangulos, char ** outdir)
 {
 	int opt;
 	int error = 0;
@@ -70,7 +182,8 @@ int *nangulos)
 	*filterSize = -1; *sigma = -1;
 	*nangulos = -1;
 	*re = 0;
-	while ((opt = getopt(argc, argv, "l:s:U:L:a:e")) != -1) {
+	*outdir = NULL;
+	while ((opt = getopt(argc, argv, "l:s:U:L:a:ed:")) != -1) {
 		switch (opt) {
 		case 'l':
 			error += optGetIntError(optarg, filterSize, 0);
@@ -90,10 +203,21 @@ int *nangulos)
 		case 'e':
 			*re = 1;
 			break;
+		case 'd':
+			*outdir = optarg;
+			break;
 		default: /* '?' */
 			usage(argv[0]);
 		}
 	}
+
+	#ifdef FS_3
+		*filterSize = 3;
+	#elif FS_5
+		*filterSize = 5;
+	#elif FS_7
+		*filterSize = 7;
+	#endif
 	if (error) {
 		usage(pgmName(argv[0]));
 	}
@@ -120,6 +244,11 @@ int *nangulos)
 	{
 		fprintf(stderr, "Necesario especificar el numero de angulos\n");
 		usage(pgmName(argv[0]));
+	}
+	if(*outdir == NULL)
+	{
+		*outdir = malloc(strlen(".")+1);
+		strcpy(*outdir, ".");
 	}
 
 }
@@ -206,12 +335,64 @@ void showFilter(FILE * s, float * filter, int size)
 	fprintf(s, " ]\n");
 
 }
+void showFilterM(FILE * s, float ** filter, int height, int width)
+{
+	fprintf(s, "[ ");
+	int f,c;
+
+	for(f=0; f < height; f++)
+	{
+		fprintf(s, "[ ");
+		for(c=0; c < width; c++)
+		{
+			fprintf(s, " %.4f, ", filter[f][c]);
+		}
+
+		fprintf(s, " ]\n");
+	}
+	fprintf(s, " ]\n");
+
+}
 float gaussianZeroMean(float x, float sigma)
 {
-	float res = pow(M_E, -1./2*pow(x/sigma,2));
+	float res = pow(M_E, (-1./2)*pow(x/sigma,2));
 
 	return res;
 }
+
+float gaussianZeroMean2D(float x, float y, float sigma)
+{
+	float res = pow(M_E, (-1./2)*(x*x+y*y)/(sigma*sigma));
+
+	return res;
+}
+
+void getGaussian2DFilter(float ** filtro, unsigned int tam, float sigma)
+{
+	int li = -(tam >> 1);
+	int ls = li*(-1);
+	float v, suma=0;
+	int x, y;
+	for(x=li; x<=ls; x++)
+	{
+		for(y=li; y<=ls; y++)
+		{
+			v = gaussianZeroMean2D(x,y,sigma);
+			filtro[x+ls][y+ls] = v;
+			suma += v;
+		}
+	}
+	for(x=li; x<=ls; x++)
+	{
+		for(y=li; y<=ls; y++)
+		{
+			filtro[x+ls][y+ls] = filtro[x+ls][y+ls] / suma;
+		}
+	}
+
+}
+
+
 
 void getGaussianFilter(float * filtro, unsigned int tam, float sigma)
 {
@@ -230,207 +411,185 @@ void getGaussianFilter(float * filtro, unsigned int tam, float sigma)
 	}
 
 }
-
-void aplicarFiltro_Uint8_ConPrecision(uint8_t * src, uint8_t * dst, unsigned int width, unsigned int height, float * hfiltro, float * vfiltro, unsigned int tamFiltro)
+static float ** getMatrixFromArray_Float(float* vec, unsigned int width, unsigned int height, unsigned int size)
 {
-	unsigned int size = height * width;
-	
-	double * bufferDeTrabajo = (double *) malloc(size * sizeof(double));
-	//Copiamos todo en bufferDeTrabajo para trabajar con mayor precision
 
-	uint8_t * sptr, *maxsptr = src + size;
-	double * wptr;
-	
-	for(wptr = bufferDeTrabajo, sptr = src; sptr < maxsptr; sptr++, wptr++)
+	float ** mat = (float**) malloc(height * sizeof(float*));
+
+	float * sptr;
+	int pos;
+	sptr = vec;
+	for(pos = 0; pos < height; pos += 1)
 	{
-		*wptr = (double) *sptr;
+		mat[pos] = sptr;
+		sptr += width;
 	}
-
-	int foffset = tamFiltro >> 1;
-	int ioffset = foffset << 1;
-
-
-	//Numero de filas y columnas de la zona central (descartamos bordes de la imagen del grosor del filtro)
-	int filas    = height - ioffset;
-	int columnas = width - ioffset;
-
-	
-	//Pasada por filas (aplicación del filtro horizontal)
-	unsigned int offsetInicial = foffset * width + foffset;
-
-	double * dptr;
-
-	dptr = bufferDeTrabajo + offsetInicial;
-
-	double * maxf = dptr + width * filas;
-	
-
-	float * centroFiltro = hfiltro + foffset;
-
-#ifdef DEBUG
-	fprintf(stderr, "Aplicando filtro horizontal...\n");
-	double valorMaximo = -9999, valorMinimo = 9999;
-#endif
-	while(dptr < maxf)
-	{
-		double * maxc = dptr + columnas;
-		while(dptr < maxc)
-		{
-			//Aplicamos el filtro horizontalmente
-			double valorFinal = 0;
-			int idx;
-			for(idx = -foffset; idx <= foffset; idx++)
-			{
-				valorFinal += *(dptr+idx) * *(centroFiltro+idx);
-			}
-			*dptr = valorFinal;
-#ifdef DEBUG
-			if(valorFinal >= valorMaximo) valorMaximo = valorFinal;
-			if(valorFinal <= valorMinimo) valorMinimo = valorFinal;
-#endif
-			dptr += 1;
-		}
-		dptr += ioffset;
-	}
-
-	dptr = bufferDeTrabajo + offsetInicial;
-	double * maxc = dptr + columnas;
-
-#ifdef TEST
-	fprintf(stderr, "Valor maximo: %f, Valor minimo: %f, Aplicando filtro vertical...\n", valorMaximo, valorMinimo);
-#endif
-
-	centroFiltro = vfiltro + foffset;
-	while(dptr < maxc)
-	{
-		double * dptrc = dptr;
-		maxf = dptr + filas * width;
-		while(dptr < maxf)
-		{
-			//Aplicamos el filtro verticalmente
-			double valorFinal = 0;
-			int idx;
-			for(idx = -foffset; idx <= foffset; idx++)
-			{
-				valorFinal += *(dptr+idx*(int)width) * *(centroFiltro+idx);
-
-			}
-			*dptr = valorFinal;
-#ifdef DEBUG
-			if(valorFinal >= valorMaximo) valorMaximo = valorFinal;
-			if(valorFinal <= valorMinimo) valorMinimo = valorFinal;
-#endif
-			dptr += width;
-		}
-		dptr = dptrc + 1;
-	}
-
-#ifdef DEBUG
-	fprintf(stderr, "Valor maximo: %f, Valor minimo: %f\n", valorMaximo, valorMinimo);
-#endif
-	
-	uint8_t * maxdptr = dst + size;
-	uint8_t * res;
-	for(res = dst, wptr = bufferDeTrabajo; res < maxdptr; res++, wptr++)
-	{
-		*res = (uint8_t) *wptr;
-	}
-	free(bufferDeTrabajo);
-
+	return mat;
 }
 
-static void aplicarFiltroNoSeparable(uint8_t * src, double * dst, unsigned int width, unsigned int height, double ** filtro, unsigned int tfiltro)
+static uint8_t ** getMatrixFromArray_Uint8(uint8_t* vec, unsigned int width, unsigned int height, unsigned int size)
 {
 
-	unsigned int size = width * height;
-	uint8_t ** sM = (uint8_t**) malloc(height * sizeof(uint8_t*));
-	double ** dM = (double**) malloc(height * sizeof(double*));
+	uint8_t ** mat = (uint8_t**) malloc(height * sizeof(uint8_t*));
 
 	uint8_t * sptr;
-	double * dptr;
 	int pos;
-
-	for(pos = 0, sptr = src, dptr = dst; pos < height; pos += 1, sptr += width, dptr += width)
+	sptr = vec;
+	for(pos = 0; pos < height; pos += 1)
 	{
-		sM[pos] = sptr;
-		dM[pos] = dptr;
+		mat[pos] = sptr;
+		sptr += width;
 	}
-
-	unsigned int foffset = tfiltro >> 1;
-
-	int f, c;
-	for(f=foffset; f < height-foffset; f++)
-	{
-		for(c=foffset; c < width-foffset; c++)
-		{
-			int f2,c2, ff,fc, f2o = f-foffset, c2o = c-foffset;
-			double v = 0;
-			for(f2 = f2o, ff = 0; ff < tfiltro; f2++, ff++)
-			{
-				for(c2 = c2o, fc = 0; fc < tfiltro; c2++, fc++)
-				{
-					v += sM[f2][c2] * filtro[ff][fc];
-				}
-			}
-			dM[f][c] = v;
-		}
-	}
-
-	free(sM);
-	free(dM);
-
+	return mat;
 }
-static void obtenerModuloGradiente(double * xg, double * yg, double * mg, unsigned int width, unsigned int height)
+
+
+
+static void obtenerModuloGradiente(float * xg, float * yg, float * mg, unsigned int width, unsigned int height)
 {
 	unsigned int length = width * height;
-	double * xptr = xg, *yptr = yg, *mptr = mg;
-	double * maxxptr = xptr + width * height;
+	
+/*	float * xptr, *yptr, *mptr, *maxxptr;
+	
 
-	while(xptr < maxxptr)
+	for(xptr = xg, yptr = yg, mptr = mg, maxxptr = xptr + length; xptr < maxxptr; mptr++, xptr++, yptr++)
 	{
 		*mptr = sqrt(*xptr**xptr +  *yptr**yptr);
-		mptr++;		
-		xptr++;
+	}
+*/	
+/*
+
+//Da un error de violacion de segmento al paralelizar
+	yptr = yg;
+	mptr = mg;
+	maxxptr = xg + length;
+
+	omp_set_num_threads(THREADS);
+	#pragma omp parallel for schedule(runtime) private(mptr, yptr)
+	for(xptr = xg;  xptr < maxxptr; xptr++)
+	{
+		*mptr = sqrt(*xptr**xptr +  *yptr**yptr);
+		mptr++;
 		yptr++;
 	}
+*/
+
+	int i;
+	omp_set_num_threads(THREADS);
+#ifdef RASPI2
+	#pragma omp parallel for schedule(static, 311372) //La mitad del tamano de la imagen que le pasaremos en los tests...
+#else
+	#pragma omp parallel for schedule(static, 622744) //La mitad del tamano de la imagen que le pasaremos en los tests...
+#endif
+	for(i = 0 ; i < length; i++)
+	{
+		float x = xg[i];
+		float y = yg[i];
+		mg[i]=sqrt(x*x+y*y);
+		
+//		fprintf(stderr, "x: %d ; y: %d\n",(int)round(x), (int)round(y));
+//		mg[i]=LOOKUP_GRADM[(int)round(x)+LOOKUPTABLE_GRADM_VMAX][(int)round(y)+LOOKUPTABLE_GRADM_VMAX];
+	}
+	
+	
 }
 
-static void obtenerDireccionGradiente(double * xg, double * yg, double * mg, unsigned int width, unsigned int height)
+static void obtenerDireccionGradiente(float * xg, float * yg, float * mg, unsigned int width, unsigned int height)
 {
 	unsigned int length = width * height;
-	double * xptr = xg, *yptr = yg, *mptr = mg;
-	double * maxxptr = xptr + width * height;
+	
+	float * xptr, *yptr, *mptr, *maxxptr;
 
-	while(xptr < maxxptr)
+	for(xptr = xg, yptr = yg, mptr = mg, maxxptr = xptr + length; xptr < maxxptr; mptr++, xptr++, yptr++)
 	{
 		*mptr = atan(*yptr / *xptr);
-		mptr++;		
-		xptr++;
-		yptr++;
 	}
+	
 }
 
+static void init(uint8_t * img, unsigned int width, unsigned int height, float sigma, unsigned int tamFiltro)
+{
+	unsigned int size = width * height;
+
+	G_size = size;
+	G_height = height;
+	G_width = width;
+	G_copiaImagen = (float * ) malloc(size * sizeof(float));
+	G_bufferDeTrabajo = (float * ) malloc(size * sizeof(float));
+	G_tamFiltro = tamFiltro;
+	int f;
+
+	float * _filtroGradienteX, * _filtroGradienteY, *_filtroRuido2D, * auxptr;
+	
+	G_filtroRuido2D = (float**) malloc(tamFiltro*sizeof(float*));
+	_filtroRuido2D = (float*) malloc(tamFiltro*tamFiltro * sizeof(float)+1);
+
+	for(f = 0, auxptr = _filtroRuido2D; f < tamFiltro; f++, auxptr += tamFiltro)
+	{
+		G_filtroRuido2D[f] = auxptr;
+	}
+
+	G_filtroRuido1D = (float*) malloc(tamFiltro * sizeof(float)+1);
+	
+	getGaussianFilter(G_filtroRuido1D, tamFiltro, sigma);
+	getGaussian2DFilter(G_filtroRuido2D, tamFiltro, sigma);
+
+	showFilter(stderr, G_filtroRuido1D, tamFiltro);
+	showFilterM(stderr, G_filtroRuido2D, tamFiltro, tamFiltro);
+
+	int gsize = 3;
+
+	float ** Gy = (float **) malloc(gsize * sizeof(float*));
+	float * Gyc = (float *) malloc(gsize * gsize *  sizeof(float));
+	float * gptr;
+	for(f = 0, gptr = Gyc; f < gsize; f++, gptr += gsize)
+	{
+		Gy[f] = gptr;
+	}
+
+	Gy[0][0] = -1; Gy[0][1] = -2; Gy[0][2] = -1;
+	Gy[1][0] =  0; Gy[1][1] =  0; Gy[1][2] =  0;
+	Gy[2][0] =  1; Gy[2][1] =  2; Gy[2][2] =  1;
+
+	float ** Gx = (float **) malloc(gsize * sizeof(float*));
+	float * Gxc = (float *) malloc(gsize * gsize *  sizeof(float));
+	for(f = 0, gptr = Gxc; f < gsize; f++, gptr += gsize)
+	{
+		Gx[f] = gptr;
+	}
+
+	Gx[0][0] = -1; Gx[0][1] = 0; Gx[0][2] = 1;
+	Gx[1][0] = -2; Gx[1][1] = 0; Gx[1][2] = 2;
+	Gx[2][0] = -1; Gx[2][1] = 0; Gx[2][2] = 1;
+
+	G_filtroGradienteX = Gx;
+	G_filtroGradienteY = Gy;
+
+	G_copiaImagenM = getMatrixFromArray_Float(G_copiaImagen, width, height, size);
+	G_bufferDeTrabajoM = getMatrixFromArray_Float(G_bufferDeTrabajo, width, height, size);
+
+}
 static void showError()
 {
 	fprintf(stderr, "Ha ocurrido algun error: %s\n", strerror(errno));
 }
 
-static uint8_t getDireccion(double rad)
+static uint8_t getDireccion(float rad)
 {
 
-	double deg = rad * RAD_2_DEG;
+	float deg = rad * RAD_2_DEG;
 
 	if(deg < 0)
 		deg = 180 + deg;
 
-	double dif180 = abs(deg - 180);
-	double dif135 = abs(deg - 135);
-	double dif90 = abs(deg - 90);
-	double dif45 = abs(deg - 45);
-	double dif0 = deg;
+	float dif180 = fabsf(deg - 180);
+	float dif135 = fabsf(deg - 135);
+	float dif90 = fabsf(deg - 90);
+	float dif45 = fabsf(deg - 45);
+	float dif0 = deg;
 
 	uint8_t res = 0;
-	double diff = dif180;
+	float diff = dif180;
 
 	if(dif135 < diff){ res = 135; diff = dif135;}
 	if(dif90 < diff){ res = 90; diff = dif90;}
@@ -439,6 +598,35 @@ static uint8_t getDireccion(double rad)
 
         return res;
 }
+
+static void obtenerDireccionGradienteDiscreta(float * xg, float * yg, uint8_t * dgd, unsigned int width, unsigned int height)
+{
+	unsigned int length = width * height;
+	int i;
+
+	float vmax=0, vmin=0;
+	omp_set_num_threads(THREADS);
+
+#ifdef RASPI2
+	#pragma omp parallel for schedule(static, 311372) //La mitad del tamano de la imagen que le pasaremos en los tests...
+#else
+	#pragma omp parallel for schedule(static, 622744) //La mitad del tamano de la imagen que le pasaremos en los tests...
+#endif
+	for(i = 0 ; i < length; i++)
+	{
+		float x = xg[i];
+		float y = yg[i];
+#ifdef NO_DEG_LOOKUPTABLE
+		float deg = atan(y/x);
+		dgd[i] = getDireccion(deg);
+#else
+
+		dgd[i] =  LOOKUP_DEG[(int)round(y)+LOOKUPTABLE_DEG_VMAX][(int)round(x)+LOOKUPTABLE_DEG_VMAX];
+#endif
+	}
+
+}
+
 
 #ifdef DEBUG
 static unsigned int escalarDireccionDiscreta(uint8_t dir)
@@ -459,54 +647,35 @@ static unsigned int escalarDireccionDiscreta(uint8_t dir)
 
 }
 #endif
-static void discretizarDireccionGradiente(double * dgradiente, uint8_t * dgdiscretizada, unsigned int width, unsigned int height)
+static void discretizarDireccionGradiente(float * dgradiente, uint8_t * dgdiscretizada, unsigned int width, unsigned int height)
 {
+	
 	unsigned int size = width * height;
-	double * sptr, *maxdg = dgradiente + size;
+	float * sptr, *maxdg = dgradiente + size;
 	uint8_t * dptr;
 
-#ifdef DEBUG
-	double vmaxr = -999, vminr = 999; 
-#endif
 	for(sptr = dgradiente, dptr = dgdiscretizada; sptr < maxdg; sptr++, dptr++)
 	{
-#ifdef DEBUG
-		if(*sptr > vmaxr) vmaxr = *sptr;
-		if(*sptr < vminr) vminr = *sptr;
-#endif
 		*dptr = getDireccion(*sptr);
 	}
+	
 
-#ifdef DEBUG
-	uint8_t vmaxd, vmind;
-	vmaxd = getDireccion(vmaxr);
-	vmind = getDireccion(vminr);
-	fprintf(stderr, "vmaxr: %f : %d , vminr: %f : %d\n", vmaxr ,vmaxd, vminr, vmind);
-
-	double aux = 0;
-	for(aux = -M_PI/2; aux <= M_PI/2 ; aux += M_PI/30)
-	{
-		double deg = RAD_2_DEG * aux;
-		if(deg > 0)
-			fprintf(stderr, "rad: %f : %f : %d : %d\n", aux, deg, getDireccion(aux), escalarDireccionDiscreta(getDireccion(aux)));
-		else
-			fprintf(stderr, "rad: %f : %f : %d : %d\n", aux, 180+deg, getDireccion(aux), escalarDireccionDiscreta(getDireccion(aux)));
-	}
-#endif
+	
 }
 
-static void nonMaximum(double * mg, uint8_t * dg, double * mgthin, unsigned int width, unsigned int height)
+
+static void nonMaximum(float * mg, uint8_t * dg, float * mgthin, unsigned int width, unsigned int height)
 {
 	unsigned int size = width * height;
-	double ** mgM = (double**) malloc(height * sizeof(double*));
+	float ** mgM = (float**) malloc(height * sizeof(float*));
 	uint8_t ** dgM = (uint8_t**) malloc(height * sizeof(uint8_t*));
 
-	double * mptr;
+	float * mptr;
 	uint8_t * dptr;
 
 	int pos;
 
-	memcpy(mgthin, mg, size*sizeof(double));
+	memcpy(mgthin, mg, size*sizeof(float));
 
 	for(pos = 0, mptr = mg, dptr = dg; pos < height; pos += 1, mptr += width, dptr += width)
 	{
@@ -517,6 +686,8 @@ static void nonMaximum(double * mg, uint8_t * dg, double * mgthin, unsigned int 
 	unsigned int foffset = 1;
 
 	int f, c;
+	omp_set_num_threads(THREADS);
+	#pragma omp parallel for schedule(runtime) private(c)
 	for(f=foffset; f < height-foffset; f++)
 	{
 		for(c=foffset; c < width-foffset; c++)
@@ -562,12 +733,12 @@ static void nonMaximum(double * mg, uint8_t * dg, double * mgthin, unsigned int 
 			}
 
 			//fprintf(stderr, "caso %d\n", caso);
-			double v = mgM[f][c];
+			float v = mgM[f][c];
 
 			if(v < mgM[mf1][mc1] || v < mgM[mf2][mc2])
 			{
 				//fprintf(stderr, "%d-%d , %d-%d, %d-%d\n", mf1,mc1,f,c,mf2,mc2);
-				double * dst = mgthin + f * width + c;
+				float * dst = mgthin + f * width + c;
 				*dst = 0;
 			}
 		}
@@ -598,24 +769,30 @@ static void hysteresis(uint8_t * src, uint8_t * dst, uint8_t alto, uint8_t bajo,
 	}
 
 	int f, c;
-	for(f = 0; f < height; f++)
+	int maxHeight = height-1;
+	int maxWidth = width-1;
+
+	omp_set_num_threads(THREADS);
+	#pragma omp parallel for schedule(runtime) private(c)
+	for(f = 1; f < maxHeight; f++)
 	{
-		for(c = 0; c < width; c++)
+		for(c = 1; c < maxWidth; c++)
 		{
 			uint8_t v = srcM[f][c];
 			if(v > alto)
 				dstM[f][c] = vmax;
 			else if (v > bajo)
 			{
+				int fb = f-1,fa = f+1, cb = c-1, ca =c+1;
 				//miramos los vecinos
-				if(srcM[f-1][c-1] > alto 
-				|| srcM[f-1][c] > alto
-				|| srcM[f-1][c+1] > alto
-				|| srcM[f][c-1] > alto
-				|| srcM[f][c+1] > alto
-				|| srcM[f+1][c-1] > alto
-				|| srcM[f+1][c] > alto
-				|| srcM[f+1][c+1] > alto)
+				if(srcM[fb][cb] > alto 
+				|| srcM[fb][c] > alto
+				|| srcM[fb][ca] > alto
+				|| srcM[f][cb] > alto
+				|| srcM[f][ca] > alto
+				|| srcM[fa][cb] > alto
+				|| srcM[fa][c] > alto
+				|| srcM[fa][ca] > alto)
 					dstM[f][c] = vmax;
 				else
 					dstM[f][c] = vmin;
@@ -628,78 +805,23 @@ static void hysteresis(uint8_t * src, uint8_t * dst, uint8_t alto, uint8_t bajo,
 	free(srcM); free(dstM);
 }
 
-static void getM_B(double smax, double smin, double * m, double *b)
-{
-	*m = 255. / (smax - smin);
-	*b = - (smin * *m);
-}
-		
-static void escalar_Double_Uint8(double * ygradiente, uint8_t * ygescalado, unsigned int width, unsigned int height)
-{
-	unsigned int size = width * height;
-	double * sptr,
-	* maxsptr = ygradiente + size;
-
-	uint8_t * dptr,
-	* maxdptr = ygescalado + size;
-
-	double vmax = -9999, vmin = 9999;
-
-	for(sptr = ygradiente; sptr < maxsptr; sptr++)
-	{
-		if(*sptr <= vmin) vmin = *sptr;
-		if(*sptr >= vmax) vmax = *sptr;
-	}
-
-	double M, B;
-
-	getM_B(vmax, vmin, &M, &B);
-#ifdef DEBUG
-	fprintf(stderr, "Maximo: %f , Minimo: %f\n", vmax, vmin);
-#endif
-
-	for(sptr = ygradiente, dptr = ygescalado; sptr < maxsptr; sptr++, dptr++)
-	{
-		*dptr = *sptr * M + B;	
-	}
-
-}
-static void escalar_Uint8_Uint8(uint8_t * ygradiente, uint8_t * ygescalado, unsigned int width, unsigned int height)
-{
-	unsigned int size = width * height;
-	uint8_t * sptr,
-	* maxsptr = ygradiente + size;
-
-	uint8_t * dptr,
-	* maxdptr = ygescalado + size;
-
-	double vmax = -9999, vmin = 9999;
-
-	for(sptr = ygradiente; sptr < maxsptr; sptr++)
-	{
-		if(*sptr <= vmin) vmin = *sptr;
-		if(*sptr >= vmax) vmax = *sptr;
-	}
-
-	double M, B;
-
-	getM_B(vmax, vmin, &M, &B);
-#ifdef DEBUG
-	fprintf(stderr, "Maximo: %f , Minimo: %f\n", vmax, vmin);
-#endif
-
-	for(sptr = ygradiente, dptr = ygescalado; sptr < maxsptr; sptr++, dptr++)
-	{
-		*dptr = (uint8_t)round(*sptr * M + B);	
-	}
-
-}
-
-
 static void saveImage(int fd, uint8_t * header, unsigned int hlength, uint8_t * content, unsigned int clength)
 {
 	int writen = write(fd, header, hlength);
 	writen += write(fd, content, clength);
+#ifdef DEBUG
+	fprintf(stderr, "Escritos: %d\n", writen);
+#endif
+}
+
+static void saveImage_Float(int fd, uint8_t * header, unsigned int hlength, float * content, unsigned int clength)
+{
+	int writen = write(fd, header, hlength);
+	uint8_t * scaled = (uint8_t*) malloc(clength);
+
+	escalar_Float_Uint8(content, scaled, clength);
+
+	writen += write(fd, scaled, clength);
 #ifdef DEBUG
 	fprintf(stderr, "Escritos: %d\n", writen);
 #endif
@@ -711,12 +833,9 @@ void houghAcc(int x, int y, uint8_t ** houghSp, unsigned int ** acc, float * sin
 	int thetaIndex;
 
 	int x0=x,y0=y;
-	x -= width >> 1;
-	y -= height >> 1;
+	x -= width;
+	y -= height;
 
-#ifdef DEBUG
-	float maxrho0 = -99999, minrho0 =99999;
-#endif
 	for(thetaIndex = 0; thetaIndex < nangulos; thetaIndex++)
 	{
 		float rho0 = x * cosTable[thetaIndex] + y * sinTable[thetaIndex];
@@ -724,10 +843,6 @@ void houghAcc(int x, int y, uint8_t ** houghSp, unsigned int ** acc, float * sin
 		houghSp[rho][thetaIndex] = vtrue;
 
 		acc[rho][thetaIndex] += 1;
-#ifdef DEBUG
-		if(rho0 < minrho0) minrho0 = rho0;
-		if(rho0 > maxrho0) maxrho0 = rho0;
-#endif
 
 	}
 
@@ -752,7 +867,7 @@ static void escalar_Int_Uint8(int * src, uint8_t * dst, unsigned int length)
 		if(*sptr >= vmax) vmax = *sptr;
 	}
 
-	double M, B;
+	float M, B;
 
 	getM_B(vmax, vmin, &M, &B);
 
@@ -778,6 +893,434 @@ static void invertirValores(uint8_t * src, unsigned int length)
 }
 
 
+#ifdef TIMMING
+static void mostrarTiempo(const char * info, struct timeval *t0, struct timeval *t1, long long *acc)
+{
+	long long elapsed = (t1->tv_sec-t0->tv_sec)*1000000LL + t1->tv_usec-t0->tv_usec;
+
+	fprintf(stderr, "%s:\t%lld us\n",info, elapsed);
+	if(acc != NULL)
+		*acc += elapsed;
+	
+}
+#endif
+
+
+static void aplicarFiltro_noSeparable_size5(float ** gsFiltradoM)
+{
+	float ** sM = G_copiaImagenM;
+	float ** dM = gsFiltradoM;
+	float ** filtro = G_filtroRuido2D;
+	unsigned int height = G_height;
+	unsigned int width = G_width;
+	
+	//cambia
+	unsigned int foffset = 2;
+	//fin-cambia
+
+	unsigned int maxHeight = height-foffset;
+	unsigned int maxWidth = width-foffset;
+	int f;
+
+#ifdef NEON
+	float32x4_t ff0,ff1,ff2,ff3,ff4;
+	ff0 = vld1q_f32(filtro[0]);
+	ff1 = vld1q_f32(filtro[1]);
+	ff2 = vld1q_f32(filtro[2]);
+	ff3 = vld1q_f32(filtro[3]);
+	ff4 = vld1q_f32(filtro[4]);
+#endif
+	omp_set_num_threads(THREADS);
+	#pragma omp parallel for schedule(runtime)
+	for(f=foffset; f < maxHeight; f++)
+	{
+		int c;
+		for(c=foffset; c < maxWidth; c++)
+		{
+
+			#ifdef NEON
+			int c0=c-2, c1=c-1, c2=c, c3=c+1, c4=c+2,
+			f0=f-2, f1=f-1, f2=f, f3=f+1, f4=f+2;
+			
+			float32x4_t nsum, tmp, resf;
+			nsum = vdupq_n_f32(0);
+
+			float * cpixel;
+			float * psM;
+			cpixel = &dM[f][c];
+
+			psM = &sM[f0][c0];
+			tmp = vld1q_f32(psM);
+			resf = vmulq_f32(ff0, tmp);
+			nsum = vaddq_f32(nsum, resf);
+
+			psM = &sM[f1][c0];
+			tmp = vld1q_f32(psM);
+			resf = vmulq_f32(ff1, tmp);
+			nsum = vaddq_f32(nsum, resf);
+
+			psM = &sM[f2][c0];
+			tmp = vld1q_f32(psM);
+			resf = vmulq_f32(ff2, tmp);
+			nsum = vaddq_f32(nsum, resf);
+
+			psM = &sM[f3][c0];
+			tmp = vld1q_f32(psM);
+			resf = vmulq_f32(ff3, tmp);
+			nsum = vaddq_f32(nsum, resf);
+
+			psM = &sM[f4][c0];
+			tmp = vld1q_f32(psM);
+			resf = vmulq_f32(ff4, tmp);
+			nsum = vaddq_f32(nsum, resf);
+
+			float32x2_t da = vget_low_f32(nsum);
+			float32x2_t db = vget_high_f32(nsum);
+			da = vadd_f32(da, db);
+
+			*cpixel = vget_lane_f32(da,0);
+			*cpixel += vget_lane_f32(da,1);
+			*cpixel += sM[f0][c4] * filtro[0][4];
+			*cpixel += sM[f1][c4] * filtro[1][4];
+			*cpixel += sM[f2][c4] * filtro[2][4];
+			*cpixel += sM[f3][c4] * filtro[3][4];
+			*cpixel += sM[f4][c4] * filtro[4][4];
+
+			#else
+
+
+			int c0=c-2, c1=c-1, c2=c, c3=c+1, c4=c+2,
+			f0=f-2, f1=f-1, f2=f, f3=f+1, f4=f+2;
+
+			float * cpixel = &dM[f][c];
+			
+			*cpixel = 0;
+			*cpixel += sM[f0][c0] * filtro[0][0];
+			*cpixel += sM[f0][c1] * filtro[0][1];
+			*cpixel += sM[f0][c2] * filtro[0][2];
+			*cpixel += sM[f0][c3] * filtro[0][3];
+			*cpixel += sM[f0][c4] * filtro[0][4];
+
+			*cpixel += sM[f1][c0] * filtro[1][0];
+			*cpixel += sM[f1][c1] * filtro[1][1];
+			*cpixel += sM[f1][c2] * filtro[1][2];
+			*cpixel += sM[f1][c3] * filtro[1][3];
+			*cpixel += sM[f1][c4] * filtro[1][4];
+
+			*cpixel += sM[f2][c0] * filtro[2][0];
+			*cpixel += sM[f2][c1] * filtro[2][1];
+			*cpixel += sM[f2][c2] * filtro[2][2];
+			*cpixel += sM[f2][c3] * filtro[2][3];
+			*cpixel += sM[f2][c4] * filtro[2][4];
+
+			*cpixel += sM[f3][c0] * filtro[3][0];
+			*cpixel += sM[f3][c1] * filtro[3][1];
+			*cpixel += sM[f3][c2] * filtro[3][2];
+			*cpixel += sM[f3][c3] * filtro[3][3];
+			*cpixel += sM[f3][c4] * filtro[3][4];
+
+			*cpixel += sM[f4][c0] * filtro[4][0];
+			*cpixel += sM[f4][c1] * filtro[4][1];
+			*cpixel += sM[f4][c2] * filtro[4][2];
+			*cpixel += sM[f4][c3] * filtro[4][3];
+			*cpixel += sM[f4][c4] * filtro[4][4];
+
+
+			#endif
+		}
+	}
+
+
+}
+
+static void aplicarFiltro_noSeparable(float ** gsFiltradoM)
+{
+	unsigned int tfiltro = G_tamFiltro;
+	float ** sM = G_copiaImagenM;
+	float ** dM = gsFiltradoM;
+	float ** filtro = G_filtroRuido2D;
+	unsigned int height = G_height;
+	unsigned int width = G_width;
+	
+	
+	unsigned int foffset = tfiltro >> 1;
+	unsigned int maxHeight = height-foffset;
+	unsigned int maxWidth = width-foffset;
+	int f;
+
+	for(f=foffset; f < maxHeight; f++)
+	{
+		int c;
+		for(c=foffset; c < maxWidth; c++)
+		{
+			int f2,c2, ff,fc, f2o = f-foffset, c2o = c-foffset;
+			float v = 0;
+
+
+			for(f2 = f2o, ff = 0; ff < tfiltro; f2++, ff++)
+			{
+				for(c2 = c2o, fc = 0; fc < tfiltro; c2++, fc++)
+				{
+					v += sM[f2][c2] * filtro[ff][fc];
+				}
+			}
+			dM[f][c] = v;
+		}
+	}
+
+}
+
+static void aplicarFiltro_size5(float ** gsFiltradoM)
+{
+	unsigned int tamFiltro = G_tamFiltro;
+	float ** auxM = G_bufferDeTrabajoM;
+	float ** oM = G_copiaImagenM;
+	float * hfiltro = G_filtroRuido1D;
+	float * vfiltro = hfiltro;
+	unsigned int height = G_height;
+	unsigned int width = G_width;
+
+#ifdef NEON
+	float32x4_t nhfiltro, nvfiltro;
+	nhfiltro = vld1q_f32(hfiltro);
+	nvfiltro = vld1q_f32(vfiltro);
+#endif
+	//cambia
+	int foffset = 2;
+	float * centroFiltro = hfiltro + foffset;
+	float * fp0 = centroFiltro-2,
+	*fp1 = centroFiltro-1,
+	*fp2 = centroFiltro,
+	*fp3 = centroFiltro+1,
+	*fp4 = centroFiltro+2;
+	//fin-cambia
+	int f;
+	
+	int maxHeight = height-foffset;
+	int maxWidth = width-foffset;
+
+
+	omp_set_num_threads(THREADS);
+	#pragma omp parallel for schedule(runtime)
+	for(f=foffset; f < maxHeight; f++)
+	{
+		int c;
+		for(c=foffset; c < maxWidth; c++)
+		{
+		#ifdef NEON
+			float * sptr = &oM[f][c-2];
+			float32x4_t tmp;
+			tmp = vld1q_f32(sptr);
+			tmp = vmulq_f32(tmp, nhfiltro);
+
+			float32x2_t low = vget_low_f32(tmp);
+			float32x2_t high = vget_high_f32(tmp);
+
+			low = vadd_f32(low, high);
+
+			float * dptr = &auxM[f][c];
+			*dptr = vget_lane_f32(low,0);
+			*dptr += vget_lane_f32(low,1);
+
+			*dptr += *(sptr+4)**fp4;
+
+		#else
+			float * dptr = &auxM[f][c];
+			*dptr = 0;
+			*dptr += oM[f][c-2]**fp0;
+			*dptr += oM[f][c-1]**fp1;
+			*dptr += oM[f][c]**fp2;
+			*dptr += oM[f][c+1]**fp3;
+			*dptr += oM[f][c+2]**fp4;
+
+		#endif
+		}
+	}
+	
+	//cambia
+	centroFiltro = vfiltro + foffset;
+	fp0 = centroFiltro-2;
+	fp1 = centroFiltro-1;
+	fp2 = centroFiltro;
+	fp3 = centroFiltro+1;
+	fp4 = centroFiltro+2;
+	//fin-cambia
+
+	#pragma omp parallel for schedule(runtime)
+	for(f=foffset; f < maxHeight; f++)
+	{
+		int c;
+
+		for(c=foffset; c < maxWidth; c++)
+		{
+			float * dptr = &gsFiltradoM[f][c];
+			*dptr = 0;
+			*dptr += auxM[f-2][c]**fp0;
+			*dptr += auxM[f-1][c]**fp1;
+			*dptr += auxM[f][c]**fp2;
+			*dptr += auxM[f-1][c]**fp3;
+			*dptr += auxM[f-2][c]**fp4;
+		}
+	}
+
+}
+
+static void aplicarFiltro(float ** gsFiltradoM)
+{
+
+	unsigned int tamFiltro = G_tamFiltro;
+	float ** auxM = G_bufferDeTrabajoM;
+	float ** oM = G_copiaImagenM;
+	float * hfiltro = G_filtroRuido1D;
+	float * vfiltro = hfiltro;
+	unsigned int height = G_height;
+	unsigned int width = G_width;
+
+
+	unsigned int foffset = tamFiltro >> 1;
+
+	int f;
+	
+	int maxHeight = height-foffset;
+	int maxWidth = width-foffset;
+
+	//omp_set_num_threads(THREADS);
+	//#pragma omp parallel for
+	for(f=foffset; f < maxHeight; f++)
+	{
+		int c;
+		for(c=foffset; c < maxWidth; c++)
+		{
+			
+			float * fptr = &auxM[f][c];
+			*fptr = 0;
+			int c2, idx;
+			for(idx = 0, c2 = c-foffset; idx < tamFiltro; idx++, c2++)
+				*fptr += oM[f][c2] * hfiltro[idx];
+		}
+	}
+
+	//#pragma omp parallel for
+	for(f=foffset; f < maxHeight; f++)
+	{
+		int c;
+
+		for(c=foffset; c < maxWidth; c++)
+		{
+			float * fptr = &gsFiltradoM[f][c];
+			*fptr = 0;
+			int f2, idx;
+			for(idx = 0, f2 = f-foffset; idx < tamFiltro; idx++, f2++)
+				*fptr += auxM[f2][c] * vfiltro[idx];
+
+		}
+	}
+
+}
+	
+static void aplicarFiltroGradiente(float ** sM, float ** dM, float ** filtro, unsigned int height, unsigned int width)
+{
+	//cambia
+	unsigned int foffset = 1;
+	//fin-cambia
+
+	unsigned int maxHeight = height-foffset;
+	unsigned int maxWidth = width-foffset;
+	int f;
+
+#ifdef NEON
+	float32x4_t ff0,ff1,ff2;
+	ff0 = vld1q_f32(filtro[0]);
+	ff1 = vld1q_f32(filtro[1]);
+	ff2 = vld1q_f32(filtro[2]);
+#endif
+
+	omp_set_num_threads(THREADS);
+	#pragma omp parallel for schedule(runtime)
+	for(f=foffset; f < maxHeight; f++)
+	{
+		int c;
+		for(c=foffset; c < maxWidth; c++)
+		{
+		#ifdef NEON
+			int c0=c-1, c1=c, c2=c+1,
+			f0=f-1, f1=f, f2=f+1;
+
+			float32x4_t nsum, tmp, resf;
+			nsum = vdupq_n_f32(0);
+
+			float * cpixel;
+			float * psM;
+			cpixel = &dM[f][c];
+
+			psM = &sM[f0][c0];
+			tmp = vld1q_f32(psM);
+			resf = vmulq_f32(ff0, tmp);
+			nsum = vaddq_f32(nsum, resf);
+
+			psM = &sM[f1][c0];
+			tmp = vld1q_f32(psM);
+			resf = vmulq_f32(ff1, tmp);
+			nsum = vaddq_f32(nsum, resf);
+
+			psM = &sM[f2][c0];
+			tmp = vld1q_f32(psM);
+			resf = vmulq_f32(ff2, tmp);
+			nsum = vaddq_f32(nsum, resf);
+
+			float32x2_t nsumlow = vget_low_f32(nsum);
+			float32x2_t nsumhigh = vget_high_f32(nsum);
+
+			*cpixel = vget_lane_f32(nsumlow,0);
+			*cpixel += vget_lane_f32(nsumlow,1);	
+			*cpixel += vget_lane_f32(nsumhigh,0);	
+
+		#else
+			int c0=c-1, c1=c, c2=c+1,
+			f0=f-1, f1=f, f2=f+1;
+
+			float * cpixel = &dM[f][c];
+			
+			*cpixel = 0;
+			*cpixel += sM[f0][c0] * filtro[0][0];
+			*cpixel += sM[f0][c1] * filtro[0][1];
+			*cpixel += sM[f0][c2] * filtro[0][2];
+			*cpixel += sM[f1][c0] * filtro[1][0];
+			*cpixel += sM[f1][c1] * filtro[1][1];
+			*cpixel += sM[f1][c2] * filtro[1][2];
+			*cpixel += sM[f2][c0] * filtro[2][0];
+			*cpixel += sM[f2][c1] * filtro[2][1];
+			*cpixel += sM[f2][c2] * filtro[2][2];
+
+		#endif
+		}
+	}
+
+}
+
+
+static void computeGradientX(float ** gradientxM)
+{
+	float ** sM = G_copiaImagenM;
+	float ** dM = gradientxM;
+	float ** filtro = G_filtroGradienteX;
+	unsigned int height = G_height;
+	unsigned int width = G_width;
+	
+	aplicarFiltroGradiente(sM, dM, filtro, height,  width);
+}
+
+static void computeGradientY(float ** gradientyM)
+{
+	float ** sM = G_copiaImagenM;
+	float ** dM = gradientyM;
+	float ** filtro = G_filtroGradienteY;
+	unsigned int height = G_height;
+	unsigned int width = G_width;
+
+	aplicarFiltroGradiente(sM, dM, filtro, height,  width);
+}
+
 
 int main(int argc, char ** argv)
 {
@@ -785,52 +1328,47 @@ int main(int argc, char ** argv)
 	int re; //indica si escribir por la salida estandar el pgm con los bordes
 	unsigned int rgbLength, pixelLength;
 	uint8_t *ppm, *rgb, *pgm, *gs;
-	
-	unsigned int tamFiltro;
-	float * filtro;
-	float sigma;
 
+	fprintf(stderr, "THREADS: %d\n", THREADS);
+
+#ifdef RASPI2
+	fprintf(stderr, "RASPI2\n");
+#endif
+	
+	float sigma;
+	char * outdir;
+	struct stat dirInfo;
 
 	unsigned int lth, uth;
-	getOptions(argc, argv, &tamFiltro, &sigma, &uth, &lth, &re, &nangulos);
 
+	unsigned int tamFiltro;
+	getOptions(argc, argv, &tamFiltro, &sigma, &uth, &lth, &re, &nangulos, &outdir);
+
+	if(stat(outdir, &dirInfo) == -1)
+	{
+		fprintf(stderr, "Error al obtener los metadatos del fichero \"%s\"\n", outdir);
+		exit(1);
+	}
+
+	if(!S_ISDIR(dirInfo.st_mode))
+	{
+		fprintf(stderr, "%s no es un directorio\n", outdir);
+		exit(2);
+	}
+
+	char filePath[256];
+	strcpy(filePath,outdir);
+	strcat(filePath,"/");
+
+	int pathLength = strlen(filePath);
+	
+	char * outputFileName = filePath + pathLength;
 	//Canny set up
-	filtro = (float*) malloc(tamFiltro * sizeof(float));
-
-	getGaussianFilter(filtro, tamFiltro, sigma);
 
 #ifdef DEBUG
+	fprintf(stderr, "Path: %s , pathLength: %d\n", filePath, pathLength);
 	fprintf(stderr, "Sigma: %f , Size: %d\n", sigma, tamFiltro);
-	showFilter(stderr, filtro, tamFiltro);
 #endif
-	int gsize = 3;
-
-	double ** Gx = (double **) malloc(gsize * sizeof(double*));
-	double * Gxc = (double *) malloc(gsize * gsize *  sizeof(double));
-	int f;
-	double * gptr;
-	for(f = 0, gptr = Gxc; f < gsize; f++, gptr += gsize)
-	{
-		Gx[f] = gptr;
-	}
-
-	Gx[0][0] = -1; Gx[0][1] = 0; Gx[0][2] = 1;
-	Gx[1][0] = -2; Gx[1][1] = 0; Gx[1][2] = 2;
-	Gx[2][0] = -1; Gx[2][1] = 0; Gx[2][2] = 1;
-	
-	double ** Gy = (double **) malloc(gsize * sizeof(double*));
-	double * Gyc = (double *) malloc(gsize * gsize *  sizeof(double));
-	for(f = 0, gptr = Gyc; f < gsize; f++, gptr += gsize)
-	{
-		Gy[f] = gptr;
-	}
-
-	Gy[0][0] = -1; Gy[0][1] = -2; Gy[0][2] = -1;
-	Gy[1][0] =  0; Gy[1][1] =  0; Gy[1][2] =  0;
-	Gy[2][0] =  1; Gy[2][1] =  2; Gy[2][2] =  1;
-
-	unsigned int gSize = 3;
-
 	//Hough set up
 	float * cosTable, * sinTable;
 
@@ -849,6 +1387,11 @@ int main(int argc, char ** argv)
 		cosTable[thetaIndex] = cos(theta);
 		sinTable[thetaIndex] = sin(theta);
 	}
+
+#ifdef TIMMING
+	struct timeval t0,t1;
+	long long tacc = 0;
+#endif
 
 	if(read_ppmHeader(&width, &height) == 0)
 	{
@@ -882,9 +1425,12 @@ int main(int argc, char ** argv)
 		rgb2gs(rgb, gs, width, height);
 
 
-		int fppm = open("original-color.ppm", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
+		strcpy(outputFileName, "original-color.ppm");
+		int fppm = open(filePath, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
 		if (fppm < 0) showError();
- 		int fpgm = open("original-gs.pgm", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
+
+		strcpy(outputFileName, "original-gs.pgm");
+ 		int fpgm = open(filePath, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
 		if (fpgm < 0) showError();
 
 		int res = write(fppm, ppm, ppmLength);
@@ -895,75 +1441,196 @@ int main(int argc, char ** argv)
 		close(fppm);
 		close(fpgm);
 
-		unsigned char * gsFiltrado = (uint8_t*) malloc(pixelLength);
-		double * xgradiente = (double*) malloc(pixelLength * sizeof(double));
-		double * ygradiente = (double*) malloc(pixelLength * sizeof(double));
-		double * mgradiente = (double*) malloc(pixelLength * sizeof(double));
-		double * dgradiente = (double*) malloc(pixelLength * sizeof(double));
+		unsigned int size = width * height;
+		init(gs, width, height, sigma, tamFiltro);
 
+		float * gsFiltrado = (float*) malloc(pixelLength * sizeof(float));
+		float * xgradiente = (float*) malloc(pixelLength * sizeof(float));
+		float * ygradiente = (float*) malloc(pixelLength * sizeof(float));
+		float * mgradiente = (float*) malloc(pixelLength * sizeof(float));
+		float * dgradiente = (float*) malloc(pixelLength * sizeof(float));
+		uint8_t * dgdiscreta = (uint8_t*) malloc(pixelLength);
+		float * mgthin = (float*) malloc(pixelLength * sizeof(float));
+		uint8_t * bordes = (uint8_t *) malloc(pixelLength);
+
+		float ** gsFiltradoM = getMatrixFromArray_Float(gsFiltrado, width, height, size);
+		float ** xgradienteM = getMatrixFromArray_Float(xgradiente, width, height, size);
+		float ** ygradienteM = getMatrixFromArray_Float(ygradiente, width, height, size);
+		float ** mgradienteM = getMatrixFromArray_Float(mgradiente, width, height, size);
+		float ** dgradienteM = getMatrixFromArray_Float(dgradiente, width, height, size);
+
+		copiarArray_Uint8_Float(G_copiaImagen, gs, size);
+		memcpy(gsFiltrado, G_copiaImagen, size*sizeof(float));
+
+#ifdef TIMMING
+		gettimeofday(&t0, NULL);
+#endif 
 		//Filtramos el ruido con la gausiana especificada por el usuario
-		aplicarFiltro_Uint8_ConPrecision(gs, gsFiltrado, width, height, filtro, filtro, tamFiltro);
+		#ifdef NOISEFILTER_NOSEPARABLE
+
+		#ifdef FS_5
+		aplicarFiltro_noSeparable_size5(gsFiltradoM);
+		#else
+		aplicarFiltro_noSeparable(gsFiltradoM);
+		#endif
+
+		#else
+
+		#ifdef FS_5
+		aplicarFiltro_size5(gsFiltradoM);
+		#else
+		aplicarFiltro(gsFiltradoM);
+		#endif
+
+		#endif
+#ifdef TIMMING
+		gettimeofday(&t1, NULL);
+		mostrarTiempo("01-Filtrada", &t0,&t1,&tacc);
+#endif
 	
+#ifdef TIMMING
+		gettimeofday(&t0, NULL);
+#endif
 		//Obtenemos el cambio de intensidad del gradiente en X
-		aplicarFiltroNoSeparable(gsFiltrado, xgradiente, width, height, Gx, gsize);
-		uint8_t * xgescalado = (uint8_t*) malloc(pixelLength);
-		escalar_Double_Uint8(xgradiente, xgescalado, width, height);
+		#ifdef GRAD_SEPARABLE
+		//TODO:...
+		#else
+		computeGradientX(xgradienteM);
+		#endif
+
+#ifdef TIMMING
+		gettimeofday(&t1, NULL);
+		mostrarTiempo("02-Gradiente en X", &t0,&t1,&tacc);
+#endif
+
+#ifdef TIMMING
+		gettimeofday(&t0, NULL);
+#endif
 
 		//Obtenemos el cambio de intensidad del gradiente en Y
-		aplicarFiltroNoSeparable(gsFiltrado, ygradiente, width, height, Gy, gsize);
-		uint8_t * ygescalado = (uint8_t*) malloc(pixelLength);
-		escalar_Double_Uint8(ygradiente, ygescalado, width, height);
-		
+		#ifdef GRAD_SEPARABLE
+		//TODO:...
+		#else
+		computeGradientY(ygradienteM);
+		#endif
+
+
+#ifdef TIMMING
+		gettimeofday(&t1, NULL);
+		mostrarTiempo("03-Gradiente en Y", &t0,&t1,&tacc);
+#endif
+#ifdef TIMMING
+		gettimeofday(&t0, NULL);
+#endif
 		//Obtenemos el modulo del gradiente
 		obtenerModuloGradiente(xgradiente, ygradiente, mgradiente, width, height);
-		uint8_t * mgescalado = (uint8_t*) malloc(pixelLength);
-		escalar_Double_Uint8(mgradiente, mgescalado, width, height);
+#ifdef TIMMING
+		gettimeofday(&t1, NULL);
+		mostrarTiempo("04-Modulo gradiente", &t0,&t1,&tacc);
+#endif
+#ifdef TIMMING
 
+		//gettimeofday(&t0, NULL);
+#endif
 		//Obtenemos la direccion del gradiente
-		obtenerDireccionGradiente(xgradiente, ygradiente, dgradiente, width, height);
-		uint8_t * dgescalado = (uint8_t*) malloc(pixelLength);
-		escalar_Double_Uint8(dgradiente, dgescalado, width, height);
+		//obtenerDireccionGradiente(xgradiente, ygradiente, dgradiente, width, height);
+#ifdef TIMMING
+		//gettimeofday(&t1, NULL);
+		//mostrarTiempo("05-Direccion gradiente", &t0,&t1,&tacc);
+		fprintf(stderr,"06-Direccion gradiente:\t0 us\n");
+
+#endif
+#ifdef TIMMING
+
+		gettimeofday(&t0, NULL);
+#endif
 
 		//Discretizamos la direccion del gradiente en 4 direcciones (0, 45, 90 y 135º), es decir: 0, 85, 170 y 255
-		uint8_t * dgdiscreta = (uint8_t*) malloc(pixelLength);
-		discretizarDireccionGradiente(dgradiente, dgdiscreta, width, height);
-		uint8_t * dgdescalado = (uint8_t*) malloc(pixelLength);
-		escalar_Uint8_Uint8(dgdiscreta, dgdescalado, width, height);
+		//discretizarDireccionGradiente(dgradiente, dgdiscreta, width, height);
+		obtenerDireccionGradienteDiscreta(xgradiente, ygradiente, dgdiscreta, width, height);
 
+#ifdef TIMMING
+		gettimeofday(&t1, NULL);
+		mostrarTiempo("06-Direccion gradiente discreta", &t0,&t1,&tacc);
+
+#endif
+
+#ifdef TIMMING
+		gettimeofday(&t0, NULL);
+#endif
 		//Supresion de los no maximos (para adelgazar los bordes resaltados antes de la umbralizacion)
-		double * mgthin = (double*) malloc(pixelLength * sizeof(double));
 		nonMaximum(mgradiente, dgdiscreta, mgthin, width, height);
+#ifdef TIMMING
+		gettimeofday(&t1, NULL);
+		mostrarTiempo("07-Supresion no maximos", &t0,&t1,&tacc);
+#endif
+		uint8_t * xgescalado = (uint8_t*) malloc(pixelLength);
+		uint8_t * ygescalado = (uint8_t*) malloc(pixelLength);
+		uint8_t * mgescalado = (uint8_t*) malloc(pixelLength);
+		uint8_t * dgescalado = (uint8_t*) malloc(pixelLength);
+		uint8_t * dgdescalado = (uint8_t*) malloc(pixelLength);
 		uint8_t * mgthinescalado = (uint8_t *) malloc(pixelLength);
-		escalar_Double_Uint8(mgthin, mgthinescalado, width, height);
+
+		escalar_Float_Uint8(xgradiente, xgescalado, pixelLength);
+		escalar_Float_Uint8(ygradiente, ygescalado, pixelLength);
+		escalar_Float_Uint8(mgradiente, mgescalado, pixelLength);
+		escalar_Float_Uint8(dgradiente, dgescalado, pixelLength);
+		escalar_Uint8_Uint8(dgdiscreta, dgdescalado, pixelLength);
+		escalar_Float_Uint8(mgthin, mgthinescalado, pixelLength);
+
+#ifdef TIMMING
+		gettimeofday(&t0, NULL);
+#endif
 
 		//Paso final de Canny: Umbralizacion
-		uint8_t * bordes = (uint8_t *) malloc(pixelLength);
 		hysteresis(mgthinescalado, bordes, uth, lth, width, height);
+#ifdef TIMMING
+		gettimeofday(&t1, NULL);
+		mostrarTiempo("08-Umbralizacion", &t0,&t1,&tacc);
+
+#endif
+
 #ifdef DEBUG
 		fprintf(stderr, "alto: %d , bajo: %d\n", uth, lth);
 #endif
 
-		int ffiltrado = open("01-filtrada.pgm", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
+		strcpy(outputFileName, "01-filtrada.pgm");
+		int ffiltrado = open(filePath, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
 		if (ffiltrado < 0) showError();
- 		int fxgradiente = open("02-xgradiente.pgm", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
+
+
+		strcpy(outputFileName, "02-xgradiente.pgm");
+ 		int fxgradiente = open(filePath, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
 		if (fxgradiente < 0) showError();
-		int fygradiente = open("03-ygradiente.pgm", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
+
+		strcpy(outputFileName, "03-ygradiente.pgm");
+		int fygradiente = open(filePath, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
 		if (fygradiente < 0) showError();
-		int fmgradiente = open("04-mgradiente.pgm", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
+
+		strcpy(outputFileName, "04-mgradiente.pgm");
+		int fmgradiente = open(filePath, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
 		if (fmgradiente < 0) showError();
-		int fdgradiente = open("05-dgradiente.pgm", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
+
+		strcpy(outputFileName, "05-dgradiente.pgm");
+		int fdgradiente = open(filePath, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
 		if (fdgradiente < 0) showError();
-		int fdgradiente_discreta = open("06-dgradiente-discreta.pgm", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
+
+		strcpy(outputFileName, "06-dgradiente-discreta.pgm");
+		int fdgradiente_discreta = open(filePath, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
 		if (fdgradiente_discreta < 0) showError();
-		int fmgthin = open("07-mgradiente-nonmaximum.pgm", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
+
+		strcpy(outputFileName, "07-mgradiente-nonmaximum.pgm");
+		int fmgthin = open(filePath, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
 		if (fmgthin < 0) showError();
-		int fbordes = open("08-bordes.pgm", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
+
+		strcpy(outputFileName, "08-bordes.pgm");
+		int fbordes = open(filePath, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
 		if (fbordes < 0) showError();
 
 
 
 	
-		saveImage(ffiltrado, pgm, pgmhl, gsFiltrado, pixelLength);
+		saveImage_Float(ffiltrado, pgm, pgmhl, gsFiltrado, pixelLength);
 		free(gsFiltrado);
 		saveImage(fxgradiente, pgm, pgmhl, xgescalado, pixelLength);
 		free(xgescalado);
@@ -1035,9 +1702,17 @@ int main(int argc, char ** argv)
 			}
 
 		}
+#ifdef TIMMING
+		gettimeofday(&t0, NULL);
+#endif
 		//Matriz de bordes
 		uint8_t ** bordesM = (uint8_t**) malloc(sizeof(uint8_t*)*pixelLength);
 		unsigned int rhoOffset = ndistancias >> 1;
+
+		unsigned int width2 = width >> 1;
+		unsigned int height2 = height >> 1;	
+		omp_set_num_threads(THREADS);
+		#pragma omp parallel for schedule(runtime)
 		for(fila = 0; fila < height; fila++)
 		{
 			bordesM[fila] = bordes + fila * width;
@@ -1046,14 +1721,20 @@ int main(int argc, char ** argv)
 			{
 				if(bordesM[fila][col] == 255) //255: pertenece a borde, 0: no pertenece a borde
 				{
-					houghAcc(col, fila, houghSpM, accM, sinTable, cosTable, width, height, nangulos, rhoOffset, vtrue);
+					houghAcc(col, fila, houghSpM, accM, sinTable, cosTable, width2, height2, nangulos, rhoOffset, vtrue);
 				}
 			}
 		}
-
+#ifdef TIMMING
+		gettimeofday(&t1, NULL);
+		mostrarTiempo("09-Obtencion Hough space", &t0,&t1,&tacc);
+		fprintf(stderr, "TOTAL:\t%lld us\n", tacc);
+#endif
 
 		pgmhl = sprintf((char*)pgm, "P5\n%d %d\n255\n", nangulos, ndistancias);
-		int fhoughSp = open("09-houghSp.pgm", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
+
+		strcpy(outputFileName, "09-houghSp.pgm");
+		int fhoughSp = open(filePath, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
 		if (fhoughSp < 0) showError();
 
 
@@ -1063,7 +1744,8 @@ int main(int argc, char ** argv)
 		
 		escalar_Int_Uint8(acc, houghSpAccEscalado, houghSpLength);
 
-		int fhoughSpAcc = open("10-houghSpAcc.pgm", O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
+		strcpy(outputFileName, "10-houghSpAcc.pgm");
+		int fhoughSpAcc = open(filePath, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
 		if (fhoughSpAcc < 0) showError();
 
 		invertirValores(houghSpAccEscalado, houghSpLength);
@@ -1083,11 +1765,6 @@ int main(int argc, char ** argv)
 		free(houghSpAccEscalado);
 
 	}
-	free(filtro);
-	free(Gx);
-	free(Gxc);
-	free(Gy);
-	free(Gyc);
 	free(cosTable);
 	free(sinTable);
 	return 0;
