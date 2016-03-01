@@ -13,6 +13,7 @@
 #include <limits.h>
 #include <sys/types.h>
 #include <omp.h>
+#include <arm_neon.h>
 
 #ifdef TIMMING
 #include <sys/time.h>
@@ -518,14 +519,14 @@ static void init(uint8_t * img, unsigned int width, unsigned int height, float s
 	float * _filtroGradienteX, * _filtroGradienteY, *_filtroRuido2D, * auxptr;
 	
 	G_filtroRuido2D = (float**) malloc(tamFiltro*sizeof(float*));
-	_filtroRuido2D = (float*) malloc(tamFiltro*tamFiltro * sizeof(float));
+	_filtroRuido2D = (float*) malloc(tamFiltro*tamFiltro * sizeof(float)+1);
 
 	for(f = 0, auxptr = _filtroRuido2D; f < tamFiltro; f++, auxptr += tamFiltro)
 	{
 		G_filtroRuido2D[f] = auxptr;
 	}
 
-	G_filtroRuido1D = (float*) malloc(tamFiltro * sizeof(float));
+	G_filtroRuido1D = (float*) malloc(tamFiltro * sizeof(float)+1);
 	
 	getGaussianFilter(G_filtroRuido1D, tamFiltro, sigma);
 	getGaussian2DFilter(G_filtroRuido2D, tamFiltro, sigma);
@@ -918,6 +919,14 @@ static void aplicarFiltro_noSeparable_size5(float ** gsFiltradoM)
 	unsigned int maxWidth = width-foffset;
 	int f;
 
+#ifdef NEON
+	float32x4_t ff0,ff1,ff2,ff3,ff4;
+	ff0 = vld1q_f32(filtro[0]);
+	ff1 = vld1q_f32(filtro[1]);
+	ff2 = vld1q_f32(filtro[2]);
+	ff3 = vld1q_f32(filtro[3]);
+	ff4 = vld1q_f32(filtro[4]);
+#endif
 	omp_set_num_threads(THREADS);
 	#pragma omp parallel for schedule(runtime)
 	for(f=foffset; f < maxHeight; f++)
@@ -925,6 +934,58 @@ static void aplicarFiltro_noSeparable_size5(float ** gsFiltradoM)
 		int c;
 		for(c=foffset; c < maxWidth; c++)
 		{
+
+			#ifdef NEON
+			int c0=c-2, c1=c-1, c2=c, c3=c+1, c4=c+2,
+			f0=f-2, f1=f-1, f2=f, f3=f+1, f4=f+2;
+			
+			float32x4_t nsum, tmp, resf;
+			nsum = vdupq_n_f32(0);
+
+			float * cpixel;
+			float * psM;
+			cpixel = &dM[f][c];
+
+			psM = &sM[f0][c0];
+			tmp = vld1q_f32(psM);
+			resf = vmulq_f32(ff0, tmp);
+			nsum = vaddq_f32(nsum, resf);
+
+			psM = &sM[f1][c0];
+			tmp = vld1q_f32(psM);
+			resf = vmulq_f32(ff1, tmp);
+			nsum = vaddq_f32(nsum, resf);
+
+			psM = &sM[f2][c0];
+			tmp = vld1q_f32(psM);
+			resf = vmulq_f32(ff2, tmp);
+			nsum = vaddq_f32(nsum, resf);
+
+			psM = &sM[f3][c0];
+			tmp = vld1q_f32(psM);
+			resf = vmulq_f32(ff3, tmp);
+			nsum = vaddq_f32(nsum, resf);
+
+			psM = &sM[f4][c0];
+			tmp = vld1q_f32(psM);
+			resf = vmulq_f32(ff4, tmp);
+			nsum = vaddq_f32(nsum, resf);
+
+			float32x2_t da = vget_low_f32(nsum);
+			float32x2_t db = vget_high_f32(nsum);
+			da = vadd_f32(da, db);
+
+			*cpixel = vget_lane_f32(da,0);
+			*cpixel += vget_lane_f32(da,1);
+			*cpixel += sM[f0][c4] * filtro[0][4];
+			*cpixel += sM[f1][c4] * filtro[1][4];
+			*cpixel += sM[f2][c4] * filtro[2][4];
+			*cpixel += sM[f3][c4] * filtro[3][4];
+			*cpixel += sM[f4][c4] * filtro[4][4];
+
+			#else
+
+
 			int c0=c-2, c1=c-1, c2=c, c3=c+1, c4=c+2,
 			f0=f-2, f1=f-1, f2=f, f3=f+1, f4=f+2;
 
@@ -961,6 +1022,8 @@ static void aplicarFiltro_noSeparable_size5(float ** gsFiltradoM)
 			*cpixel += sM[f4][c3] * filtro[4][3];
 			*cpixel += sM[f4][c4] * filtro[4][4];
 
+
+			#endif
 		}
 	}
 
@@ -1014,6 +1077,11 @@ static void aplicarFiltro_size5(float ** gsFiltradoM)
 	unsigned int height = G_height;
 	unsigned int width = G_width;
 
+#ifdef NEON
+	float32x4_t nhfiltro, nvfiltro;
+	nhfiltro = vld1q_f32(hfiltro);
+	nvfiltro = vld1q_f32(vfiltro);
+#endif
 	//cambia
 	int foffset = 2;
 	float * centroFiltro = hfiltro + foffset;
@@ -1023,7 +1091,6 @@ static void aplicarFiltro_size5(float ** gsFiltradoM)
 	*fp3 = centroFiltro+1,
 	*fp4 = centroFiltro+2;
 	//fin-cambia
-
 	int f;
 	
 	int maxHeight = height-foffset;
@@ -1032,12 +1099,29 @@ static void aplicarFiltro_size5(float ** gsFiltradoM)
 
 	omp_set_num_threads(THREADS);
 	#pragma omp parallel for schedule(runtime)
-//	#pragma omp parallel for schedule(static, 1000)
 	for(f=foffset; f < maxHeight; f++)
 	{
 		int c;
 		for(c=foffset; c < maxWidth; c++)
 		{
+		#ifdef NEON
+			float * sptr = &oM[f][c-2];
+			float32x4_t tmp;
+			tmp = vld1q_f32(sptr);
+			tmp = vmulq_f32(tmp, nhfiltro);
+
+			float32x2_t low = vget_low_f32(tmp);
+			float32x2_t high = vget_high_f32(tmp);
+
+			low = vadd_f32(low, high);
+
+			float * dptr = &auxM[f][c];
+			*dptr = vget_lane_f32(low,0);
+			*dptr += vget_lane_f32(low,1);
+
+			*dptr += *(sptr+4)**fp4;
+
+		#else
 			float * dptr = &auxM[f][c];
 			*dptr = 0;
 			*dptr += oM[f][c-2]**fp0;
@@ -1045,6 +1129,8 @@ static void aplicarFiltro_size5(float ** gsFiltradoM)
 			*dptr += oM[f][c]**fp2;
 			*dptr += oM[f][c+1]**fp3;
 			*dptr += oM[f][c+2]**fp4;
+
+		#endif
 		}
 	}
 	
@@ -1058,7 +1144,6 @@ static void aplicarFiltro_size5(float ** gsFiltradoM)
 	//fin-cambia
 
 	#pragma omp parallel for schedule(runtime)
-//	#pragma omp parallel for schedule(static, 1000)
 	for(f=foffset; f < maxHeight; f++)
 	{
 		int c;
@@ -1129,6 +1214,87 @@ static void aplicarFiltro(float ** gsFiltradoM)
 	}
 
 }
+	
+static void aplicarFiltroGradiente(float ** sM, float ** dM, float ** filtro, unsigned int height, unsigned int width)
+{
+	//cambia
+	unsigned int foffset = 1;
+	//fin-cambia
+
+	unsigned int maxHeight = height-foffset;
+	unsigned int maxWidth = width-foffset;
+	int f;
+
+#ifdef NEON
+	float32x4_t ff0,ff1,ff2;
+	ff0 = vld1q_f32(filtro[0]);
+	ff1 = vld1q_f32(filtro[1]);
+	ff2 = vld1q_f32(filtro[2]);
+#endif
+
+	omp_set_num_threads(THREADS);
+	#pragma omp parallel for schedule(runtime)
+	for(f=foffset; f < maxHeight; f++)
+	{
+		int c;
+		for(c=foffset; c < maxWidth; c++)
+		{
+		#ifdef NEON
+			int c0=c-1, c1=c, c2=c+1,
+			f0=f-1, f1=f, f2=f+1;
+
+			float32x4_t nsum, tmp, resf;
+			nsum = vdupq_n_f32(0);
+
+			float * cpixel;
+			float * psM;
+			cpixel = &dM[f][c];
+
+			psM = &sM[f0][c0];
+			tmp = vld1q_f32(psM);
+			resf = vmulq_f32(ff0, tmp);
+			nsum = vaddq_f32(nsum, resf);
+
+			psM = &sM[f1][c0];
+			tmp = vld1q_f32(psM);
+			resf = vmulq_f32(ff1, tmp);
+			nsum = vaddq_f32(nsum, resf);
+
+			psM = &sM[f2][c0];
+			tmp = vld1q_f32(psM);
+			resf = vmulq_f32(ff2, tmp);
+			nsum = vaddq_f32(nsum, resf);
+
+			float32x2_t nsumlow = vget_low_f32(nsum);
+			float32x2_t nsumhigh = vget_high_f32(nsum);
+
+			*cpixel = vget_lane_f32(nsumlow,0);
+			*cpixel += vget_lane_f32(nsumlow,1);	
+			*cpixel += vget_lane_f32(nsumhigh,0);	
+
+		#else
+			int c0=c-1, c1=c, c2=c+1,
+			f0=f-1, f1=f, f2=f+1;
+
+			float * cpixel = &dM[f][c];
+			
+			*cpixel = 0;
+			*cpixel += sM[f0][c0] * filtro[0][0];
+			*cpixel += sM[f0][c1] * filtro[0][1];
+			*cpixel += sM[f0][c2] * filtro[0][2];
+			*cpixel += sM[f1][c0] * filtro[1][0];
+			*cpixel += sM[f1][c1] * filtro[1][1];
+			*cpixel += sM[f1][c2] * filtro[1][2];
+			*cpixel += sM[f2][c0] * filtro[2][0];
+			*cpixel += sM[f2][c1] * filtro[2][1];
+			*cpixel += sM[f2][c2] * filtro[2][2];
+
+		#endif
+		}
+	}
+
+}
+
 
 static void computeGradientX(float ** gradientxM)
 {
@@ -1138,38 +1304,7 @@ static void computeGradientX(float ** gradientxM)
 	unsigned int height = G_height;
 	unsigned int width = G_width;
 	
-	//cambia
-	unsigned int foffset = 1;
-	//fin-cambia
-
-	unsigned int maxHeight = height-foffset;
-	unsigned int maxWidth = width-foffset;
-	int f;
-
-	omp_set_num_threads(THREADS);
-	#pragma omp parallel for schedule(runtime)
-	for(f=foffset; f < maxHeight; f++)
-	{
-		int c;
-		for(c=foffset; c < maxWidth; c++)
-		{
-			int c0=c-1, c1=c, c2=c+1,
-			f0=f-1, f1=f, f2=f+1;
-
-			float * cpixel = &dM[f][c];
-			
-			*cpixel = 0;
-			*cpixel += sM[f0][c0] * filtro[0][0];
-			*cpixel += sM[f0][c1] * filtro[0][1];
-			*cpixel += sM[f0][c2] * filtro[0][2];
-			*cpixel += sM[f1][c0] * filtro[1][0];
-			*cpixel += sM[f1][c1] * filtro[1][1];
-			*cpixel += sM[f1][c2] * filtro[1][2];
-			*cpixel += sM[f2][c0] * filtro[2][0];
-			*cpixel += sM[f2][c1] * filtro[2][1];
-			*cpixel += sM[f2][c2] * filtro[2][2];
-		}
-	}
+	aplicarFiltroGradiente(sM, dM, filtro, height,  width);
 }
 
 static void computeGradientY(float ** gradientyM)
@@ -1179,39 +1314,8 @@ static void computeGradientY(float ** gradientyM)
 	float ** filtro = G_filtroGradienteY;
 	unsigned int height = G_height;
 	unsigned int width = G_width;
-	
-	//cambia
-	unsigned int foffset = 1;
-	//fin-cambia
 
-	unsigned int maxHeight = height-foffset;
-	unsigned int maxWidth = width-foffset;
-	int f;
-	
-	omp_set_num_threads(THREADS);
-	#pragma omp parallel for schedule(runtime)
-	for(f=foffset; f < maxHeight; f++)
-	{
-		int c;
-		for(c=foffset; c < maxWidth; c++)
-		{
-			int c0=c-1, c1=c, c2=c+1,
-			f0=f-1, f1=f, f2=f+1;
-
-			float * cpixel = &dM[f][c];
-			
-			*cpixel = 0;
-			*cpixel += sM[f0][c0] * filtro[0][0];
-			*cpixel += sM[f0][c1] * filtro[0][1];
-			*cpixel += sM[f0][c2] * filtro[0][2];
-			*cpixel += sM[f1][c0] * filtro[1][0];
-			*cpixel += sM[f1][c1] * filtro[1][1];
-			*cpixel += sM[f1][c2] * filtro[1][2];
-			*cpixel += sM[f2][c0] * filtro[2][0];
-			*cpixel += sM[f2][c1] * filtro[2][1];
-			*cpixel += sM[f2][c2] * filtro[2][2];
-		}
-	}
+	aplicarFiltroGradiente(sM, dM, filtro, height,  width);
 }
 
 

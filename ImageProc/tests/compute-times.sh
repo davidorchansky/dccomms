@@ -18,9 +18,9 @@ ratios=(3)
 sigmas=(1)
 #schedules=("static")
 schedules=("static dynamic guided auto")
-chunk_sizes=(1 2 4 300 400 482 500, 600 700 900)
+chunk_sizes=(1 2 4 300 482 900)
 #chunk_sizes=(1 2 4 241 482 500 700 1000)
-iterations=10
+iterations=5
 
 function getTiempoPaso
 {
