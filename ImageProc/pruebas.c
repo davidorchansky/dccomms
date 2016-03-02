@@ -506,7 +506,17 @@ static void obtenerDireccionGradiente(float * xg, float * yg, float * mg, unsign
 	}
 	
 }
-
+static void freeAll()
+{
+	free(G_copiaImagen);
+	free(G_bufferDeTrabajo);
+	free(G_filtroRuido1D);
+	free(G_copiaImagenM);
+	free(G_bufferDeTrabajoM);
+	free(G_filtroRuido2D);
+	free(G_filtroGradienteX);
+	free(G_filtroGradienteY);
+}
 static void init(uint8_t * img, unsigned int width, unsigned int height, float sigma, unsigned int tamFiltro)
 {
 	unsigned int size = width * height;
@@ -827,7 +837,7 @@ static void saveImage_Float(int fd, uint8_t * header, unsigned int hlength, floa
 #endif
 }
 
-void houghAcc(int x, int y, uint8_t ** houghSp, unsigned int ** acc, float * sinTable, float * cosTable, unsigned int width, unsigned int height, unsigned int nangulos, unsigned int rhoOffset, int vtrue)
+void houghAcc(int x, int y, unsigned int ** acc, float * sinTable, float * cosTable, unsigned int width, unsigned int height, unsigned int nangulos, unsigned int rhoOffset, int vtrue)
 {
 	float rho;
 	int thetaIndex;
@@ -840,8 +850,6 @@ void houghAcc(int x, int y, uint8_t ** houghSp, unsigned int ** acc, float * sin
 	{
 		float rho0 = x * cosTable[thetaIndex] + y * sinTable[thetaIndex];
 		int rho = ceil(rho0)+rhoOffset;
-		houghSp[rho][thetaIndex] = vtrue;
-
 		acc[rho][thetaIndex] += 1;
 
 	}
@@ -1424,6 +1432,7 @@ int main(int argc, char ** argv)
 		gs = pgm + pgmhl;
 		rgb2gs(rgb, gs, width, height);
 
+#ifdef SAVE_ORIG
 
 		strcpy(outputFileName, "original-color.ppm");
 		int fppm = open(filePath, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
@@ -1440,7 +1449,7 @@ int main(int argc, char ** argv)
 
 		close(fppm);
 		close(fpgm);
-
+#endif
 		unsigned int size = width * height;
 		init(gs, width, height, sigma, tamFiltro);
 
@@ -1564,20 +1573,23 @@ int main(int argc, char ** argv)
 		gettimeofday(&t1, NULL);
 		mostrarTiempo("07-Supresion no maximos", &t0,&t1,&tacc);
 #endif
+
+#ifdef SAVE_STEPS
 		uint8_t * xgescalado = (uint8_t*) malloc(pixelLength);
 		uint8_t * ygescalado = (uint8_t*) malloc(pixelLength);
 		uint8_t * mgescalado = (uint8_t*) malloc(pixelLength);
 		uint8_t * dgescalado = (uint8_t*) malloc(pixelLength);
 		uint8_t * dgdescalado = (uint8_t*) malloc(pixelLength);
-		uint8_t * mgthinescalado = (uint8_t *) malloc(pixelLength);
 
 		escalar_Float_Uint8(xgradiente, xgescalado, pixelLength);
 		escalar_Float_Uint8(ygradiente, ygescalado, pixelLength);
 		escalar_Float_Uint8(mgradiente, mgescalado, pixelLength);
 		escalar_Float_Uint8(dgradiente, dgescalado, pixelLength);
 		escalar_Uint8_Uint8(dgdiscreta, dgdescalado, pixelLength);
-		escalar_Float_Uint8(mgthin, mgthinescalado, pixelLength);
+#endif
 
+		uint8_t * mgthinescalado = (uint8_t *) malloc(pixelLength);
+		escalar_Float_Uint8(mgthin, mgthinescalado, pixelLength);
 #ifdef TIMMING
 		gettimeofday(&t0, NULL);
 #endif
@@ -1594,6 +1606,7 @@ int main(int argc, char ** argv)
 		fprintf(stderr, "alto: %d , bajo: %d\n", uth, lth);
 #endif
 
+#ifdef SAVE_STEPS
 		strcpy(outputFileName, "01-filtrada.pgm");
 		int ffiltrado = open(filePath, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
 		if (ffiltrado < 0) showError();
@@ -1629,7 +1642,6 @@ int main(int argc, char ** argv)
 
 
 
-	
 		saveImage_Float(ffiltrado, pgm, pgmhl, gsFiltrado, pixelLength);
 		free(gsFiltrado);
 		saveImage(fxgradiente, pgm, pgmhl, xgescalado, pixelLength);
@@ -1643,14 +1655,7 @@ int main(int argc, char ** argv)
 		saveImage(fdgradiente_discreta, pgm, pgmhl, dgdescalado, pixelLength);
 		free(dgdescalado);
 		saveImage(fmgthin, pgm, pgmhl, mgthinescalado, pixelLength);
-		free(mgthinescalado);
 		saveImage(fbordes, pgm, pgmhl, bordes, pixelLength);
-
-		free(ppm);
-		free(xgradiente);
-		free(ygradiente);
-		free(mgradiente);
-		free(dgradiente);
 
 		close(ffiltrado);
 		close(fxgradiente);
@@ -1660,6 +1665,16 @@ int main(int argc, char ** argv)
 		close(fdgradiente_discreta);
 		close(fmgthin);
 		close(fbordes);
+
+#endif
+
+		free(mgthinescalado);
+		free(ppm);
+		free(xgradiente);
+		free(ygradiente);
+		free(mgradiente);
+		free(dgradiente);
+
 
 		//FIN CANNY
 		//HOUGH
@@ -1688,20 +1703,6 @@ int main(int argc, char ** argv)
 
 		}
 
-		//Matriz del espacio de hough	
-		uint8_t ** houghSpM = (uint8_t**) malloc (sizeof(uint8_t*) * ndistancias);
-		uint8_t * houghSp = (uint8_t*) malloc(sizeof(uint8_t) * nangulos * ndistancias);
-
-		for(fila = 0; fila < ndistancias ; fila++)
-		{
-			houghSpM[fila] = houghSp + fila * nangulos;
-			uint8_t * ptr, *mptr = houghSpM[fila] + nangulos;
-			for(ptr = houghSpM[fila]; ptr < mptr; ptr++)
-			{
-				*ptr = vfalse;
-			}
-
-		}
 #ifdef TIMMING
 		gettimeofday(&t0, NULL);
 #endif
@@ -1721,7 +1722,7 @@ int main(int argc, char ** argv)
 			{
 				if(bordesM[fila][col] == 255) //255: pertenece a borde, 0: no pertenece a borde
 				{
-					houghAcc(col, fila, houghSpM, accM, sinTable, cosTable, width2, height2, nangulos, rhoOffset, vtrue);
+					houghAcc(col, fila, accM, sinTable, cosTable, width2, height2, nangulos, rhoOffset, vtrue);
 				}
 			}
 		}
@@ -1731,42 +1732,35 @@ int main(int argc, char ** argv)
 		fprintf(stderr, "TOTAL:\t%lld us\n", tacc);
 #endif
 
+#ifndef TIMMING
 		pgmhl = sprintf((char*)pgm, "P5\n%d %d\n255\n", nangulos, ndistancias);
-
-		strcpy(outputFileName, "09-houghSp.pgm");
-		int fhoughSp = open(filePath, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
-		if (fhoughSp < 0) showError();
-
-
-		saveImage(fhoughSp, pgm, pgmhl, houghSp, houghSpLength);
-
 		uint8_t * houghSpAccEscalado = (uint8_t *) malloc(houghSpLength);
-		
+
 		escalar_Int_Uint8(acc, houghSpAccEscalado, houghSpLength);
 
 		strcpy(outputFileName, "10-houghSpAcc.pgm");
+
 		int fhoughSpAcc = open(filePath, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
 		if (fhoughSpAcc < 0) showError();
 
 		invertirValores(houghSpAccEscalado, houghSpLength);
 		saveImage(fhoughSpAcc, pgm, pgmhl, houghSpAccEscalado, houghSpLength);
 
+		close(fhoughSpAcc);
+		free(houghSpAccEscalado);
 		if(re)
 			saveImage(1, pgm, pgmhl, houghSpAccEscalado, houghSpLength);
-
-		close(fhoughSp);
-		close(fhoughSpAcc);
-
+#endif
 		free(accM);
 		free(acc);
 		free(bordes);
 		free(bordesM);
 		free(pgm);
-		free(houghSpAccEscalado);
 
 	}
 	free(cosTable);
 	free(sinTable);
+	freeAll();
 	return 0;
 }
 

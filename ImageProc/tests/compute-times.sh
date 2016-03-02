@@ -20,7 +20,7 @@ sigmas=(1)
 schedules=("static dynamic guided auto")
 chunk_sizes=(1 2 4 300 482 900)
 #chunk_sizes=(1 2 4 241 482 500 700 1000)
-iterations=5
+iterations=10
 
 function getTiempoPaso
 {
