@@ -16,11 +16,9 @@ degrees=(360)
 lowThresholds=(40)
 ratios=(3)
 sigmas=(1)
-#schedules=("static")
 schedules=("static dynamic guided auto")
-chunk_sizes=(1 2 4 300 482 900)
-#chunk_sizes=(1 2 4 241 482 500 700 1000)
-iterations=10
+chunk_sizes=(1 2 4 241 482 1000)
+iterations=20
 
 function getTiempoPaso
 {
@@ -89,11 +87,12 @@ do
 								while [ $it -lt $iterations ]; do
 
 									rawOutputFile=$sigmaDir/rawOutput_$it.txt
-									paralconf="\"$schedule,$chunk\""
+									paralconf=$schedule,$chunk
 									echo $paralconf
 									export OMP_SCHEDULE=$paralconf
 									$tester -a $angles -U $uthold -L $lthold -s $sigma -l $filterSize -d $sigmaDir < $inputImg 2> $rawOutputFile
 									rawOutput=$(cat $rawOutputFile)
+									echo "$rawOutput"
 
 									t01tmp=$(getTiempoPaso 01 "$rawOutput")
 									t02tmp=$(getTiempoPaso 02 "$rawOutput")

@@ -16,6 +16,7 @@
 
 #ifdef RASPI2
 #include <arm_neon.h>
+#define NEON
 #endif
 
 #ifdef TIMMING
@@ -1154,20 +1155,34 @@ static void aplicarFiltro_size5(float ** gsFiltradoM)
 	fp4 = centroFiltro+2;
 	//fin-cambia
 
+#ifdef NEON2
+	float32_t auxVector[4];
+	#pragma omp parallel for schedule(runtime) private(auxVector)
+#else
 	#pragma omp parallel for schedule(runtime)
+#endif
 	for(f=foffset; f < maxHeight; f++)
 	{
 		int c;
 
 		for(c=foffset; c < maxWidth; c++)
 		{
+		#ifdef NEON2
+			auxVector[0] = gsFiltrado[f-2][c];
+			auxVector[1] = gsFiltrado[f-1][c];
+			auxVector[2] = gsFiltrado[f][c];
+			auxVector[3] = gsFiltrado[f+1][c];
+			auxVector[3] = gsFiltrado[f+2][c];
+
+		#else
 			float * dptr = &gsFiltradoM[f][c];
 			*dptr = 0;
 			*dptr += auxM[f-2][c]**fp0;
 			*dptr += auxM[f-1][c]**fp1;
 			*dptr += auxM[f][c]**fp2;
-			*dptr += auxM[f-1][c]**fp3;
-			*dptr += auxM[f-2][c]**fp4;
+			*dptr += auxM[f+1][c]**fp3;
+			*dptr += auxM[f+2][c]**fp4;
+		#endif
 		}
 	}
 

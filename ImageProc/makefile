@@ -3,7 +3,7 @@ ARGS=
 
 exec=pruebas join
 
-CFLAGS=$(ARGS) -fopenmp -O3 -mfpu=neon
+CFLAGS=$(ARGS) -fopenmp -O3
 CC=gcc
 all: $(exec) install
 
