@@ -1155,7 +1155,7 @@ static void aplicarFiltro_size5(float ** gsFiltradoM)
 	fp4 = centroFiltro+2;
 	//fin-cambia
 
-#ifdef NEON2
+#ifdef NEON_VF
 	float32_t auxVector[4];
 	#pragma omp parallel for schedule(runtime) private(auxVector)
 #else
@@ -1167,12 +1167,28 @@ static void aplicarFiltro_size5(float ** gsFiltradoM)
 
 		for(c=foffset; c < maxWidth; c++)
 		{
-		#ifdef NEON2
-			auxVector[0] = gsFiltrado[f-2][c];
-			auxVector[1] = gsFiltrado[f-1][c];
-			auxVector[2] = gsFiltrado[f][c];
-			auxVector[3] = gsFiltrado[f+1][c];
-			auxVector[3] = gsFiltrado[f+2][c];
+		#ifdef NEON_VF
+			auxVector[0] = auxM[f-2][c];
+			auxVector[1] = auxM[f-1][c];
+			auxVector[2] = auxM[f][c];
+			auxVector[3] = auxM[f+1][c];
+
+			float32x4_t tmp;
+			tmp = vld1q_f32(auxVector);
+			tmp = vmulq_f32(tmp, nvfiltro);
+			
+			float32x2_t low = vget_low_f32(tmp);
+			float32x2_t high = vget_high_f32(tmp);
+
+			low = vadd_f32(low, high);
+
+			float * dptr = &gsFiltradoM[f][c];
+			*dptr = vget_lane_f32(low,0);
+			*dptr += vget_lane_f32(low,1);
+
+			*dptr += auxM[f+2][c]**fp4;
+
+
 
 		#else
 			float * dptr = &gsFiltradoM[f][c];
