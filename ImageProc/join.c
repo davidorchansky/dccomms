@@ -1262,6 +1262,136 @@ static void aplicarFiltro(float ** gsFiltradoM)
 
 }
 	
+static void _computeGradient(float ** sM, float ** xM, float **  yM, float ** xfiltro, float ** yfiltro, unsigned int height, unsigned int width)
+{
+	//cambia
+	unsigned int foffset = 1;
+	//fin-cambia
+
+	unsigned int maxHeight = height-foffset;
+	unsigned int maxWidth = width-foffset;
+	int f;
+
+#ifdef NEON
+	float32x4_t xff0,xff1,xff2, yff0, yff1, yff2;
+	xff0 = vld1q_f32(xfiltro[0]);
+	xff1 = vld1q_f32(xfiltro[1]);
+	xff2 = vld1q_f32(xfiltro[2]);
+	yff0 = vld1q_f32(yfiltro[0]);
+	yff1 = vld1q_f32(yfiltro[1]);
+	yff2 = vld1q_f32(yfiltro[2]);
+
+#endif
+
+	omp_set_num_threads(THREADS);
+	#pragma omp parallel for schedule(runtime)
+	for(f=foffset; f < maxHeight; f++)
+	{
+		int c;
+		for(c=foffset; c < maxWidth; c++)
+		{
+		#ifdef NEON
+			int c0=c-1, c1=c, c2=c+1,
+			f0=f-1, f1=f, f2=f+1;
+
+			//gradiente en X
+			float32x4_t nsum, tmp, resf;
+			nsum = vdupq_n_f32(0);
+
+			float * cpixel;
+			float * psM;
+			cpixel = &xM[f][c];
+
+			psM = &sM[f0][c0];
+			tmp = vld1q_f32(psM);
+			resf = vmulq_f32(xff0, tmp);
+			nsum = vaddq_f32(nsum, resf);
+
+			psM = &sM[f1][c0];
+			tmp = vld1q_f32(psM);
+			resf = vmulq_f32(xff1, tmp);
+			nsum = vaddq_f32(nsum, resf);
+
+			psM = &sM[f2][c0];
+			tmp = vld1q_f32(psM);
+			resf = vmulq_f32(xff2, tmp);
+			nsum = vaddq_f32(nsum, resf);
+
+			float32x2_t nsumlow = vget_low_f32(nsum);
+			float32x2_t nsumhigh = vget_high_f32(nsum);
+
+			*cpixel = vget_lane_f32(nsumlow,0);
+			*cpixel += vget_lane_f32(nsumlow,1);	
+			*cpixel += vget_lane_f32(nsumhigh,0);
+			
+			//gradiente en Y
+			nsum = vdupq_n_f32(0);
+
+			cpixel = &yM[f][c];
+
+			psM = &sM[f0][c0];
+			tmp = vld1q_f32(psM);
+			resf = vmulq_f32(yff0, tmp);
+			nsum = vaddq_f32(nsum, resf);
+
+			psM = &sM[f1][c0];
+			tmp = vld1q_f32(psM);
+			resf = vmulq_f32(yff1, tmp);
+			nsum = vaddq_f32(nsum, resf);
+
+			psM = &sM[f2][c0];
+			tmp = vld1q_f32(psM);
+			resf = vmulq_f32(yff2, tmp);
+			nsum = vaddq_f32(nsum, resf);
+
+			float32x2_t nsumlow = vget_low_f32(nsum);
+			float32x2_t nsumhigh = vget_high_f32(nsum);
+
+			*cpixel = vget_lane_f32(nsumlow,0);
+			*cpixel += vget_lane_f32(nsumlow,1);	
+			*cpixel += vget_lane_f32(nsumhigh,0);	
+
+
+		#else
+			int c0=c-1, c1=c, c2=c+1,
+			f0=f-1, f1=f, f2=f+1;
+
+			//gradiente en X
+			float * cpixel = &xM[f][c];
+			
+			*cpixel = 0;
+			*cpixel += sM[f0][c0] * xfiltro[0][0];
+			*cpixel += sM[f0][c1] * xfiltro[0][1];
+			*cpixel += sM[f0][c2] * xfiltro[0][2];
+			*cpixel += sM[f1][c0] * xfiltro[1][0];
+			*cpixel += sM[f1][c1] * xfiltro[1][1];
+			*cpixel += sM[f1][c2] * xfiltro[1][2];
+			*cpixel += sM[f2][c0] * xfiltro[2][0];
+			*cpixel += sM[f2][c1] * xfiltro[2][1];
+			*cpixel += sM[f2][c2] * xfiltro[2][2];
+
+			//gradiente en Y
+			cpixel = &yM[f][c];
+			
+			*cpixel = 0;
+			*cpixel += sM[f0][c0] * yfiltro[0][0];
+			*cpixel += sM[f0][c1] * yfiltro[0][1];
+			*cpixel += sM[f0][c2] * yfiltro[0][2];
+			*cpixel += sM[f1][c0] * yfiltro[1][0];
+			*cpixel += sM[f1][c1] * yfiltro[1][1];
+			*cpixel += sM[f1][c2] * yfiltro[1][2];
+			*cpixel += sM[f2][c0] * yfiltro[2][0];
+			*cpixel += sM[f2][c1] * yfiltro[2][1];
+			*cpixel += sM[f2][c2] * yfiltro[2][2];
+
+
+		#endif
+		}
+	}
+
+
+}
+
 static void aplicarFiltroGradiente(float ** sM, float ** dM, float ** filtro, unsigned int height, unsigned int width)
 {
 	//cambia
@@ -1341,6 +1471,20 @@ static void aplicarFiltroGradiente(float ** sM, float ** dM, float ** filtro, un
 	}
 
 }
+
+static void computeGradient(float ** gradientxM, float ** gradientyM)
+{
+	float ** sM = G_copiaImagenM;
+	float ** xM = gradientxM;
+	float ** yM = gradientyM;
+	float ** xfiltro = G_filtroGradienteX;
+	float ** yfiltro = G_filtroGradienteY;
+	unsigned int height = G_height;
+	unsigned int width = G_width;
+	
+	_computeGradient(sM, xM, yM, xfiltro, yfiltro, height,  width);
+}
+
 
 
 static void computeGradientX(float ** gradientxM)
@@ -1539,12 +1683,22 @@ int main(int argc, char ** argv)
 #ifdef TIMMING
 		gettimeofday(&t0, NULL);
 #endif
+	#ifndef GRAD_SEPARADOS		
+		//Obtenemos el cambio de intensidad del gradiente en X
+		#ifdef GRAD_SEPARABLE
+		//TODO:...
+		#else
+		computeGradient(xgradienteM, ygradienteM);
+		#endif
+	#else
 		//Obtenemos el cambio de intensidad del gradiente en X
 		#ifdef GRAD_SEPARABLE
 		//TODO:...
 		#else
 		computeGradientX(xgradienteM);
 		#endif
+
+	#endif
 
 #ifdef TIMMING
 		gettimeofday(&t1, NULL);
@@ -1555,12 +1709,16 @@ int main(int argc, char ** argv)
 		gettimeofday(&t0, NULL);
 #endif
 
+	#ifdef GRAD_SEPARADOS		
 		//Obtenemos el cambio de intensidad del gradiente en Y
 		#ifdef GRAD_SEPARABLE
 		//TODO:...
 		#else
 		computeGradientY(ygradienteM);
 		#endif
+
+	#endif
+
 
 
 #ifdef TIMMING
