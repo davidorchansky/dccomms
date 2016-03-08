@@ -14,9 +14,8 @@
 #include <sys/types.h>
 #include <omp.h>
 
-#ifdef RASPI2
+#ifdef NEON
 #include <arm_neon.h>
-#define NEON
 #endif
 
 #ifdef TIMMING
@@ -477,11 +476,14 @@ static void obtenerModuloGradiente(float * xg, float * yg, float * mg, unsigned 
 
 	int i;
 	omp_set_num_threads(THREADS);
+
 #ifdef RASPI2
 	#pragma omp parallel for schedule(static, 311372) //La mitad del tamano de la imagen que le pasaremos en los tests...
 #else
 	#pragma omp parallel for schedule(static, 622744) //La mitad del tamano de la imagen que le pasaremos en los tests...
 #endif
+
+	//#pragma omp parallel for schedule(static, 2)
 	for(i = 0 ; i < length; i++)
 	{
 		float x = xg[i];
@@ -618,11 +620,14 @@ static void obtenerDireccionGradienteDiscreta(float * xg, float * yg, uint8_t * 
 	float vmax=0, vmin=0;
 	omp_set_num_threads(THREADS);
 
+
 #ifdef RASPI2
 	#pragma omp parallel for schedule(static, 311372) //La mitad del tamano de la imagen que le pasaremos en los tests...
 #else
 	#pragma omp parallel for schedule(static, 622744) //La mitad del tamano de la imagen que le pasaremos en los tests...
 #endif
+
+//	#pragma omp parallel for schedule(static, 2)
 	for(i = 0 ; i < length; i++)
 	{
 		float x = xg[i];
@@ -1369,6 +1374,9 @@ int main(int argc, char ** argv)
 	uint8_t *ppm, *rgb, *pgm, *gs;
 
 	fprintf(stderr, "THREADS: %d\n", THREADS);
+	int procs = omp_get_num_procs();
+	int maxthreads = omp_get_max_threads();
+	fprintf(stderr, "max procs: %d ; max threads: %d\n", procs, maxthreads);
 
 #ifdef RASPI2
 	fprintf(stderr, "RASPI2\n");

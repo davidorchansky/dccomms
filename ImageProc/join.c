@@ -14,7 +14,7 @@
 #include <sys/types.h>
 #include <omp.h>
 
-#ifdef RASPI2
+#ifdef NEON
 #include <arm_neon.h>
 #endif
 
@@ -476,11 +476,14 @@ static void obtenerModuloGradiente(float * xg, float * yg, float * mg, unsigned 
 
 	int i;
 	omp_set_num_threads(THREADS);
+
 #ifdef RASPI2
 	#pragma omp parallel for schedule(static, 311372) //La mitad del tamano de la imagen que le pasaremos en los tests...
 #else
 	#pragma omp parallel for schedule(static, 622744) //La mitad del tamano de la imagen que le pasaremos en los tests...
 #endif
+
+	//#pragma omp parallel for schedule(static, 2)
 	for(i = 0 ; i < length; i++)
 	{
 		float x = xg[i];
@@ -617,11 +620,14 @@ static void obtenerDireccionGradienteDiscreta(float * xg, float * yg, uint8_t * 
 	float vmax=0, vmin=0;
 	omp_set_num_threads(THREADS);
 
+
 #ifdef RASPI2
 	#pragma omp parallel for schedule(static, 311372) //La mitad del tamano de la imagen que le pasaremos en los tests...
 #else
 	#pragma omp parallel for schedule(static, 622744) //La mitad del tamano de la imagen que le pasaremos en los tests...
 #endif
+
+//	#pragma omp parallel for schedule(static, 2)
 	for(i = 0 ; i < length; i++)
 	{
 		float x = xg[i];
@@ -1154,20 +1160,50 @@ static void aplicarFiltro_size5(float ** gsFiltradoM)
 	fp4 = centroFiltro+2;
 	//fin-cambia
 
+#ifdef NEON_VF
+	float32_t auxVector[4];
+	#pragma omp parallel for schedule(runtime) private(auxVector)
+#else
 	#pragma omp parallel for schedule(runtime)
+#endif
 	for(f=foffset; f < maxHeight; f++)
 	{
 		int c;
 
 		for(c=foffset; c < maxWidth; c++)
 		{
+		#ifdef NEON_VF
+			auxVector[0] = auxM[f-2][c];
+			auxVector[1] = auxM[f-1][c];
+			auxVector[2] = auxM[f][c];
+			auxVector[3] = auxM[f+1][c];
+
+			float32x4_t tmp;
+			tmp = vld1q_f32(auxVector);
+			tmp = vmulq_f32(tmp, nvfiltro);
+			
+			float32x2_t low = vget_low_f32(tmp);
+			float32x2_t high = vget_high_f32(tmp);
+
+			low = vadd_f32(low, high);
+
+			float * dptr = &gsFiltradoM[f][c];
+			*dptr = vget_lane_f32(low,0);
+			*dptr += vget_lane_f32(low,1);
+
+			*dptr += auxM[f+2][c]**fp4;
+
+
+
+		#else
 			float * dptr = &gsFiltradoM[f][c];
 			*dptr = 0;
 			*dptr += auxM[f-2][c]**fp0;
 			*dptr += auxM[f-1][c]**fp1;
 			*dptr += auxM[f][c]**fp2;
-			*dptr += auxM[f-1][c]**fp3;
-			*dptr += auxM[f-2][c]**fp4;
+			*dptr += auxM[f+1][c]**fp3;
+			*dptr += auxM[f+2][c]**fp4;
+		#endif
 		}
 	}
 
@@ -1338,6 +1374,9 @@ int main(int argc, char ** argv)
 	uint8_t *ppm, *rgb, *pgm, *gs;
 
 	fprintf(stderr, "THREADS: %d\n", THREADS);
+	int procs = omp_get_num_procs();
+	int maxthreads = omp_get_max_threads();
+	fprintf(stderr, "max procs: %d ; max threads: %d\n", procs, maxthreads);
 
 #ifdef RASPI2
 	fprintf(stderr, "RASPI2\n");
