@@ -1344,8 +1344,8 @@ static void _computeGradient(float ** sM, float ** xM, float **  yM, float ** xf
 			resf = vmulq_f32(yff2, tmp);
 			nsum = vaddq_f32(nsum, resf);
 
-			float32x2_t nsumlow = vget_low_f32(nsum);
-			float32x2_t nsumhigh = vget_high_f32(nsum);
+			nsumlow = vget_low_f32(nsum);
+			nsumhigh = vget_high_f32(nsum);
 
 			*cpixel = vget_lane_f32(nsumlow,0);
 			*cpixel += vget_lane_f32(nsumlow,1);	
@@ -1929,7 +1929,7 @@ int main(int argc, char ** argv)
 		fprintf(stderr, "TOTAL:\t%lld us\n", tacc);
 #endif
 
-#ifndef TIMMING
+#ifndef NORESULT
 		pgmhl = sprintf((char*)pgm, "P5\n%d %d\n255\n", nangulos, ndistancias);
 		uint8_t * houghSpAccEscalado = (uint8_t *) malloc(houghSpLength);
 
