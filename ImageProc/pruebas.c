@@ -411,6 +411,31 @@ void getGaussianFilter(float * filtro, unsigned int tam, float sigma)
 	}
 
 }
+static void getMatrixFromArray_Float_buffer(float* vec, unsigned int width, unsigned int height, unsigned int size, float** mat)
+{
+	float * sptr;
+	int pos;
+	sptr = vec;
+	for(pos = 0; pos < height; pos += 1)
+	{
+		mat[pos] = sptr;
+		sptr += width;
+	}
+}
+
+static void getMatrixFromArray_Uint8_buffer(uint8_t* vec, unsigned int width, unsigned int height, unsigned int size, uint8_t ** mat)
+{
+	uint8_t * sptr;
+	int pos;
+	sptr = vec;
+	for(pos = 0; pos < height; pos += 1)
+	{
+		mat[pos] = sptr;
+		sptr += width;
+	}
+}
+
+
 static float ** getMatrixFromArray_Float(float* vec, unsigned int width, unsigned int height, unsigned int size)
 {
 
@@ -663,41 +688,16 @@ static unsigned int escalarDireccionDiscreta(uint8_t dir)
 
 }
 #endif
-static void discretizarDireccionGradiente(float * dgradiente, uint8_t * dgdiscretizada, unsigned int width, unsigned int height)
-{
-	
-	unsigned int size = width * height;
-	float * sptr, *maxdg = dgradiente + size;
-	uint8_t * dptr;
-
-	for(sptr = dgradiente, dptr = dgdiscretizada; sptr < maxdg; sptr++, dptr++)
-	{
-		*dptr = getDireccion(*sptr);
-	}
-	
-
-	
-}
 
 
-static void nonMaximum(float * mg, uint8_t * dg, float * mgthin, unsigned int width, unsigned int height)
+static void nonMaximum(float ** mgM, uint8_t ** dgM, float ** mgtM, unsigned int width, unsigned int height)
 {
 	unsigned int size = width * height;
-	float ** mgM = (float**) malloc(height * sizeof(float*));
-	uint8_t ** dgM = (uint8_t**) malloc(height * sizeof(uint8_t*));
 
-	float * mptr;
-	uint8_t * dptr;
+	//float * mg = mgM[0];
+	//float * mgthin = mgtM[0];
 
-	int pos;
-
-	memcpy(mgthin, mg, size*sizeof(float));
-
-	for(pos = 0, mptr = mg, dptr = dg; pos < height; pos += 1, mptr += width, dptr += width)
-	{
-		mgM[pos] = mptr;
-		dgM[pos] = dptr;
-	}
+	//memcpy(mgthin, mg, size*sizeof(float));
 
 	unsigned int foffset = 1;
 
@@ -754,36 +754,22 @@ static void nonMaximum(float * mg, uint8_t * dg, float * mgthin, unsigned int wi
 			if(v < mgM[mf1][mc1] || v < mgM[mf2][mc2])
 			{
 				//fprintf(stderr, "%d-%d , %d-%d, %d-%d\n", mf1,mc1,f,c,mf2,mc2);
-				float * dst = mgthin + f * width + c;
-				*dst = 0;
+				mgtM[f][c] = 0;
 			}
+			else
+				mgtM[f][c] = v;
+		
 		}
 	}
 
-	free(mgM);
-	free(dgM);
 }
 
-static void hysteresis(uint8_t * src, uint8_t * dst, uint8_t alto, uint8_t bajo, unsigned int width, unsigned int height)
+static void hysteresis(uint8_t ** srcM, uint8_t ** dstM, uint8_t alto, uint8_t bajo, unsigned int width, unsigned int height)
 {
 
 	unsigned int size = width * height;
 
-	uint8_t ** srcM = (uint8_t**) malloc(height * sizeof(uint8_t*));
-	uint8_t ** dstM = (uint8_t**) malloc(height * sizeof(uint8_t*));
-
-	uint8_t * sptr;
-	uint8_t * dptr;
-
-	int pos;
-
 	uint8_t vmax = 255, vmin = 0;
-	for(pos = 0, sptr = src, dptr = dst; pos < height; pos += 1, sptr += width, dptr += width)
-	{
-		srcM[pos] = sptr;
-		dstM[pos] = dptr;
-	}
-
 	int f, c;
 	int maxHeight = height-1;
 	int maxWidth = width-1;
@@ -818,7 +804,6 @@ static void hysteresis(uint8_t * src, uint8_t * dst, uint8_t alto, uint8_t bajo,
 		}
 	}
 	
-	free(srcM); free(dstM);
 }
 
 static void saveImage(int fd, uint8_t * header, unsigned int hlength, uint8_t * content, unsigned int clength)
@@ -1636,20 +1621,37 @@ int main(int argc, char ** argv)
 		unsigned int size = width * height;
 		init(gs, width, height, sigma, tamFiltro);
 
-		float * gsFiltrado = (float*) malloc(pixelLength * sizeof(float));
-		float * xgradiente = (float*) malloc(pixelLength * sizeof(float));
-		float * ygradiente = (float*) malloc(pixelLength * sizeof(float));
-		float * mgradiente = (float*) malloc(pixelLength * sizeof(float));
-		float * dgradiente = (float*) malloc(pixelLength * sizeof(float));
-		uint8_t * dgdiscreta = (uint8_t*) malloc(pixelLength);
-		float * mgthin = (float*) malloc(pixelLength * sizeof(float));
-		uint8_t * bordes = (uint8_t *) malloc(pixelLength);
+		unsigned int floatLength = pixelLength * sizeof(float),
+		uint8Length = pixelLength * sizeof(uint8_t),
+		ptrUint8Length = pixelLength * sizeof(uint8_t*),
+		ptrFloatLength = pixelLength * sizeof(float*);
 
-		float ** gsFiltradoM = getMatrixFromArray_Float(gsFiltrado, width, height, size);
-		float ** xgradienteM = getMatrixFromArray_Float(xgradiente, width, height, size);
-		float ** ygradienteM = getMatrixFromArray_Float(ygradiente, width, height, size);
-		float ** mgradienteM = getMatrixFromArray_Float(mgradiente, width, height, size);
-		float ** dgradienteM = getMatrixFromArray_Float(dgradiente, width, height, size);
+		void * BUFFER = malloc(floatLength*5+uint8Length*3+ptrFloatLength*5+ptrUint8Length*3);
+		float * gsFiltrado = (float*) (BUFFER);
+		float ** gsFiltradoM = (float**) (gsFiltrado+pixelLength);
+		float * xgradiente = (float*) (gsFiltradoM+height);
+		float ** xgradienteM = (float**) (xgradiente+pixelLength);
+		float * ygradiente = (float*) (xgradienteM+height);
+		float ** ygradienteM = (float**) (ygradiente+pixelLength);
+		float * mgradiente = (float*) (ygradienteM+height);
+		float ** mgradienteM = (float**) (mgradiente+pixelLength);
+		uint8_t * dgdiscreta = (uint8_t*) (mgradienteM+height);
+		uint8_t ** dgdiscretaM = (uint8_t**) (dgdiscreta+pixelLength);
+		float * mgthin = (float*) (dgdiscretaM+height);
+		float ** mgthinM = (float**) (mgthin+pixelLength);
+		uint8_t * mgthinescalado = (uint8_t *) (mgthinM+height);
+		uint8_t ** mgthinescaladoM = (uint8_t**) (mgthinescalado+pixelLength);
+		uint8_t * bordes = (uint8_t *) (mgthinescaladoM+height);
+		uint8_t ** bordesM = (uint8_t**) (bordes+pixelLength);
+
+		getMatrixFromArray_Float_buffer(gsFiltrado, width, height, size, gsFiltradoM);
+		getMatrixFromArray_Float_buffer(xgradiente, width, height, size, xgradienteM);
+		getMatrixFromArray_Float_buffer(ygradiente, width, height, size, ygradienteM);
+		getMatrixFromArray_Float_buffer(mgradiente, width, height, size, mgradienteM);
+		getMatrixFromArray_Float_buffer(mgthin, width, height, size, mgthinM);
+		getMatrixFromArray_Uint8_buffer(dgdiscreta, width, height, size, dgdiscretaM);
+		getMatrixFromArray_Uint8_buffer(bordes, width, height, size, bordesM);
+		getMatrixFromArray_Uint8_buffer(mgthinescalado, width, height, size, mgthinescaladoM);
 
 		copiarArray_Uint8_Float(G_copiaImagen, gs, size);
 		memcpy(gsFiltrado, G_copiaImagen, size*sizeof(float));
@@ -1765,7 +1767,7 @@ int main(int argc, char ** argv)
 		gettimeofday(&t0, NULL);
 #endif
 		//Supresion de los no maximos (para adelgazar los bordes resaltados antes de la umbralizacion)
-		nonMaximum(mgradiente, dgdiscreta, mgthin, width, height);
+		nonMaximum(mgradienteM, dgdiscretaM, mgthinM, width, height);
 #ifdef TIMMING
 		gettimeofday(&t1, NULL);
 		mostrarTiempo("07-Supresion no maximos", &t0,&t1,&tacc);
@@ -1781,18 +1783,16 @@ int main(int argc, char ** argv)
 		escalar_Float_Uint8(xgradiente, xgescalado, pixelLength);
 		escalar_Float_Uint8(ygradiente, ygescalado, pixelLength);
 		escalar_Float_Uint8(mgradiente, mgescalado, pixelLength);
-		escalar_Float_Uint8(dgradiente, dgescalado, pixelLength);
 		escalar_Uint8_Uint8(dgdiscreta, dgdescalado, pixelLength);
 #endif
 
-		uint8_t * mgthinescalado = (uint8_t *) malloc(pixelLength);
 		escalar_Float_Uint8(mgthin, mgthinescalado, pixelLength);
 #ifdef TIMMING
 		gettimeofday(&t0, NULL);
 #endif
 
 		//Paso final de Canny: Umbralizacion
-		hysteresis(mgthinescalado, bordes, uth, lth, width, height);
+		hysteresis(mgthinescaladoM, bordesM, uth, lth, width, height);
 #ifdef TIMMING
 		gettimeofday(&t1, NULL);
 		mostrarTiempo("08-Umbralizacion", &t0,&t1,&tacc);
@@ -1821,9 +1821,6 @@ int main(int argc, char ** argv)
 		int fmgradiente = open(filePath, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
 		if (fmgradiente < 0) showError();
 
-		strcpy(outputFileName, "05-dgradiente.pgm");
-		int fdgradiente = open(filePath, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
-		if (fdgradiente < 0) showError();
 
 		strcpy(outputFileName, "06-dgradiente-discreta.pgm");
 		int fdgradiente_discreta = open(filePath, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
@@ -1840,15 +1837,12 @@ int main(int argc, char ** argv)
 
 
 		saveImage_Float(ffiltrado, pgm, pgmhl, gsFiltrado, pixelLength);
-		free(gsFiltrado);
 		saveImage(fxgradiente, pgm, pgmhl, xgescalado, pixelLength);
 		free(xgescalado);
 		saveImage(fygradiente, pgm, pgmhl, ygescalado, pixelLength);
 		free(ygescalado);
 		saveImage(fmgradiente, pgm, pgmhl, mgescalado, pixelLength);
 		free(mgescalado);
-		saveImage(fdgradiente, pgm, pgmhl, dgescalado, pixelLength);
-		free(dgescalado);
 		saveImage(fdgradiente_discreta, pgm, pgmhl, dgdescalado, pixelLength);
 		free(dgdescalado);
 		saveImage(fmgthin, pgm, pgmhl, mgthinescalado, pixelLength);
@@ -1858,19 +1852,13 @@ int main(int argc, char ** argv)
 		close(fxgradiente);
 		close(fygradiente);
 		close(fmgradiente);
-		close(fdgradiente);
 		close(fdgradiente_discreta);
 		close(fmgthin);
 		close(fbordes);
 
 #endif
 
-		free(mgthinescalado);
 		free(ppm);
-		free(xgradiente);
-		free(ygradiente);
-		free(mgradiente);
-		free(dgradiente);
 
 
 		//FIN CANNY
@@ -1903,18 +1891,15 @@ int main(int argc, char ** argv)
 #ifdef TIMMING
 		gettimeofday(&t0, NULL);
 #endif
-		//Matriz de bordes
-		uint8_t ** bordesM = (uint8_t**) malloc(sizeof(uint8_t*)*pixelLength);
 		unsigned int rhoOffset = ndistancias >> 1;
 
 		unsigned int width2 = width >> 1;
 		unsigned int height2 = height >> 1;	
 		omp_set_num_threads(THREADS);
-		#pragma omp parallel for schedule(runtime)
+		int col;
+		#pragma omp parallel for schedule(runtime) private(col)
 		for(fila = 0; fila < height; fila++)
 		{
-			bordesM[fila] = bordes + fila * width;
-			int col = 0;
 			for(col = 0; col < width; col++)
 			{
 				if(bordesM[fila][col] == 255) //255: pertenece a borde, 0: no pertenece a borde
@@ -1950,10 +1935,9 @@ int main(int argc, char ** argv)
 #endif
 		free(accM);
 		free(acc);
-		free(bordes);
-		free(bordesM);
 		free(pgm);
 
+		free(BUFFER);
 	}
 	free(cosTable);
 	free(sinTable);

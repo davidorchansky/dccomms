@@ -411,6 +411,31 @@ void getGaussianFilter(float * filtro, unsigned int tam, float sigma)
 	}
 
 }
+static void getMatrixFromArray_Float_buffer(float* vec, unsigned int width, unsigned int height, unsigned int size, float** mat)
+{
+	float * sptr;
+	int pos;
+	sptr = vec;
+	for(pos = 0; pos < height; pos += 1)
+	{
+		mat[pos] = sptr;
+		sptr += width;
+	}
+}
+
+static void getMatrixFromArray_Uint8_buffer(uint8_t* vec, unsigned int width, unsigned int height, unsigned int size, uint8_t ** mat)
+{
+	uint8_t * sptr;
+	int pos;
+	sptr = vec;
+	for(pos = 0; pos < height; pos += 1)
+	{
+		mat[pos] = sptr;
+		sptr += width;
+	}
+}
+
+
 static float ** getMatrixFromArray_Float(float* vec, unsigned int width, unsigned int height, unsigned int size)
 {
 
@@ -1597,25 +1622,36 @@ int main(int argc, char ** argv)
 		init(gs, width, height, sigma, tamFiltro);
 
 		unsigned int floatLength = pixelLength * sizeof(float),
-		uint8Length = pixelLength * sizeof(uint8_t);
+		uint8Length = pixelLength * sizeof(uint8_t),
+		ptrUint8Length = pixelLength * sizeof(uint8_t*),
+		ptrFloatLength = pixelLength * sizeof(float*);
 
-		void * BUFFER = malloc(floatLength*5+uint8Length*2);
+		void * BUFFER = malloc(floatLength*5+uint8Length*3+ptrFloatLength*5+ptrUint8Length*3);
 		float * gsFiltrado = (float*) (BUFFER);
-		float * xgradiente = (float*) (gsFiltrado+pixelLength);
-		float * ygradiente = (float*) (xgradiente+pixelLength);
-		float * mgradiente = (float*) (ygradiente+pixelLength);
-		float * mgthin = (float*) (mgradiente+pixelLength);
+		float ** gsFiltradoM = (float**) (gsFiltrado+pixelLength);
+		float * xgradiente = (float*) (gsFiltradoM+height);
+		float ** xgradienteM = (float**) (xgradiente+pixelLength);
+		float * ygradiente = (float*) (xgradienteM+height);
+		float ** ygradienteM = (float**) (ygradiente+pixelLength);
+		float * mgradiente = (float*) (ygradienteM+height);
+		float ** mgradienteM = (float**) (mgradiente+pixelLength);
+		uint8_t * dgdiscreta = (uint8_t*) (mgradienteM+height);
+		uint8_t ** dgdiscretaM = (uint8_t**) (dgdiscreta+pixelLength);
+		float * mgthin = (float*) (dgdiscretaM+height);
+		float ** mgthinM = (float**) (mgthin+pixelLength);
+		uint8_t * mgthinescalado = (uint8_t *) (mgthinM+height);
+		uint8_t ** mgthinescaladoM = (uint8_t**) (mgthinescalado+pixelLength);
+		uint8_t * bordes = (uint8_t *) (mgthinescaladoM+height);
+		uint8_t ** bordesM = (uint8_t**) (bordes+pixelLength);
 
-		uint8_t * dgdiscreta = (uint8_t*) (mgthin+pixelLength);
-		uint8_t * bordes = (uint8_t *) (dgdiscreta+pixelLength);
-
-		float ** gsFiltradoM = getMatrixFromArray_Float(gsFiltrado, width, height, size);
-		float ** xgradienteM = getMatrixFromArray_Float(xgradiente, width, height, size);
-		float ** ygradienteM = getMatrixFromArray_Float(ygradiente, width, height, size);
-		float ** mgradienteM = getMatrixFromArray_Float(mgradiente, width, height, size);
-		float ** mgthinM = getMatrixFromArray_Float(mgthin, width, height, size);
-		uint8_t ** dgdiscretaM = getMatrixFromArray_Uint8(dgdiscreta, width, height, size);
-		uint8_t ** bordesM = getMatrixFromArray_Uint8(bordes, width, height, size);
+		getMatrixFromArray_Float_buffer(gsFiltrado, width, height, size, gsFiltradoM);
+		getMatrixFromArray_Float_buffer(xgradiente, width, height, size, xgradienteM);
+		getMatrixFromArray_Float_buffer(ygradiente, width, height, size, ygradienteM);
+		getMatrixFromArray_Float_buffer(mgradiente, width, height, size, mgradienteM);
+		getMatrixFromArray_Float_buffer(mgthin, width, height, size, mgthinM);
+		getMatrixFromArray_Uint8_buffer(dgdiscreta, width, height, size, dgdiscretaM);
+		getMatrixFromArray_Uint8_buffer(bordes, width, height, size, bordesM);
+		getMatrixFromArray_Uint8_buffer(mgthinescalado, width, height, size, mgthinescaladoM);
 
 		copiarArray_Uint8_Float(G_copiaImagen, gs, size);
 		memcpy(gsFiltrado, G_copiaImagen, size*sizeof(float));
@@ -1750,9 +1786,7 @@ int main(int argc, char ** argv)
 		escalar_Uint8_Uint8(dgdiscreta, dgdescalado, pixelLength);
 #endif
 
-		uint8_t * mgthinescalado = (uint8_t *) malloc(pixelLength);
 		escalar_Float_Uint8(mgthin, mgthinescalado, pixelLength);
-		uint8_t ** mgthinescaladoM = getMatrixFromArray_Uint8(mgthinescalado, width, height, size);
 #ifdef TIMMING
 		gettimeofday(&t0, NULL);
 #endif
@@ -1824,7 +1858,6 @@ int main(int argc, char ** argv)
 
 #endif
 
-		free(mgthinescalado);
 		free(ppm);
 
 
@@ -1902,7 +1935,6 @@ int main(int argc, char ** argv)
 #endif
 		free(accM);
 		free(acc);
-		free(bordesM);
 		free(pgm);
 
 		free(BUFFER);
