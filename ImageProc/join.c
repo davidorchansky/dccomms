@@ -1494,6 +1494,34 @@ static void computeGradientY(float ** gradientyM)
 	aplicarFiltroGradiente(sM, dM, filtro, height,  width);
 }
 
+static void dibujarRectas(unsigned int ** accM, unsigned int nangulos, unsigned int ndistancias, unsigned int rhoOffset, uint8_t ** rectasM, float * sinTable, float * cosTable, unsigned int width, unsigned int height)
+{
+	int rhoIdx, thetaIdx;
+	int maxTheta = 0 , maxRho = 0, maxCont = 0;
+	for(rhoIdx=0; rhoIdx < ndistancias; rhoIdx++)
+	{
+		for(thetaIdx=0; thetaIdx < nangulos; thetaIdx++)
+		{
+			int cont = accM[rhoIdx][thetaIdx];
+			if (cont > maxCont)
+			{
+				maxTheta = thetaIdx;
+				maxRho = rhoIdx;
+				maxCont = cont;
+			}
+		}
+	}
+	int x, y;
+	float rho0 = maxRho - (float)rhoOffset;
+	int xoffset = width >> 1;
+	int yoffset = height >> 1;
+	for(x = 0 ; x < width; x++)
+	{
+		y = (int)ceil( (float) (rho0 - (float)(x-xoffset) * cosTable[maxTheta]) / sinTable[maxTheta]);
+		y += yoffset;
+		rectasM[y][x] = 255;
+	}
+}
 
 int main(int argc, char ** argv)
 {
@@ -1932,7 +1960,24 @@ int main(int argc, char ** argv)
 		free(houghSpAccEscalado);
 		if(re)
 			saveImage(1, pgm, pgmhl, houghSpAccEscalado, houghSpLength);
+
+		uint8_t * rectas = (uint8_t*) malloc(pixelLength);
+		uint8_t ** rectasM = (uint8_t**) malloc(height*sizeof(uint8_t*));
+
+		getMatrixFromArray_Uint8_buffer(rectas, width, height, pixelLength, rectasM);
+
+		memset(rectas, 0, pixelLength);
+		dibujarRectas(accM, nangulos, ndistancias, rhoOffset, rectasM, sinTable, cosTable, width, height);
+
+		pgmhl = sprintf((char*)pgm, "P5\n%d %d\n255\n", width, height);
+		strcpy(outputFileName, "11-rectas.pgm");
+		int frectas = open(filePath, O_CREAT | O_WRONLY | O_TRUNC, S_IRUSR | S_IWUSR | S_IROTH );
+		if (frectas < 0) showError();
+
+		saveImage(frectas, pgm, pgmhl, rectas, pixelLength);
 #endif
+
+
 		free(accM);
 		free(acc);
 		free(pgm);
