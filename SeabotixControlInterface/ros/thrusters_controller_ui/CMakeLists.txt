@@ -13,7 +13,7 @@ project(thrusters_controller_ui)
 find_package(catkin REQUIRED COMPONENTS 
 	qt_build
 	roscpp
-	seabotix_thrusters_interface
+	irs_rov_thrusters
 )
 
 include_directories(${catkin_INCLUDE_DIRS})

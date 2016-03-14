@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package>
-  <name>seabotix_thrusters_interface</name>
+  <name>irs_rov_thrusters</name>
   <version>0.0.0</version>
-  <description>The seabotix_thrusters_interface package</description>
+  <description>The irs_rov_thrusters package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag --> 
   <!-- Example:  -->

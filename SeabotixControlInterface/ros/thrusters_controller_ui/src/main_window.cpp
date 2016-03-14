@@ -13,7 +13,7 @@
 #include <QMessageBox>
 #include <iostream>
 #include "../include/thrusters_controller_ui/main_window.hpp"
-#include <seabotix_thrusters_interface/ROVThrustersOrder.h>
+#include <irs_rov_thrusters/ThrustersOrder.h>
 #include <QtGlobal>
 
 /*****************************************************************************
@@ -67,7 +67,7 @@ MainWindow::MainWindow(int argc, char** argv, QWidget *parent)
     ui.th5Sp->setSingleStep(1);
     ui.th6Sp->setSingleStep(1);
 
-    QObject::connect(this, SIGNAL(thrustersControlsUpdated(seabotix_thrusters_interface::ROVThrustersOrder)), &qnode, SLOT(thrustersUiUpdated(seabotix_thrusters_interface::ROVThrustersOrder)));
+    QObject::connect(this, SIGNAL(thrustersControlsUpdated(irs_rov_thrusters::ThrustersOrder)), &qnode, SLOT(thrustersUiUpdated(irs_rov_thrusters::ThrustersOrder)));
     QObject::connect(&qnode, SIGNAL(newThrustersState()), this, SLOT(thrusters_ROSState_changed()));
 
     QObject::connect(ui.th1Sp, SIGNAL(valueChanged(int)), this, SLOT(thrusters_controls_valueChanged()));
@@ -101,6 +101,9 @@ MainWindow::MainWindow(int argc, char** argv, QWidget *parent)
     QObject::connect(ui.stopAllButton, SIGNAL(clicked()), this, SLOT(stopAllThrusters()));
 
     publish = true;
+
+    speeds = std::vector<signed char>(6);
+
 
 }
 
@@ -205,46 +208,55 @@ void MainWindow::maxThruster6() {
 
 void MainWindow::thrusters_ROSState_changed()
 {
+    qnode.mutex.lock();
     publish = false;
-    seabotix_thrusters_interface::ROVThrustersOrder thrusters_msg = qnode.getThrustersState();
+
+    irs_rov_thrusters::ThrustersOrder thrusters_msg = qnode.thrusters_msg;
 
     qDebug("Nuevo estado de los motores recibido de ROS!");
-    ui.th1Sp->setSliderPosition(thrusters_msg.motor1.speed);
-    ui.th2Sp->setSliderPosition(thrusters_msg.motor2.speed);
-    ui.th3Sp->setSliderPosition(thrusters_msg.motor3.speed);
-    ui.th4Sp->setSliderPosition(thrusters_msg.motor4.speed);
-    ui.th5Sp->setSliderPosition(thrusters_msg.motor5.speed);
-    ui.th6Sp->setSliderPosition(thrusters_msg.motor6.speed);
 
-    thrusters_msg.motor1.forward ? ui.th1Fw->click() : ui.th1Rv->click();
-    thrusters_msg.motor2.forward ? ui.th2Fw->click() : ui.th2Rv->click();
-    thrusters_msg.motor3.forward ? ui.th3Fw->click() : ui.th3Rv->click();
-    thrusters_msg.motor4.forward ? ui.th4Fw->click() : ui.th4Rv->click();
-    thrusters_msg.motor5.forward ? ui.th5Fw->click() : ui.th5Rv->click();
-    thrusters_msg.motor6.forward ? ui.th6Fw->click() : ui.th6Rv->click();
+    if(thrusters_msg.speeds.size() == 6)
+    {
+    ui.th1Sp->setSliderPosition(qAbs(thrusters_msg.speeds[0]));
+    ui.th2Sp->setSliderPosition(qAbs(thrusters_msg.speeds[1]));
+    ui.th3Sp->setSliderPosition(qAbs(thrusters_msg.speeds[2]));
+    ui.th4Sp->setSliderPosition(qAbs(thrusters_msg.speeds[3]));
+    ui.th5Sp->setSliderPosition(qAbs(thrusters_msg.speeds[4]));
+    ui.th6Sp->setSliderPosition(qAbs(thrusters_msg.speeds[5]));
+
+    if(thrusters_msg.speeds[0] != 0) thrusters_msg.speeds[0] > 0 ? ui.th1Fw->click() : ui.th1Rv->click();
+    if(thrusters_msg.speeds[1] != 0) thrusters_msg.speeds[1] > 0 ? ui.th2Fw->click() : ui.th2Rv->click();
+    if(thrusters_msg.speeds[2] != 0) thrusters_msg.speeds[2] > 0 ? ui.th3Fw->click() : ui.th3Rv->click();
+    if(thrusters_msg.speeds[3] != 0) thrusters_msg.speeds[3] > 0 ? ui.th4Fw->click() : ui.th4Rv->click();
+    if(thrusters_msg.speeds[4] != 0) thrusters_msg.speeds[4] > 0 ? ui.th5Fw->click() : ui.th5Rv->click();
+    if(thrusters_msg.speeds[5] != 0) thrusters_msg.speeds[5] > 0 ? ui.th6Fw->click() : ui.th6Rv->click();
+    }
+    else
+    {
+        qDebug("MainWindow::Thrusters_ROSState_changed(): tamano incorrecto vector");
+    }
 
     publish = true;
+    qnode.mutex.unlock();
 }
 
 void MainWindow::thrusters_controls_valueChanged()
 {
     if(publish)
     {
-        seabotix_thrusters_interface::ROVThrustersOrder thrusters_msg;
+        irs_rov_thrusters::ThrustersOrder thrusters_msg;
 
-        thrusters_msg.motor1.speed = ui.th1Sp->value();
-        thrusters_msg.motor2.speed = ui.th2Sp->value();
-        thrusters_msg.motor3.speed = ui.th3Sp->value();
-        thrusters_msg.motor4.speed = ui.th4Sp->value();
-        thrusters_msg.motor5.speed = ui.th5Sp->value();
-        thrusters_msg.motor6.speed = ui.th6Sp->value();
+        thrusters_msg.speeds = speeds;
 
-        thrusters_msg.motor1.forward = ui.th1Fw->isChecked();
-        thrusters_msg.motor2.forward = ui.th2Fw->isChecked();
-        thrusters_msg.motor3.forward = ui.th3Fw->isChecked();
-        thrusters_msg.motor4.forward = ui.th4Fw->isChecked();
-        thrusters_msg.motor5.forward = ui.th5Fw->isChecked();
-        thrusters_msg.motor6.forward = ui.th6Fw->isChecked();
+          qDebug("MainWindow::thrusters_controls_valueChanged()");
+
+
+         thrusters_msg.speeds[0] = ui.th1Fw->isChecked() ?  ui.th1Sp->value() : -1 * ui.th1Sp->value();
+         thrusters_msg.speeds[1] = ui.th2Fw->isChecked() ?  ui.th2Sp->value() : -1 * ui.th2Sp->value();
+         thrusters_msg.speeds[2] = ui.th3Fw->isChecked() ?  ui.th3Sp->value() : -1 *  ui.th3Sp->value();
+         thrusters_msg.speeds[3] = ui.th4Fw->isChecked() ? ui.th4Sp->value() : -1 * ui.th4Sp->value();
+         thrusters_msg.speeds[4] = ui.th5Fw->isChecked() ? ui.th5Sp->value() : -1 * ui.th5Sp->value();
+         thrusters_msg.speeds[5] = ui.th6Fw->isChecked() ? ui.th6Sp->value() : -1 * ui.th6Sp->value();
 
         Q_EMIT thrustersControlsUpdated(thrusters_msg);
     }

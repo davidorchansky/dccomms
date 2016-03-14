@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(seabotix_thrusters_interface)
+project(irs_rov_thrusters)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -46,8 +46,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate messages in the 'msg' folder
 add_message_files(
    FILES
-   ThrusterOrder.msg
-   ROVThrustersOrder.msg
+   ThrustersOrder.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -131,7 +130,7 @@ link_directories(lib)
 ## Declare a C++ executable
 # add_executable(seabotix_thrusters_interface_node src/seabotix_thrusters_interface_node.cpp)
 
-add_executable(seabotix seabotix.cpp)
+add_executable(thrusters thrusters.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -142,8 +141,8 @@ add_executable(seabotix seabotix.cpp)
 #   ${catkin_LIBRARIES}
 # )
 
-target_link_libraries(seabotix radio pthread ${catkin_LIBRARIES})
-set_target_properties(seabotix PROPERTIES COMPILE_FLAGS "-std=c++11") 
+target_link_libraries(thrusters radio pthread ${catkin_LIBRARIES})
+set_target_properties(thrusters PROPERTIES COMPILE_FLAGS "-std=c++11") 
 #############
 ## Install ##
 #############

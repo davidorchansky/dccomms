@@ -23,6 +23,7 @@
 #include <VirtualWire.h>
 
 #define MAX_RADIOUNIT_SIZE 20//VW_MAX_PAYLOAD
+#define NMOTORS 6
 
 char buf[BUFFER_SIZE];
 
@@ -275,215 +276,41 @@ uint8_t * thrusterCommand[50];
 struct Command
 {
   int cmd;
-  boolean motor1, motor2, motor3, motor4, motor5, motor6;
   int arg;  
 };
 
 
-char * getInt(char *s, int *v, int *sign)
+boolean execMotorCommand(int8_t arg, int motor)
 {
-        *v = -1;
-        if (*s == '+') {
-                *sign = 1;
-                ++s;
-        } else if (*s == '-') {
-                *sign = -1;
-                ++s;
-        } else {
-                *sign = 0;
-        }
-        if (*s >= '0' && *s <= '9') {
-                int x = *s++ - '0';
-                while (*s >= '0' && *s <= '9') {
-                        x = x * 10 + (*s++ - '0');
-                }
-                *v = x;
-        }
-        return s;
-}
-
-char * getMotorsFromCommand(char * obuff, char *final, struct Command * cmd)
-{
-   char * ptr = obuff;
-   
-   cmd->motor1 = false;
-   cmd->motor2 = false;
-   cmd->motor3 = false;
-   cmd->motor4 = false;
-   cmd->motor5 = false;
-   cmd->motor6 = false;
-   
-   while(ptr != final)
-   {
-     int v, s;
-     ptr = getInt(ptr, &v, &s);
-     if(s != 0) return NULL;
-     switch(v)
-     {
-        case 1:
-          cmd->motor1 = true;
-          break;
-        case 2:
-          cmd->motor2 = true;
-          break;
-        case 3:
-          cmd->motor3 = true;
-          break;
-        case 4:
-          cmd->motor4 = true;
-          break;
-        case 5:
-          cmd->motor5 = true;
-          break;
-        case 6:
-          cmd->motor6 = true;
-          break;
-        default:
-          return NULL;
-     }
-     if(*ptr != ',')
-       return ptr;
-     ptr++;
-   }
-}
-
-void printMotorCommand(struct Command cmd)
-{
-  switch(cmd.cmd)
+  
+  if(arg <= 100)
   {
-    case TH_FW:
-      Serial.print("Marcha hacia adelante a ");Serial.print(cmd.arg);Serial.println("%");
-      break;
-    case TH_RV:
-      Serial.print("Marcha hacia atras a ");Serial.print(cmd.arg);Serial.println("%");
-      break;
-    case TH_SP:
-      Serial.println("Orden de paro");
-      break;
-    default:
-      Serial.println("Comando desconocido");
-      break;
+    if(arg >= 0){
+   Serial.print("Orden: motor(0x"); Serial.print(motor, HEX);Serial.print(") speed(");Serial.print((int)arg); Serial.println(")");
+ controlador.forward(motor, arg); return true;}
+    else if( arg >= -100){
+   Serial.print("Orden: motor(0x"); Serial.print(motor, HEX);Serial.print(") speed(");Serial.print((int)arg); Serial.println(")"); controlador.reverse(motor, -1*arg); return true;}
+    
   }
-  Serial.print("Motor 1: ");
-  cmd.motor1 ? Serial.println("Si") : Serial.println("No");
   
-    Serial.print("Motor 2: ");
-  cmd.motor2 ? Serial.println("Si") : Serial.println("No");
-  
-    Serial.print("Motor 3: ");
-  cmd.motor3 ? Serial.println("Si") : Serial.println("No");
-  
-    Serial.print("Motor 4: ");
-  cmd.motor4 ? Serial.println("Si") : Serial.println("No");
-  
-    Serial.print("Motor 5: ");
-  cmd.motor5 ? Serial.println("Si") : Serial.println("No");
-  
-    Serial.print("Motor 6: ");
-  cmd.motor6 ? Serial.println("Si") : Serial.println("No");
+  return false;
 }
 
-boolean getMotorCommand(void *obuff, int len, struct Command * cmd)
+boolean execMotorCommands(void *obuff, int len)
 {
-   uint8_t * ptr = (uint8_t *) obuff;
-   uint8_t * final = ptr + len;
-   if(*ptr == 'f')
-   {
-       ptr++;
-       if(*ptr++ == 'w')
-       {
-         if(*ptr++ == ' ')
-         {
-           ptr = (uint8_t*) getMotorsFromCommand((char *)ptr, (char *)final, cmd);
-           if(ptr == NULL) return false;
-           if(*ptr++ != ' ') return false;
-           int v, s;
-           ptr = (uint8_t*) getInt((char *)ptr, &v, &s);
-           if(s != 0) return false;
-           if(v < 0 || v > 100) return false;
-           cmd->cmd = TH_FW;
-           cmd->arg = v;
-           if(*ptr++ != '\n') return false;
-           return true;
-         }
-         else
-           return false;
-       }
-       else
-         return false;
-   }
-   else if(*ptr == 'r')
-   {
-     ptr++;
-     if(*ptr++ == 'v')
-     {
-         if(*ptr++ == ' ')
-         {
-           ptr = (uint8_t*) getMotorsFromCommand((char *)ptr, (char *)final, cmd);
-           if(ptr == NULL) return false;
-           if(*ptr++ != ' ') return false;
-           int v, s;
-           ptr = (uint8_t*) getInt((char *)ptr, &v, &s);
-           if(s != 0) return false;
-           if(v < 0 || v > 100) return false;
-           cmd->cmd = TH_RV;
-           cmd->arg = v;
-           if(*ptr++ != '\n') return false;
-           return true;
-         }     
-     }
-     else return false;
-   }
-   else if (*ptr == 's')
-   {
-     ptr++;
-     if(*ptr++ == 'p')
-     {
-           if(*ptr++ == ' ')
-         {
-           ptr = (uint8_t*) getMotorsFromCommand((char *)ptr, (char *)final, cmd);
-           if(ptr == NULL) return false;
-           if(*ptr++ != '\n') return false;
-           cmd->cmd = TH_SP;
-           return true;     
-         }
-     }
-     else return false;
-   }
-   else return false;
-
+  if(len != NMOTORS) return false;
+  
+  int8_t * ptr = (int8_t*) obuff;
+  return execMotorCommand(*ptr, TH_ADD_1) &&
+  execMotorCommand(*(ptr+1),TH_ADD_2) &&
+  execMotorCommand(*(ptr+2),TH_ADD_3) &&
+  execMotorCommand(*(ptr+3),TH_ADD_4) &&
+  execMotorCommand(*(ptr+4),TH_ADD_5) &&
+  execMotorCommand(*(ptr+5),TH_ADD_6);
+  
+        
 }
 
-void execMotorCommand(struct Command cmd)
-{
-  switch(cmd.cmd)
-  {
-    case TH_FW:
-      if(cmd.motor1) controlador.forward(TH_ADD_1,cmd.arg);
-      if(cmd.motor2) controlador.forward(TH_ADD_2,cmd.arg);
-      if(cmd.motor3) controlador.forward(TH_ADD_3,cmd.arg);
-      if(cmd.motor4) controlador.forward(TH_ADD_4,cmd.arg);
-      if(cmd.motor5) controlador.forward(TH_ADD_5,cmd.arg);
-      if(cmd.motor6) controlador.forward(TH_ADD_6,cmd.arg);
-      break;
-    case TH_RV:
-      if(cmd.motor1) controlador.reverse(TH_ADD_1,cmd.arg);
-      if(cmd.motor2) controlador.reverse(TH_ADD_2,cmd.arg);
-      if(cmd.motor3) controlador.reverse(TH_ADD_3,cmd.arg);
-      if(cmd.motor4) controlador.reverse(TH_ADD_4,cmd.arg);
-      if(cmd.motor5) controlador.reverse(TH_ADD_5,cmd.arg);
-      if(cmd.motor6) controlador.reverse(TH_ADD_6,cmd.arg);
-      break;
-    case TH_SP:
-      if(cmd.motor1) controlador.stop(TH_ADD_1);
-      if(cmd.motor2) controlador.stop(TH_ADD_2);
-      if(cmd.motor3) controlador.stop(TH_ADD_3);
-      if(cmd.motor4) controlador.stop(TH_ADD_4);
-      if(cmd.motor5) controlador.stop(TH_ADD_5);
-      if(cmd.motor6) controlador.stop(TH_ADD_6);
-      break;
-  }
-}
 void loop()
 {
 
@@ -494,15 +321,15 @@ void loop()
     { 
         if(frameIsOk(buf, paylsize))
         {
-          Serial.write(buf + INFO_SIZE, paylsize);
-          struct Command cmd;
-          if(getMotorCommand(buf + INFO_SIZE, paylsize, &cmd))
-          {
-            printMotorCommand(cmd);
-            execMotorCommand(cmd);
-          }
+          //Serial.write(buf + INFO_SIZE, paylsize);
+          
+          if(!execMotorCommands(buf + INFO_SIZE, paylsize))
+            Serial.println("Mensaje de motores no valido");
           else
-            Serial.println("Comando no valido");
+            {
+              //Serial.println();
+              Serial.print((int)buf[INFO_SIZE]); Serial.print(" "); Serial.print((int)buf[INFO_SIZE+1]); Serial.print(" ... "); Serial.println((int)buf[INFO_SIZE+5]);
+            }
         }
         else
         {

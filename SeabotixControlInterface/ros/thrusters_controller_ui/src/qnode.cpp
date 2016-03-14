@@ -16,7 +16,7 @@
 #include <std_msgs/String.h>
 #include <sstream>
 #include "../include/thrusters_controller_ui/qnode.hpp"
-#include <seabotix_thrusters_interface/ROVThrustersOrder.h>
+#include <irs_rov_thrusters/ThrustersOrder.h>
 #include <QDebug>
 
 /*****************************************************************************
@@ -42,29 +42,41 @@ QNode::~QNode() {
 	wait();
 }
 
-seabotix_thrusters_interface::ROVThrustersOrder QNode::getThrustersState()
+irs_rov_thrusters::ThrustersOrder QNode::getThrustersState()
 {
-    seabotix_thrusters_interface::ROVThrustersOrder msg;
-    mutex.lock();
+    irs_rov_thrusters::ThrustersOrder msg;
     msg = thrusters_msg;
-    mutex.unlock();
     return msg;
 }
 
-void QNode::rovOrderCallback(const seabotix_thrusters_interface::ROVThrustersOrder &msg)
+void QNode::rovOrderCallback(const irs_rov_thrusters::ThrustersOrder &msg)
 {
     qDebug("rovOrderCallback!");
     std::stringstream logging_msg;
-
+/*
     logging_msg << "\nMotor 1:\n\tspeed = " << QString::number(msg.motor1.speed).toStdString() <<"\tD. = " << (msg.motor1.forward ? "Forward" : "Reverse")
                 << "\nMotor 2:\n\tspeed = " << QString::number(msg.motor2.speed).toStdString() <<"\tD. = " << (msg.motor2.forward ? "Forward" : "Reverse")
                 << "\nMotor 3:\n\tspeed = " << QString::number(msg.motor3.speed).toStdString() <<"\tD. = " << (msg.motor3.forward ? "Forward" : "Reverse")
                 << "\nMotor 4:\n\tspeed = " << QString::number(msg.motor4.speed).toStdString() <<"\tD. = " << (msg.motor4.forward ? "Forward" : "Reverse")
                 << "\nMotor 5:\n\tspeed = " << QString::number(msg.motor5.speed).toStdString() <<"\tD. = " << (msg.motor5.forward ? "Forward" : "Reverse")
                 << "\nMotor 6:\n\tspeed = " << QString::number(msg.motor6.speed).toStdString() <<"\tD. = " << (msg.motor6.forward ? "Forward" : "Reverse");
+*/
 
-    log(Info,logging_msg.str());
+    if(msg.speeds.size() == 6)
+    {
+        logging_msg << "\nMotor 1:\n\tspeed = " << (int)msg.speeds[0]
+                << "\nMotor 2:\n\tspeed = " <<(int) msg.speeds[1]
+                << "\nMotor 3:\n\tspeed = " << (int)msg.speeds[2]
+                << "\nMotor 4:\n\tspeed = " <<(int)msg.speeds[3]
+                << "\nMotor 5:\n\tspeed = " <<(int) msg.speeds[4]
+                << "\nMotor 6:\n\tspeed = " <<(int) msg.speeds[5] <<"\n";
+    }
+    else
+    {
+        logging_msg << "QNode::rovOrderCallback: tamano incorrecto: n. motores = " << msg.speeds.size() << "\n";
+    }
     mutex.lock();
+    log(Info,logging_msg.str());
     thrusters_msg = msg;
     Q_EMIT newThrustersState();
     mutex.unlock();
@@ -79,7 +91,7 @@ bool QNode::init() {
 	ros::start(); // explicitly needed since our nodehandle is going out of scope.
 	ros::NodeHandle n;
 	// Add your ros communications here.
-        ROVThrusters_publisher = n.advertise<seabotix_thrusters_interface::ROVThrustersOrder>("ROVThrusters", 1);
+        ROVThrusters_publisher = n.advertise<irs_rov_thrusters::ThrustersOrder>("ROVThrusters", 1);
         ROVThrusters_subscriber = n.subscribe("ROVThrusters", 1, &QNode::rovOrderCallback, this);
 	start();
 	return true;
@@ -96,7 +108,7 @@ bool QNode::init(const std::string &master_url, const std::string &host_url) {
 	ros::start(); // explicitly needed since our nodehandle is going out of scope.
 	ros::NodeHandle n;
 	// Add your ros communications here.
-        ROVThrusters_publisher = n.advertise<seabotix_thrusters_interface::ROVThrustersOrder>("ROVThrusters", 1);
+        ROVThrusters_publisher = n.advertise<irs_rov_thrusters::ThrustersOrder>("ROVThrusters", 1);
         ROVThrusters_subscriber = n.subscribe("ROVThrusters", 1, &QNode::rovOrderCallback, this);
 	start();
 	return true;
@@ -107,9 +119,11 @@ void QNode::run() {
 	int count = 0;
         while ( ros::ok() ) {
 
+
                 mutex.lock();
-                ROVThrusters_publisher.publish(thrusters_msg);
+               // ROVThrusters_publisher.publish(thrusters_msg);
                 mutex.unlock();
+
 
 		ros::spinOnce();
 		loop_rate.sleep();
@@ -170,19 +184,32 @@ void QNode::log( const LogLevel &level, const std::string &_msg) {
 }
 
 
-void QNode::thrustersUiUpdated(seabotix_thrusters_interface::ROVThrustersOrder msg)
+void QNode::thrustersUiUpdated(irs_rov_thrusters::ThrustersOrder msg)
 {
     std::stringstream logging_msg;
-
+/*
     logging_msg << "\nMotor 1:\n\tspeed = " << QString::number(msg.motor1.speed).toStdString() <<"\tD. = " << (msg.motor1.forward ? "Forward" : "Reverse")
                 << "\nMotor 2:\n\tspeed = " << QString::number(msg.motor2.speed).toStdString() <<"\tD. = " << (msg.motor2.forward ? "Forward" : "Reverse")
                 << "\nMotor 3:\n\tspeed = " << QString::number(msg.motor3.speed).toStdString() <<"\tD. = " << (msg.motor3.forward ? "Forward" : "Reverse")
                 << "\nMotor 4:\n\tspeed = " << QString::number(msg.motor4.speed).toStdString() <<"\tD. = " << (msg.motor4.forward ? "Forward" : "Reverse")
                 << "\nMotor 5:\n\tspeed = " << QString::number(msg.motor5.speed).toStdString() <<"\tD. = " << (msg.motor5.forward ? "Forward" : "Reverse")
                 << "\nMotor 6:\n\tspeed = " << QString::number(msg.motor6.speed).toStdString() <<"\tD. = " << (msg.motor6.forward ? "Forward" : "Reverse");
-
-    log(Info,logging_msg.str());
+*/
+    if(msg.speeds.size() == 6)
+    {
+        logging_msg << "\nMotor 1:\n\tspeed = "  << (int)msg.speeds[0]
+                << "\nMotor 2:\n\tspeed = " <<(int) msg.speeds[1]
+                << "\nMotor 3:\n\tspeed = " <<(int) msg.speeds[2]
+                << "\nMotor 4:\n\tspeed = " <<(int) msg.speeds[3]
+                << "\nMotor 5:\n\tspeed = " <<(int) msg.speeds[4]
+                << "\nMotor 6:\n\tspeed = " <<(int)msg.speeds[5] <<"\n";
+    }
+    else
+    {
+        logging_msg << "QNode::thrustersUiUpdated: tamano incorrecto: n. motores = " << msg.speeds.size() << "\n";
+    }
     mutex.lock();
+    log(Info,logging_msg.str());
     thrusters_msg = msg;
     ROVThrusters_publisher.publish(thrusters_msg);
     mutex.unlock();

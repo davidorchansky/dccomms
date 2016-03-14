@@ -15,7 +15,7 @@
 #include <QtGui/QMainWindow>
 #include "ui_main_window.h"
 #include "qnode.hpp"
-#include <seabotix_thrusters_interface/ROVThrustersOrder.h>
+#include <irs_rov_thrusters/ThrustersOrder.h>
 /*****************************************************************************
 ** Namespace
 *****************************************************************************/
@@ -43,7 +43,7 @@ public:
 	void showNoMasterMessage();
 
 Q_SIGNALS:
-        void thrustersControlsUpdated(seabotix_thrusters_interface::ROVThrustersOrder);
+        void thrustersControlsUpdated(irs_rov_thrusters::ThrustersOrder);
 
 public Q_SLOTS:
 	/******************************************
@@ -82,6 +82,7 @@ private:
 	Ui::MainWindowDesign ui;
 	QNode qnode;
         bool publish;
+        std::vector<signed char> speeds;
 };
 
 }  // namespace thrusters_controller_ui
