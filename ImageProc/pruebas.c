@@ -1069,6 +1069,126 @@ static void aplicarFiltro_noSeparable(float ** gsFiltradoM)
 
 }
 
+
+typedef struct RegionLoc
+{
+	unsigned int fini,cini,ffin,cfin;
+} RegionLoc;
+
+static void getRegion(float** region, float ** img, RegionLoc regionLoc)
+{
+	int f,c;
+
+	int dstc, dstf;
+	for(f = regionLoc.fini, dstf = 0; f <= regionLoc.ffin; dstf++, f++)
+	{
+		for(c = regionLoc.cini, dstc = 0; c <= regionLoc.cfin; dstc++, c++)
+		{
+			region[dstf][dstc] = img[f][c];
+		}
+	}
+}
+
+static RegionLoc * getRegionsLoc(unsigned int *nregions, unsigned int rw, unsigned int rh, unsigned int imw, unsigned int imh, unsigned int filterOffset)
+{
+	
+	unsigned int overlapping = filterOffset*2;
+	unsigned int filterSize = overlapping > 0 ? overlapping+1 : 0;
+	unsigned int hinc = rw-overlapping;
+	unsigned int vinc = rh-overlapping;
+
+	unsigned int lastRegCol = rw-1;
+	unsigned int lastRegRow = rh-1;
+
+	unsigned int lastImCol = imw-1;
+	unsigned int lastImRow = imh-1;
+
+	unsigned int regionsize = rw*rh;
+	unsigned int imsize = imw*imh;
+	RegionLoc *regions = (RegionLoc*)malloc(imsize*sizeof(RegionLoc));
+
+	*nregions = 0;
+	int fila, maxf, col, maxc;
+
+	maxf = imh/vinc * vinc;
+	maxc = imw/hinc * hinc; 
+
+	for(fila = 0; fila < maxf; fila += vinc)
+	{
+		int filaFin = fila + lastRegRow;
+		filaFin = filaFin <= lastImRow ? filaFin : lastImRow;
+		for(col = 0; col < maxc; col += hinc)
+		{
+			int colFin = col + lastRegCol;	
+			colFin = colFin <= lastImCol ? colFin : lastImCol;
+			RegionLoc *reg = &regions[*nregions];
+			reg->fini = fila;
+			reg->ffin = filaFin;
+			reg->cini = col;
+			reg->cfin = colFin;
+#ifdef PRINT_REGIONS
+			fprintf(stderr, "Region %d: (%d,%d; %d,%d)\n",(int) *nregions, (int) reg->fini, (int)reg->cini, (int)reg->ffin, (int)reg->cfin);
+#endif
+			*nregions += 1;
+		}
+		if (imw - col >= filterSize)
+		{
+			int colFin = lastImCol;	
+			RegionLoc *reg = &regions[*nregions];
+			reg->fini = fila;
+			reg->ffin = filaFin;
+			reg->cini = col;
+			reg->cfin = colFin;
+#ifdef PRINT_REGIONS
+			fprintf(stderr, "Region %d: (%d,%d; %d,%d)\n",(int) *nregions, (int) reg->fini, (int)reg->cini, (int)reg->ffin, (int)reg->cfin);
+#endif
+			*nregions += 1;
+
+		}
+	}
+	if(imh -fila >= filterSize)
+	{
+		int filaFin = lastImRow;
+		for(col = 0; col < maxc; col += hinc)
+		{
+			int colFin = col + lastRegCol;	
+			colFin = colFin <= lastImCol ? colFin : lastImCol;
+			RegionLoc *reg = &regions[*nregions];
+			reg->fini = fila;
+			reg->ffin = filaFin;
+			reg->cini = col;
+			reg->cfin = colFin;
+
+#ifdef PRINT_REGIONS
+			fprintf(stderr, "Region %d: (%d,%d; %d,%d)\n",(int) *nregions, (int) reg->fini, (int)reg->cini, (int)reg->ffin, (int)reg->cfin);
+#endif
+			*nregions += 1;
+		}
+		if (imw - col >= filterSize)
+		{
+			int colFin = lastImCol;	
+			RegionLoc *reg = &regions[*nregions];
+			reg->fini = fila;
+			reg->ffin = filaFin;
+			reg->cini = col;
+			reg->cfin = colFin;
+
+#ifdef PRINT_REGIONS
+			fprintf(stderr, "Region %d: (%d,%d; %d,%d)\n",(int) *nregions, (int) reg->fini, (int)reg->cini, (int)reg->ffin, (int)reg->cfin);
+#endif
+			*nregions += 1;
+
+		}
+
+	}
+	
+//	fprintf(stderr, "Regions: %d\n", *nregions);
+	return regions;
+
+
+
+}
+
 static void aplicarFiltro_size5(float ** gsFiltradoM)
 {
 	unsigned int tamFiltro = G_tamFiltro;
@@ -1098,45 +1218,73 @@ static void aplicarFiltro_size5(float ** gsFiltradoM)
 	int maxHeight = height-foffset;
 	int maxWidth = width-foffset;
 
+	unsigned int _h = 180;
+	unsigned int _w = 180;
+	unsigned int _size = _h*_w;
 
-	omp_set_num_threads(THREADS);
-	#pragma omp parallel for schedule(runtime)
-	for(f=foffset; f < maxHeight; f++)
-	{
-		int c;
-		for(c=foffset; c < maxWidth; c++)
-		{
-		#ifdef NEON
-			float * sptr = &oM[f][c-2];
-			float32x4_t tmp;
-			tmp = vld1q_f32(sptr);
-			tmp = vmulq_f32(tmp, nhfiltro);
+	unsigned int nregions;
+	RegionLoc * regions = getRegionsLoc(&nregions, 100, 100, width, height, 2);
 
-			float32x2_t low = vget_low_f32(tmp);
-			float32x2_t high = vget_high_f32(tmp);
-
-			low = vadd_f32(low, high);
-
-			float * dptr = &auxM[f][c];
-			*dptr = vget_lane_f32(low,0);
-			*dptr += vget_lane_f32(low,1);
-
-			*dptr += *(sptr+4)**fp4;
-
-		#else
-			float * dptr = &auxM[f][c];
-			*dptr = 0;
-			*dptr += oM[f][c-2]**fp0;
-			*dptr += oM[f][c-1]**fp1;
-			*dptr += oM[f][c]**fp2;
-			*dptr += oM[f][c+1]**fp3;
-			*dptr += oM[f][c+2]**fp4;
-
-		#endif
-		}
-	}
+	unsigned int reg;
 	
-	//cambia
+	omp_set_num_threads(THREADS);
+	#pragma omp parallel for schedule(runtime) private(f, reg)
+	for(reg=0 ; reg < nregions ; reg++)
+	{
+		RegionLoc *regLoc = &regions[reg];
+		void * _buffer = malloc(_size*sizeof(float)+_h*sizeof(float*));
+		float ** _regionM = (float**) (_buffer);
+		float * _region = (float*) (_regionM + _h);
+		getMatrixFromArray_Float_buffer(_region, _w, _h, _size, _regionM);
+		getRegion(_regionM, oM, *regLoc);
+		int regMaxRow = regLoc->ffin-regLoc->fini-foffset;
+		int regMaxCol = regLoc->cfin-regLoc->cini-foffset;
+
+		for(f=foffset; f <= regMaxRow; f++)
+		{
+			int c;
+			for(c=foffset; c <= regMaxCol; c++)
+			{
+			#ifdef NEON
+				float * sptr = &_regionM[f][c-2];
+				float32x4_t tmp;
+				tmp = vld1q_f32(sptr);
+				tmp = vmulq_f32(tmp, nhfiltro);
+
+				float32x2_t low = vget_low_f32(tmp);
+				float32x2_t high = vget_high_f32(tmp);
+
+				low = vadd_f32(low, high);
+
+				float * dptr = &auxM[regLoc->fini+f][regLoc->cini+c];
+				*dptr = vget_lane_f32(low,0);
+				*dptr += vget_lane_f32(low,1);
+
+				*dptr += *(sptr+4)**fp4;
+
+			#else
+				int _f,_c;
+				_f = regLoc->fini+f;
+				_c = regLoc->cini+c;
+				float * dptr = &auxM[_f][_c];
+				*dptr = 0;
+				*dptr += _regionM[f][c-2]**fp0;
+				*dptr += _regionM[f][c-1]**fp1;
+				*dptr += _regionM[f][c]**fp2;
+				*dptr += _regionM[f][c+1]**fp3;
+				*dptr += _regionM[f][c+2]**fp4;
+				//fprintf(stderr, "value: %f\n", *dptr);
+
+			#endif
+			}
+		}
+		free(_buffer);
+		
+	
+	}
+	free(_buffer);
+	free(regions);
+
 	centroFiltro = vfiltro + foffset;
 	fp0 = centroFiltro-2;
 	fp1 = centroFiltro-1;
@@ -1145,6 +1293,7 @@ static void aplicarFiltro_size5(float ** gsFiltradoM)
 	fp4 = centroFiltro+2;
 	//fin-cambia
 
+	//omp_set_num_threads(THREADS);
 #ifdef NEON_VF
 	float32_t auxVector[4];
 	#pragma omp parallel for schedule(runtime) private(auxVector)
@@ -1192,6 +1341,7 @@ static void aplicarFiltro_size5(float ** gsFiltradoM)
 		}
 	}
 
+	fprintf(stderr, "HASTA AQUI\n");
 }
 
 static void aplicarFiltro(float ** gsFiltradoM)
@@ -1456,10 +1606,9 @@ static void aplicarFiltroGradiente(float ** sM, float ** dM, float ** filtro, un
 	}
 
 }
-
-static void computeGradient(float ** gradientxM, float ** gradientyM)
+static void computeGradient(float ** imM, float ** gradientxM, float ** gradientyM)
 {
-	float ** sM = G_copiaImagenM;
+	float ** sM = imM;
 	float ** xM = gradientxM;
 	float ** yM = gradientyM;
 	float ** xfiltro = G_filtroGradienteX;
@@ -1469,7 +1618,6 @@ static void computeGradient(float ** gradientxM, float ** gradientyM)
 	
 	_computeGradient(sM, xM, yM, xfiltro, yfiltro, height,  width);
 }
-
 
 
 static void computeGradientX(float ** gradientxM)
@@ -1718,7 +1866,7 @@ int main(int argc, char ** argv)
 		#ifdef GRAD_SEPARABLE
 		//TODO:...
 		#else
-		computeGradient(xgradienteM, ygradienteM);
+		computeGradient(gsFiltradoM, xgradienteM, ygradienteM);
 		#endif
 	#else
 		//Obtenemos el cambio de intensidad del gradiente en X

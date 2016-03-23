@@ -1457,9 +1457,9 @@ static void aplicarFiltroGradiente(float ** sM, float ** dM, float ** filtro, un
 
 }
 
-static void computeGradient(float ** gradientxM, float ** gradientyM)
+static void computeGradient(float ** imM, float ** gradientxM, float ** gradientyM)
 {
-	float ** sM = G_copiaImagenM;
+	float ** sM = imM;
 	float ** xM = gradientxM;
 	float ** yM = gradientyM;
 	float ** xfiltro = G_filtroGradienteX;
@@ -1718,7 +1718,7 @@ int main(int argc, char ** argv)
 		#ifdef GRAD_SEPARABLE
 		//TODO:...
 		#else
-		computeGradient(xgradienteM, ygradienteM);
+		computeGradient(gsFiltradoM, xgradienteM, ygradienteM);
 		#endif
 	#else
 		//Obtenemos el cambio de intensidad del gradiente en X
