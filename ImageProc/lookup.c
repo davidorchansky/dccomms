@@ -56,7 +56,7 @@ int main(int argc, char ** argv)
 		{
 			float deg = atan(((float)a)/b);
 			uint8_t dis = getDireccion(deg);
-			fprintf(stdout, "%d, ",dis);
+			fprintf(stdout, "%3d, ",dis);
 		}
 
 		float deg = atan(a/(float)vmax);
