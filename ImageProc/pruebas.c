@@ -1074,7 +1074,7 @@ static void aplicarFiltro_noSeparable(float ** gsFiltradoM)
 
 typedef struct RegionLoc
 {
-	unsigned int fini,cini,ffin,cfin;
+	unsigned int fini,cini,ffin,cfin,idx;
 } RegionLoc;
 
 
@@ -1127,6 +1127,7 @@ static RegionLoc * getRegionsLoc(unsigned int *nregions, unsigned int rw, unsign
 		#ifdef PRINT_REGIONS
 					fprintf(stderr, "Region %d: (%d,%d; %d,%d)\n",(int) *nregions, (int) reg->fini, (int)reg->cini, (int)reg->ffin, (int)reg->cfin);
 		#endif
+					reg->idx = *nregions;
 					*nregions += 1;
 				}
 			}
@@ -1138,6 +1139,7 @@ static RegionLoc * getRegionsLoc(unsigned int *nregions, unsigned int rw, unsign
 	#ifdef PRINT_REGIONS
 			fprintf(stderr, "Region %d: (%d,%d; %d,%d)\n",(int) *nregions, (int) reg->fini, (int)reg->cini, (int)reg->ffin, (int)reg->cfin);
 	#endif
+			reg->idx = *nregions;
 			*nregions += 1;
 		}
 	}
@@ -1158,6 +1160,7 @@ static RegionLoc * getRegionsLoc(unsigned int *nregions, unsigned int rw, unsign
 	#ifdef PRINT_REGIONS
 				fprintf(stderr, "Region %d: (%d,%d; %d,%d)\n",(int) *nregions, (int) reg->fini, (int)reg->cini, (int)reg->ffin, (int)reg->cfin);
 	#endif
+				reg->idx = *nregions;
 				*nregions += 1;
 			}
 		}
@@ -1170,6 +1173,7 @@ static RegionLoc * getRegionsLoc(unsigned int *nregions, unsigned int rw, unsign
 #ifdef PRINT_REGIONS
 		fprintf(stderr, "Region %d: (%d,%d; %d,%d)\n",(int) *nregions, (int) reg->fini, (int)reg->cini, (int)reg->ffin, (int)reg->cfin);
 #endif
+		reg->idx = *nregions;
 		*nregions += 1;
 
 	}
@@ -1183,7 +1187,7 @@ static RegionLoc * getRegionsLoc(unsigned int *nregions, unsigned int rw, unsign
 
 }
 
-static void getRegion(float region[][REGIONS_BUFFER_SIZE] , float ** img, RegionLoc *regionLoc, int tvoffset, int bvoffset, int lhoffset, int rhoffset)
+static void getRegion(float *region , int h, int w, float ** img, RegionLoc *regionLoc, int tvoffset, int bvoffset, int lhoffset, int rhoffset)
 {
 	int f,c;
 
@@ -1196,12 +1200,13 @@ static void getRegion(float region[][REGIONS_BUFFER_SIZE] , float ** img, Region
 	int cini = regionLoc->cini + lhoffset;
 	int cfin = regionLoc->cfin - rhoffset;
 
-	for(f = fini; f <= ffin; f++)
+	float * fila;
+	for(f = fini, dstf = tvoffset; f <= ffin; dstf++, f++)
 	{
-
-		for(c = cini; c <= cfin; c++)
+		fila = region + dstf * w;
+		for(c = cini, dstc = lhoffset; c <= cfin; dstc++, c++)
 		{
-			region[f][c] = img[f][c];
+			*(fila + dstc) = img[f][c];
 		}
 
 	}
@@ -1256,43 +1261,51 @@ static void aplicarFiltro_size5(float ** gsFiltradoM)
 	int vfoffset = foffset*2;
 
 
-
 	omp_set_num_threads(THREADS);
 	RegionLoc * row, *maxRow, *regLoc, *maxRowPtr;
 	maxRow = regions + nregions;
 
 
-	float _regionM[REGIONS_BUFFER_SIZE][REGIONS_BUFFER_SIZE];
+	float * _buffer = malloc(_size*sizeof(float)*nregions);
+
+
 	#pragma omp parallel for schedule(runtime) private(f, c, regLoc, row, maxRowPtr)
 	for(row = regions; row < maxRow; row += regPerRow) 
 	{
 		maxRowPtr = row + regPerRow;
-
 		for(regLoc = row; regLoc < maxRowPtr; regLoc++)
 		{
-			getRegion(_regionM, oM, regLoc, 0, 0, 0, 0);
 
 			int regMaxRow, regMaxCol;
-			regMaxRow = regLoc->ffin;//-regLoc->fini;
-			regMaxCol = regLoc->cfin-foffset;//-regLoc->cini-foffset;
+			regMaxRow = regLoc->ffin-regLoc->fini;
+			regMaxCol = regLoc->cfin-regLoc->cini-foffset;
 
+			float * _region = _buffer + regLoc->idx * _size;
+
+			getRegion(_region, _h, _w, oM, regLoc, 0, 0, 0, 0);
 			//APLICAMOS EL FILTRO HORIZONTAL DONDE NO ESTE YA APLICADO
-			for(f=regLoc->fini; f <= regMaxRow; f++)
+			for(f=0; f <= regMaxRow; f++)
 			{
-				for(c=regLoc->cini+foffset; c <= regMaxCol; c++)
+				float * _rfila = _region + _w * f;
+				for(c=foffset; c <= regMaxCol; c++)
 				{
-					float * dptr = &auxM[f][c];
+					int _f,_c;
+					_f = f + regLoc->fini;
+					_c = c + regLoc->cini;
+					float * dptr = &auxM[_f][_c];
+					float * rptr = _rfila + c-2;
 					*dptr = 0;
-					*dptr += _regionM[f][c-2]**fph0;
-					*dptr += _regionM[f][c-1]**fph1;
-					*dptr += _regionM[f][c]**fph2;
-					*dptr += _regionM[f][c+1]**fph3;
-					*dptr += _regionM[f][c+2]**fph4;
+					*dptr += *(rptr )**fph0;
+					*dptr += *(rptr + 1)**fph1;
+					*dptr += *(rptr + 2)**fph2;
+					*dptr += *(rptr + 3)**fph3;
+					*dptr += *(rptr + 4)**fph4;
 
 				}
 			}
 			//APLICAMOS EL FILTRO VERTICAL DONDE NO ESTE YA APLICADO
-			regMaxRow = regMaxRow - foffset;
+			regMaxRow = regLoc->ffin - foffset;
+			regMaxCol = regLoc->cfin - foffset;
 			for(f=regLoc->fini+foffset; f <= regMaxRow; f++)
 			{
 				for(c=regLoc->cini+foffset; c <= regMaxCol; c++)
@@ -1308,11 +1321,12 @@ static void aplicarFiltro_size5(float ** gsFiltradoM)
 			}
 
 
-
 		}
+
 	}
 
 	free(regions);
+	free(_buffer);
 
 }
 
