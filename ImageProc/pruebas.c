@@ -26,6 +26,8 @@
 
 #define RAD_2_DEG 57.29577951308232
 
+#define REGIONS_BUFFER_SIZE 1300
+
 static float * G_copiaImagen;
 static float * G_bufferDeTrabajo;
 static float * G_filtroRuido1D;
@@ -1181,7 +1183,7 @@ static RegionLoc * getRegionsLoc(unsigned int *nregions, unsigned int rw, unsign
 
 }
 
-static void getRegionM(float** region, float ** img, RegionLoc *regionLoc, int tvoffset, int bvoffset, int lhoffset, int rhoffset)
+static void getRegion(float region[][REGIONS_BUFFER_SIZE] , float ** img, RegionLoc *regionLoc, int tvoffset, int bvoffset, int lhoffset, int rhoffset)
 {
 	int f,c;
 
@@ -1190,17 +1192,18 @@ static void getRegionM(float** region, float ** img, RegionLoc *regionLoc, int t
 	int fini = regionLoc->fini + tvoffset;
 	int ffin = regionLoc->ffin - bvoffset;
 
+	//int cini = regionLoc->cini;
 	int cini = regionLoc->cini + lhoffset;
 	int cfin = regionLoc->cfin - rhoffset;
 
-	for(f = fini, dstf = tvoffset; f <= ffin; dstf++, f++)
+	for(f = fini; f <= ffin; f++)
 	{
 
-		for(c = cini, dstc = lhoffset; c <= cfin; dstc++, c++)
+		for(c = cini; c <= cfin; c++)
 		{
-			region[dstf][dstc] = img[f][c];
+			region[f][c] = img[f][c];
 		}
-		//region[dstf] = &img[f][cini];
+
 	}
 }
 
@@ -1233,8 +1236,8 @@ static void aplicarFiltro_size5(float ** gsFiltradoM)
 	int maxHeight = height-foffset;
 	int maxWidth = width-foffset;
 
-	unsigned int _h = 50;
-	unsigned int _w = 50;
+	unsigned int _h = 25;
+	unsigned int _w = 25;
 	unsigned int _size = _h*_w;
 
 	unsigned int nregions;
@@ -1258,127 +1261,56 @@ static void aplicarFiltro_size5(float ** gsFiltradoM)
 	RegionLoc * row, *maxRow, *regLoc, *maxRowPtr;
 	maxRow = regions + nregions;
 
-	void * _buffer = malloc(_size*sizeof(float)+_h*sizeof(float*));
-	float ** _regionM = (float**) (_buffer);
-	float * _region = (float*) (_regionM + _h);
 
-	getMatrixFromArray_Float_buffer(_region, _w, _h, _size, _regionM);
-
+	float _regionM[REGIONS_BUFFER_SIZE][REGIONS_BUFFER_SIZE];
+	#pragma omp parallel for schedule(runtime) private(f, c, regLoc, row, maxRowPtr)
 	for(row = regions; row < maxRow; row += regPerRow) 
 	{
 		maxRowPtr = row + regPerRow;
 
-		int regIndex;
-
-	//#pragma omp parallel for schedule(runtime) private(f, c, regLoc, regIndex)
-		//for(regIndex = 0; regIndex < nregions; regIndex++)
 		for(regLoc = row; regLoc < maxRowPtr; regLoc++)
 		{
-			if(regLoc->fini > 0)
+			getRegion(_regionM, oM, regLoc, 0, 0, 0, 0);
+
+			int regMaxRow, regMaxCol;
+			regMaxRow = regLoc->ffin;//-regLoc->fini;
+			regMaxCol = regLoc->cfin-foffset;//-regLoc->cini-foffset;
+
+			//APLICAMOS EL FILTRO HORIZONTAL DONDE NO ESTE YA APLICADO
+			for(f=regLoc->fini; f <= regMaxRow; f++)
 			{
-				RegionLoc auxRegLoc;
-				auxRegLoc.cini = regLoc->cini;
-				auxRegLoc.cfin = regLoc->cfin;
-				auxRegLoc.fini = regLoc->fini;
-				auxRegLoc.ffin = regLoc->fini+3;
-
-				getRegionM(_regionM, auxM, &auxRegLoc, 0, 0, 2, 2); // auxM es vamos guardando resultado de filtro horizontal
-				getRegionM(_regionM, oM, regLoc, 4, 0, 0, 0);
-
-				int regMaxRow, regMaxCol;
-				regMaxRow = regLoc->ffin-regLoc->fini;
-				regMaxCol = regLoc->cfin-regLoc->cini-foffset;
-
-				//APLICAMOS EL FILTRO HORIZONTAL DONDE NO ESTE YA APLICADO
-				for(f=vfoffset; f <= regMaxRow; f++)
+				for(c=regLoc->cini+foffset; c <= regMaxCol; c++)
 				{
-					for(c=foffset; c <= regMaxCol; c++)
-					{
-						int _f,_c;
-						_f = regLoc->fini+f;
-						_c = regLoc->cini+c;
-						float * dptr = &auxM[_f][_c];
-						*dptr = 0;
-						*dptr += _regionM[f][c-2]**fph0;
-						*dptr += _regionM[f][c-1]**fph1;
-						*dptr += _regionM[f][c]**fph2;
-						*dptr += _regionM[f][c+1]**fph3;
-						*dptr += _regionM[f][c+2]**fph4;
+					float * dptr = &auxM[f][c];
+					*dptr = 0;
+					*dptr += _regionM[f][c-2]**fph0;
+					*dptr += _regionM[f][c-1]**fph1;
+					*dptr += _regionM[f][c]**fph2;
+					*dptr += _regionM[f][c+1]**fph3;
+					*dptr += _regionM[f][c+2]**fph4;
 
-					}
 				}
-				//APLICAMOS EL FILTRO VERTICAL DONDE NO ESTE YA APLICADO
-				regMaxRow = regMaxRow - foffset;
-				for(f=foffset; f <= regMaxRow; f++)
-				{
-					for(c=foffset; c <= regMaxCol; c++)
-					{
-						int _f,_c;
-						_f = regLoc->fini+f;
-						_c = regLoc->cini+c;
-
-						float * dptr = &gsFiltradoM[_f][_c];
-						*dptr = 0;
-						*dptr += auxM[_f-2][_c]**fpv0;
-						*dptr += auxM[_f-1][_c]**fpv1;
-						*dptr += auxM[_f][_c]**fpv2;
-						*dptr += auxM[_f+1][_c]**fpv3;
-						*dptr += auxM[_f+2][_c]**fpv4;
-					}
-				}
-
 			}
-			else
+			//APLICAMOS EL FILTRO VERTICAL DONDE NO ESTE YA APLICADO
+			regMaxRow = regMaxRow - foffset;
+			for(f=regLoc->fini+foffset; f <= regMaxRow; f++)
 			{
-				getRegionM(_regionM, oM, regLoc, 0, 0, 0, 0);
-
-				int regMaxRow, regMaxCol;
-				regMaxRow = regLoc->ffin-regLoc->fini;
-				regMaxCol = regLoc->cfin-regLoc->cini-foffset;
-
-				//APLICAMOS EL FILTRO HORIZONTAL DONDE NO ESTE YA APLICADO
-				for(f=foffset; f <= regMaxRow; f++)
+				for(c=regLoc->cini+foffset; c <= regMaxCol; c++)
 				{
-					for(c=foffset; c <= regMaxCol; c++)
-					{
-						int _f,_c;
-						_f = regLoc->fini+f;
-						_c = regLoc->cini+c;
-						float * dptr = &auxM[_f][_c];
-						*dptr = 0;
-						*dptr += _regionM[f][c-2]**fph0;
-						*dptr += _regionM[f][c-1]**fph1;
-						*dptr += _regionM[f][c]**fph2;
-						*dptr += _regionM[f][c+1]**fph3;
-						*dptr += _regionM[f][c+2]**fph4;
-
-					}
+					float * dptr = &gsFiltradoM[f][c];
+					*dptr = 0;
+					*dptr += auxM[f-2][c]**fpv0;
+					*dptr += auxM[f-1][c]**fpv1;
+					*dptr += auxM[f][c]**fpv2;
+					*dptr += auxM[f+1][c]**fpv3;
+					*dptr += auxM[f+2][c]**fpv4;
 				}
-				//APLICAMOS EL FILTRO VERTICAL DONDE NO ESTE YA APLICADO
-				regMaxRow = regMaxRow - foffset;
-				for(f=foffset; f <= regMaxRow; f++)
-				{
-					for(c=foffset; c <= regMaxCol; c++)
-					{
-						int _f,_c;
-						_f = regLoc->fini+f;
-						_c = regLoc->cini+c;
-
-						float * dptr = &gsFiltradoM[_f][_c];
-						*dptr = 0;
-						*dptr += auxM[_f-2][_c]**fpv0;
-						*dptr += auxM[_f-1][_c]**fpv1;
-						*dptr += auxM[_f][_c]**fpv2;
-						*dptr += auxM[_f+1][_c]**fpv3;
-						*dptr += auxM[_f+2][_c]**fpv4;
-					}
-				}
-
 			}
+
+
 
 		}
 	}
-	free(_buffer);
 
 	free(regions);
 
