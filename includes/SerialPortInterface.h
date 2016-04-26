@@ -94,6 +94,7 @@ public:
 	int Write(const void *, uint32_t, uint32_t msTimeout=0);
 
 	Stream & operator >> (uint8_t &);
+	Stream & operator >> (char &);
 	Stream & operator >> (uint16_t &);
 	Stream & operator >> (uint32_t &) ;
 	Stream & operator << (uint8_t);

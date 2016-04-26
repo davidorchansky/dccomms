@@ -14,7 +14,7 @@
 #include <openssl/md5.h>
 #include <iostream>
 #include <RadioException.h>
-
+#include <sys/time.h> /*para timeout*/
 #include <iostream>
 using namespace radiotransmission;
 

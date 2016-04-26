@@ -15,7 +15,7 @@
 #include <RadioException.h>
 using namespace radiotransmission;
 
-Radio::Radio(unsigned char d, SerialPortInterface & s, Radio::fcsType fcst, uint32_t maxRxBufferSize):serial(s),dir(d)
+Radio::Radio(unsigned char d, Stream & s, Radio::fcsType fcst, uint32_t maxRxBufferSize):serial(s),dir(d)
 {
 	_maxRxBufferSize = maxRxBufferSize;
 	_rxBuffer = new uint8_t[_maxRxBufferSize];
