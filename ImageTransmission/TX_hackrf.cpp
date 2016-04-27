@@ -134,7 +134,8 @@ usage(char *pgmname, struct debtEncParam *e, struct debtDecParam *d)
 			"\t-F		    - Encoded frame size\n"
 			"\t-L		    - Max. packet length\n"
 			"\t-D		    - Delay between packets\n"
-			"\t-A		    - Max. frame Age\n",
+			"\t-A		    - Max. frame Age\n"
+			"\t-P		    - Transmission pipe\n",
 
 			pgmname,
 			e->vector,
@@ -149,7 +150,7 @@ usage(char *pgmname, struct debtEncParam *e, struct debtDecParam *d)
 /* -d to decode or -e to encode */
 /* returns -1 to graph, 0 to decode, 1 to encode */
 static int
-getOptions(int argc, char *argv[], struct debtEncParam *e, struct debtDecParam *d, char** imId, int* imIdSize, 	videoTransmissionConfig* config)
+getOptions(int argc, char *argv[], struct debtEncParam *e, struct debtDecParam *d, char** imId, int* imIdSize, 	videoTransmissionConfig* config, char** pipepath)
 {
 	int opt;
 	int error = 0;
@@ -158,8 +159,11 @@ getOptions(int argc, char *argv[], struct debtEncParam *e, struct debtDecParam *
 	int enc = 0;
 	int graph = 0;
 
-	while ((opt = getopt(argc, argv, "v:db:a:c:et:n:k:r:q:u:x:p:m:s:l:i:y:gf:h:I:W:H:F:L:D:A:")) != -1) {
+	while ((opt = getopt(argc, argv, "v:db:a:c:et:n:k:r:q:u:x:p:m:s:l:i:y:gf:h:I:W:H:F:L:D:A:P:")) != -1) {
 		switch (opt) {
+		case 'P':
+			*pipepath = optarg;
+			break;
 		case 'I':
 			*imId = optarg;
 			*imIdSize = strlen(optarg);
@@ -308,7 +312,8 @@ int main(int argc, char ** argv) {
 
 	int bIdLength;
 	int isEncoder = 0, isDecoder = 0;
-	int act = getOptions(argc, argv, &e, &d, &imId, &bIdLength, &config);
+	char * pipepath;
+	int act = getOptions(argc, argv, &e, &d, &imId, &bIdLength, &config, &pipepath);
 
 	int ret = (act == -1) ? graph(&e, &d) : (!act ? isDec(&isDecoder) : isEnc(&isEncoder));
 	
@@ -383,7 +388,8 @@ int main(int argc, char ** argv) {
 
 	try
 	{
-		DataLinkStream arduTx("/home/diego/Escriptori/video");
+		std::cout << pipepath << std::endl;
+		DataLinkStream arduTx(pipepath);
 		arduTx.Open();
 		std::cout <<"TX listo\n";
 
