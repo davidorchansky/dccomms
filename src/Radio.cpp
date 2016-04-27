@@ -160,8 +160,8 @@ void Radio::ReceiveBytes(void * buf, uint32_t size, uint8_t dirFrom, unsigned lo
 			if(dlf.checkFrame())
 			{
 	#ifdef DEBUG
-				std::cout << "Frame de radio correcto!" <<std::endl;
-				std::cout << std::flush;
+				std::cerr << "Frame de radio correcto!" <<std::endl;
+				std::cerr << std::flush;
 	#endif
 				uint16_t bytesToRead = (bytes + dlf.dataSize) <= size ? dlf.dataSize : size - bytes;
 
