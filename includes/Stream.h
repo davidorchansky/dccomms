@@ -20,6 +20,7 @@ public:
 	virtual int Write(const void *, uint32_t, uint32_t msTimeout=0) = 0;
 
 	virtual Stream & operator >> (uint8_t &) = 0;
+	virtual Stream & operator >> (char &) = 0;
 	virtual Stream & operator >> (uint16_t &) = 0;
 	virtual Stream & operator >> (uint32_t &) = 0;
 	virtual Stream & operator << (uint8_t) = 0;
