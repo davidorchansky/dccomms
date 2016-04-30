@@ -26,6 +26,8 @@
 
 #define RAD_2_DEG 57.29577951308232
 
+#define REGIONS_BUFFER_SIZE 1300
+
 static float * G_copiaImagen;
 static float * G_bufferDeTrabajo;
 static float * G_filtroRuido1D;
@@ -1069,6 +1071,147 @@ static void aplicarFiltro_noSeparable(float ** gsFiltradoM)
 
 }
 
+
+typedef struct RegionLoc
+{
+	unsigned int fini,cini,ffin,cfin,idx;
+} RegionLoc;
+
+
+
+static RegionLoc * getRegionsLoc(unsigned int *nregions, unsigned int rw, unsigned int rh, unsigned int imw, unsigned int imh, unsigned int filterOffset, unsigned int * regPerRow)
+{
+	
+	unsigned int overlapping = filterOffset*2;
+	unsigned int filterSize = overlapping > 0 ? overlapping+1 : 0;
+	unsigned int hinc = rw-overlapping;
+	unsigned int vinc = rh-overlapping;
+
+	unsigned int lastRegCol = rw-1;
+	unsigned int lastRegRow = rh-1;
+
+	unsigned int lastImCol = imw-1;
+	unsigned int lastImRow = imh-1;
+
+	unsigned int regionsize = rw*rh;
+	unsigned int imsize = imw*imh;
+	RegionLoc *regions = (RegionLoc*)malloc(imsize*sizeof(RegionLoc));
+
+	*nregions = 0;
+	int fila, maxf, col, maxc;
+
+	maxf = imh/vinc * vinc;
+	*regPerRow = imw/hinc;
+
+	maxc = *regPerRow * hinc;
+
+	int firstColLastRegionInRow = maxc;
+	int firstRowLastRegionInCol = maxf;
+
+
+	for(fila = 0; fila < firstRowLastRegionInCol; fila += vinc)
+	{
+		int filaFin = fila + lastRegRow;
+		if(filaFin <= lastImRow)
+		{
+			for(col = 0; col < firstColLastRegionInRow ; col += hinc)
+			{
+				int colFin = col + lastRegCol;
+				if(colFin <= lastImCol)
+				{
+					RegionLoc *reg = &regions[*nregions];
+					reg->fini = fila;
+					reg->ffin = filaFin;
+					reg->cini = col;
+					reg->cfin = colFin;
+		#ifdef PRINT_REGIONS
+					fprintf(stderr, "Region %d: (%d,%d; %d,%d)\n",(int) *nregions, (int) reg->fini, (int)reg->cini, (int)reg->ffin, (int)reg->cfin);
+		#endif
+					reg->idx = *nregions;
+					*nregions += 1;
+				}
+			}
+			RegionLoc *reg = &regions[*nregions];
+			reg->fini = fila;
+			reg->ffin = filaFin;
+			reg->cini = col;
+			reg->cfin = lastImCol;
+	#ifdef PRINT_REGIONS
+			fprintf(stderr, "Region %d: (%d,%d; %d,%d)\n",(int) *nregions, (int) reg->fini, (int)reg->cini, (int)reg->ffin, (int)reg->cfin);
+	#endif
+			reg->idx = *nregions;
+			*nregions += 1;
+		}
+	}
+	if(imh - fila >= filterSize)
+	{
+		int filaFin = lastImRow;
+		for(col = 0; col < firstColLastRegionInRow; col += hinc)
+		{
+			int colFin = col + lastRegCol;
+			if(colFin <= lastImCol)
+			{
+				RegionLoc *reg = &regions[*nregions];
+				reg->fini = fila;
+				reg->ffin = filaFin;
+				reg->cini = col;
+				reg->cfin = colFin;
+
+	#ifdef PRINT_REGIONS
+				fprintf(stderr, "Region %d: (%d,%d; %d,%d)\n",(int) *nregions, (int) reg->fini, (int)reg->cini, (int)reg->ffin, (int)reg->cfin);
+	#endif
+				reg->idx = *nregions;
+				*nregions += 1;
+			}
+		}
+		RegionLoc *reg = &regions[*nregions];
+		reg->fini = fila;
+		reg->ffin = filaFin;
+		reg->cini = col;
+		reg->cfin = lastImCol;
+
+#ifdef PRINT_REGIONS
+		fprintf(stderr, "Region %d: (%d,%d; %d,%d)\n",(int) *nregions, (int) reg->fini, (int)reg->cini, (int)reg->ffin, (int)reg->cfin);
+#endif
+		reg->idx = *nregions;
+		*nregions += 1;
+
+	}
+
+
+	
+//	fprintf(stderr, "Regions: %d\n", *nregions);
+	return regions;
+
+
+
+}
+
+static void getRegion(float *region , int h, int w, float ** img, RegionLoc *regionLoc, int tvoffset, int bvoffset, int lhoffset, int rhoffset)
+{
+	int f,c;
+
+	int dstc, dstf;
+
+	int fini = regionLoc->fini + tvoffset;
+	int ffin = regionLoc->ffin - bvoffset;
+
+	//int cini = regionLoc->cini;
+	int cini = regionLoc->cini + lhoffset;
+	int cfin = regionLoc->cfin - rhoffset;
+
+	float * fila;
+	for(f = fini, dstf = tvoffset; f <= ffin; dstf++, f++)
+	{
+		fila = region + dstf * w;
+		for(c = cini, dstc = lhoffset; c <= cfin; dstc++, c++)
+		{
+			*(fila + dstc) = img[f][c];
+		}
+
+	}
+}
+
 static void aplicarFiltro_size5(float ** gsFiltradoM)
 {
 	unsigned int tamFiltro = G_tamFiltro;
@@ -1086,111 +1229,104 @@ static void aplicarFiltro_size5(float ** gsFiltradoM)
 #endif
 	//cambia
 	int foffset = 2;
-	float * centroFiltro = hfiltro + foffset;
-	float * fp0 = centroFiltro-2,
-	*fp1 = centroFiltro-1,
-	*fp2 = centroFiltro,
-	*fp3 = centroFiltro+1,
-	*fp4 = centroFiltro+2;
+	float * centroFiltroH = hfiltro + foffset;
+	float * fph0 = centroFiltroH-2,
+	*fph1 = centroFiltroH-1,
+	*fph2 = centroFiltroH,
+	*fph3 = centroFiltroH+1,
+	*fph4 = centroFiltroH+2;
 	//fin-cambia
-	int f;
+	int f,c;
 	
 	int maxHeight = height-foffset;
 	int maxWidth = width-foffset;
 
+	unsigned int _h = 25;
+	unsigned int _w = 25;
+	unsigned int _size = _h*_w;
+
+	unsigned int nregions;
+	unsigned int regPerRow;
+
+	RegionLoc * regions = getRegionsLoc(&nregions, _w, _h, width, height, 2, &regPerRow);
+
+
+	float * centroFiltroV = vfiltro + foffset;
+	float * fpv0 = centroFiltroV-2,
+	*fpv1 = centroFiltroV-1,
+	*fpv2 = centroFiltroV,
+	*fpv3 = centroFiltroV+1,
+	*fpv4 = centroFiltroV+2;
+
+	int vfoffset = foffset*2;
+
 
 	omp_set_num_threads(THREADS);
-	#pragma omp parallel for schedule(runtime)
-	for(f=foffset; f < maxHeight; f++)
+	RegionLoc * row, *maxRow, *regLoc, *maxRowPtr;
+	maxRow = regions + nregions;
+
+
+	float * _buffer = malloc(_size*sizeof(float)*nregions);
+
+
+	#pragma omp parallel for schedule(runtime) private(f, c, regLoc, row, maxRowPtr)
+	for(row = regions; row < maxRow; row += regPerRow) 
 	{
-		int c;
-		for(c=foffset; c < maxWidth; c++)
+		maxRowPtr = row + regPerRow;
+		for(regLoc = row; regLoc < maxRowPtr; regLoc++)
 		{
-		#ifdef NEON
-			float * sptr = &oM[f][c-2];
-			float32x4_t tmp;
-			tmp = vld1q_f32(sptr);
-			tmp = vmulq_f32(tmp, nhfiltro);
 
-			float32x2_t low = vget_low_f32(tmp);
-			float32x2_t high = vget_high_f32(tmp);
+			int regMaxRow, regMaxCol;
+			regMaxRow = regLoc->ffin-regLoc->fini;
+			regMaxCol = regLoc->cfin-regLoc->cini-foffset;
 
-			low = vadd_f32(low, high);
+			float * _region = _buffer + regLoc->idx * _size;
 
-			float * dptr = &auxM[f][c];
-			*dptr = vget_lane_f32(low,0);
-			*dptr += vget_lane_f32(low,1);
+			getRegion(_region, _h, _w, oM, regLoc, 0, 0, 0, 0);
+			//APLICAMOS EL FILTRO HORIZONTAL DONDE NO ESTE YA APLICADO
+			for(f=0; f <= regMaxRow; f++)
+			{
+				float * _rfila = _region + _w * f;
+				for(c=foffset; c <= regMaxCol; c++)
+				{
+					int _f,_c;
+					_f = f + regLoc->fini;
+					_c = c + regLoc->cini;
+					float * dptr = &auxM[_f][_c];
+					float * rptr = _rfila + c-2;
+					*dptr = 0;
+					*dptr += *(rptr )**fph0;
+					*dptr += *(rptr + 1)**fph1;
+					*dptr += *(rptr + 2)**fph2;
+					*dptr += *(rptr + 3)**fph3;
+					*dptr += *(rptr + 4)**fph4;
 
-			*dptr += *(sptr+4)**fp4;
+				}
+			}
+			//APLICAMOS EL FILTRO VERTICAL DONDE NO ESTE YA APLICADO
+			regMaxRow = regLoc->ffin - foffset;
+			regMaxCol = regLoc->cfin - foffset;
+			for(f=regLoc->fini+foffset; f <= regMaxRow; f++)
+			{
+				for(c=regLoc->cini+foffset; c <= regMaxCol; c++)
+				{
+					float * dptr = &gsFiltradoM[f][c];
+					*dptr = 0;
+					*dptr += auxM[f-2][c]**fpv0;
+					*dptr += auxM[f-1][c]**fpv1;
+					*dptr += auxM[f][c]**fpv2;
+					*dptr += auxM[f+1][c]**fpv3;
+					*dptr += auxM[f+2][c]**fpv4;
+				}
+			}
 
-		#else
-			float * dptr = &auxM[f][c];
-			*dptr = 0;
-			*dptr += oM[f][c-2]**fp0;
-			*dptr += oM[f][c-1]**fp1;
-			*dptr += oM[f][c]**fp2;
-			*dptr += oM[f][c+1]**fp3;
-			*dptr += oM[f][c+2]**fp4;
 
-		#endif
 		}
+
 	}
-	
-	//cambia
-	centroFiltro = vfiltro + foffset;
-	fp0 = centroFiltro-2;
-	fp1 = centroFiltro-1;
-	fp2 = centroFiltro;
-	fp3 = centroFiltro+1;
-	fp4 = centroFiltro+2;
-	//fin-cambia
 
-#ifdef NEON_VF
-	float32_t auxVector[4];
-	#pragma omp parallel for schedule(runtime) private(auxVector)
-#else
-	#pragma omp parallel for schedule(runtime)
-#endif
-	for(f=foffset; f < maxHeight; f++)
-	{
-		int c;
-
-		for(c=foffset; c < maxWidth; c++)
-		{
-		#ifdef NEON_VF
-			auxVector[0] = auxM[f-2][c];
-			auxVector[1] = auxM[f-1][c];
-			auxVector[2] = auxM[f][c];
-			auxVector[3] = auxM[f+1][c];
-
-			float32x4_t tmp;
-			tmp = vld1q_f32(auxVector);
-			tmp = vmulq_f32(tmp, nvfiltro);
-			
-			float32x2_t low = vget_low_f32(tmp);
-			float32x2_t high = vget_high_f32(tmp);
-
-			low = vadd_f32(low, high);
-
-			float * dptr = &gsFiltradoM[f][c];
-			*dptr = vget_lane_f32(low,0);
-			*dptr += vget_lane_f32(low,1);
-
-			*dptr += auxM[f+2][c]**fp4;
-
-
-
-		#else
-			float * dptr = &gsFiltradoM[f][c];
-			*dptr = 0;
-			*dptr += auxM[f-2][c]**fp0;
-			*dptr += auxM[f-1][c]**fp1;
-			*dptr += auxM[f][c]**fp2;
-			*dptr += auxM[f+1][c]**fp3;
-			*dptr += auxM[f+2][c]**fp4;
-		#endif
-		}
-	}
+	free(regions);
+	free(_buffer);
 
 }
 
@@ -1456,10 +1592,9 @@ static void aplicarFiltroGradiente(float ** sM, float ** dM, float ** filtro, un
 	}
 
 }
-
-static void computeGradient(float ** gradientxM, float ** gradientyM)
+static void computeGradient(float ** imM, float ** gradientxM, float ** gradientyM)
 {
-	float ** sM = G_copiaImagenM;
+	float ** sM = imM;
 	float ** xM = gradientxM;
 	float ** yM = gradientyM;
 	float ** xfiltro = G_filtroGradienteX;
@@ -1469,7 +1604,6 @@ static void computeGradient(float ** gradientxM, float ** gradientyM)
 	
 	_computeGradient(sM, xM, yM, xfiltro, yfiltro, height,  width);
 }
-
 
 
 static void computeGradientX(float ** gradientxM)
@@ -1718,7 +1852,7 @@ int main(int argc, char ** argv)
 		#ifdef GRAD_SEPARABLE
 		//TODO:...
 		#else
-		computeGradient(xgradienteM, ygradienteM);
+		computeGradient(gsFiltradoM, xgradienteM, ygradienteM);
 		#endif
 	#else
 		//Obtenemos el cambio de intensidad del gradiente en X
