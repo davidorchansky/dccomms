@@ -1215,7 +1215,7 @@ static void aplicarFiltro(float ** gsFiltradoM)
 
 	//omp_set_num_threads(THREADS);
 	//#pragma omp parallel for
-	for(f=foffset; f < maxHeight; f++)
+	for(f=0; f < height; f++)
 	{
 		int c;
 		for(c=foffset; c < maxWidth; c++)
@@ -1234,7 +1234,7 @@ static void aplicarFiltro(float ** gsFiltradoM)
 	{
 		int c;
 
-		for(c=foffset; c < maxWidth; c++)
+		for(c=0; c < width; c++)
 		{
 			float * fptr = &gsFiltradoM[f][c];
 			*fptr = 0;

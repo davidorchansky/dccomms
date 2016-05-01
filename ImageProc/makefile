@@ -1,7 +1,7 @@
 
 ARGS=
 
-exec=pruebas join
+exec=pruebas join pruebas-pg
 
 CFLAGS=$(ARGS) -fopenmp -O3
 CC=gcc
@@ -18,7 +18,8 @@ pruebas: pruebas.o
 join: join.o
 	gcc $< $(ARGS) $(CFLAGS) -lm -o $@
 
-
+pruebas-pg: pruebas-pg.o
+	gcc $< $(ARGS) -fopenmp -lm -o $@ -pg
 
 
 clean:
@@ -27,3 +28,5 @@ clean:
 
 pruebas.o: pruebas.c
 join.o: join.c
+pruebas-pg.o: pruebas.c
+	gcc -c $< $(ARGS) -fopenmp -lm -o $@ -pg

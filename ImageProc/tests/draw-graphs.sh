@@ -33,13 +33,11 @@ function getScheduleName
 arch=$2
 
 
-paralconf=$1/plotData.txt
-comp=$1/comparative.pdf
 
-rm -f $paralconf $comp
 for i in $1/*
 do
 	echo Tratando imagen $i...
+
 	for per in $(ls $i); do
 		perdir=$i/$per
 		for filterSize in $(ls $perdir); do
@@ -52,6 +50,9 @@ do
 					for lthold in $(ls $ratiodir); do
 						ltholddir=$ratiodir/$lthold
 						conf=0
+						paralconf=$ltholddir/plotData.txt
+						comp=$ltholddir/comparative.pdf
+						rm -f $paralconf $comp
 						for chunk in $(ls $ltholddir); do
 							chunkDir=$ltholddir/$chunk
 							for schedule in $(ls $chunkDir); do
