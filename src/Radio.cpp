@@ -15,7 +15,7 @@
 #include <RadioException.h>
 using namespace radiotransmission;
 
-Radio::Radio(unsigned char d, SerialPortInterface & s, Radio::fcsType fcst, uint32_t maxRxBufferSize):serial(s),dir(d)
+Radio::Radio(unsigned char d, Stream & s, Radio::fcsType fcst, uint32_t maxRxBufferSize):serial(s),dir(d)
 {
 	_maxRxBufferSize = maxRxBufferSize;
 	_rxBuffer = new uint8_t[_maxRxBufferSize];
@@ -160,8 +160,8 @@ void Radio::ReceiveBytes(void * buf, uint32_t size, uint8_t dirFrom, unsigned lo
 			if(dlf.checkFrame())
 			{
 	#ifdef DEBUG
-				std::cout << "Frame de radio correcto!" <<std::endl;
-				std::cout << std::flush;
+				std::cerr << "Frame de radio correcto!" <<std::endl;
+				std::cerr << std::flush;
 	#endif
 				uint16_t bytesToRead = (bytes + dlf.dataSize) <= size ? dlf.dataSize : size - bytes;
 
