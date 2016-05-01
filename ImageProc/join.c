@@ -1101,7 +1101,7 @@ static void aplicarFiltro_size5(float ** gsFiltradoM)
 
 	omp_set_num_threads(THREADS);
 	#pragma omp parallel for schedule(runtime)
-	for(f=foffset; f < maxHeight; f++)
+	for(f=0; f < height; f++)
 	{
 		int c;
 		for(c=foffset; c < maxWidth; c++)
@@ -1155,7 +1155,7 @@ static void aplicarFiltro_size5(float ** gsFiltradoM)
 	{
 		int c;
 
-		for(c=foffset; c < maxWidth; c++)
+		for(c=0; c < width; c++)
 		{
 		#ifdef NEON_VF
 			auxVector[0] = auxM[f-2][c];
@@ -1682,6 +1682,7 @@ int main(int argc, char ** argv)
 		getMatrixFromArray_Uint8_buffer(mgthinescalado, width, height, size, mgthinescaladoM);
 
 		copiarArray_Uint8_Float(G_copiaImagen, gs, size);
+		memcpy(G_bufferDeTrabajo, G_copiaImagen, size*sizeof(float));
 		memcpy(gsFiltrado, G_copiaImagen, size*sizeof(float));
 
 #ifdef TIMMING
