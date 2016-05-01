@@ -8,6 +8,7 @@ CPP_SRCS += \
 ../src/BlockRadioTransmitter.cpp \
 ../src/Checksum.cpp \
 ../src/DataLinkFrame.cpp \
+../src/DataLinkStream.cpp \
 ../src/Radio.cpp \
 ../src/RadioException.cpp \
 ../src/SerialPortInterface.cpp \
@@ -19,6 +20,7 @@ OBJS += \
 ./src/BlockRadioTransmitter.o \
 ./src/Checksum.o \
 ./src/DataLinkFrame.o \
+./src/DataLinkStream.o \
 ./src/Radio.o \
 ./src/RadioException.o \
 ./src/SerialPortInterface.o \
@@ -30,6 +32,7 @@ CPP_DEPS += \
 ./src/BlockRadioTransmitter.d \
 ./src/Checksum.d \
 ./src/DataLinkFrame.d \
+./src/DataLinkStream.d \
 ./src/Radio.d \
 ./src/RadioException.d \
 ./src/SerialPortInterface.d \

@@ -374,6 +374,14 @@ Stream & SerialPortInterface::operator >> (uint8_t & byte )
 	return *this;
 }
 
+Stream & SerialPortInterface::operator >> (char & byte )
+{
+	fcntl(fd, F_SETFL, 0);
+	read(fd, &byte, sizeof(uint8_t));
+	fcntl(fd, F_SETFL, FNDELAY);
+	return *this;
+}
+
 Stream & SerialPortInterface::operator >> (uint16_t & data16 )
 {
 	fcntl(fd, F_SETFL, 0);
