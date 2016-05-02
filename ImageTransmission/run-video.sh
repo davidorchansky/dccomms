@@ -1,6 +1,6 @@
 #!/bin/bash
 
-path=/home/diego/ROVRadioTransmission/ImageTransmission/
+path=/home/alarm/ROVRadioTransmission/ImageTransmission/
 
 cd $path
 
