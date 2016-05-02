@@ -37,6 +37,7 @@ public:
 	uint8_t getSrcDir(){return *sdir;}
 	uint16_t getDataSize(){return *dsize;}
 
+	void getInfoFromBuffer(void *);
 
 	friend Stream& operator >> (Stream & i, DataLinkFrame & dlf);
 	friend Stream& operator << (Stream & i, const DataLinkFrame & dlf);
