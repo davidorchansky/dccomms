@@ -228,6 +228,42 @@ Stream& operator << (Stream & i, const DataLinkFrame & dlf)
 	return i;
 }
 
+void DataLinkFrame::getInfoFromBuffer(void *o)
+{
+	uint8_t * optr = (uint8_t*)o;
+	this->_canDeletePayload = true;
+	this->_deletePayloadBuffer();
+
+	memcpy(this->ddir, optr, DLNK_DIR_SIZE);
+	optr+=DLNK_DIR_SIZE;
+
+	memcpy(this->sdir, optr, DLNK_DIR_SIZE);
+	optr+=DLNK_DIR_SIZE;
+
+	memcpy((uint8_t *)this->dsize, optr, DLNK_DSIZE_SIZE);
+	optr+=DLNK_DSIZE_SIZE;
+
+	if(this->_BigEndian)
+	{
+		this->dataSize  = *this->dsize;
+	}
+	else
+	{
+		this->dataSize = ((*this->dsize) << 8) | ((*this->dsize) >> 8);
+	}
+
+	this->payload = (uint8_t*) malloc(this->dataSize);
+
+	memcpy(this->payload, optr, this->dataSize);
+	optr+=this->dataSize;
+
+	memcpy(this->fcs, optr, this->fcsSize);
+	optr+=this->fcsSize;
+
+
+	this->frameSize = this->overheadSize + this->dataSize;
+}
+
 void DataLinkFrame::printFrame(std::ostream & o)
 {
 	o << std::hex;
