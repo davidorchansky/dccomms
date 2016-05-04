@@ -348,30 +348,38 @@ int main(int argc, char ** argv) {
 				std::cerr << "yb: " << (unsigned long) y << std::endl;
 				std::cerr << "Width: " << img->width << " Height: " << img->height << std::endl;
 				std::cerr << "Y SIZE: " << ysize << " U and V SIZE: " << uvsize << std::endl;
+				std::cerr << "yuvsize: " << yuvsize << std::endl;
 
-				uint8_t * ppm = rxbuffer;
-				int hl = sprintf((char*)ppm,"P6\n%d %d\n255\n", img->width, img->height);
+				if(false)
+				{	
+					uint8_t * ppm = rxbuffer;
+					int hl = sprintf((char*)ppm,"P6\n%d %d\n255\n", img->width, img->height);
 
-				std::cerr << "Head length: " << hl << std::endl;
-				uint8_t * ppmImg = ppm + hl;
-				yuv420p_to_rgb(img->width, img->height, y, u, v, ppmImg);
+					std::cerr << "Head length: " << hl << std::endl;
+					uint8_t * ppmImg = ppm + hl;
+					yuv420p_to_rgb(img->width, img->height, y, u, v, ppmImg);
 
-				unsigned int rgbLength = img->height * img->width * 3;
-				unsigned int ppmLength = rgbLength + hl;
+					unsigned int rgbLength = img->height * img->width * 3;
+					unsigned int ppmLength = rgbLength + hl;
 
-				/*
-				FILE * outputFile = fopen("RES.ppm", "wb");
-				fwrite(ppm, 1, ppmLength, outputFile);
-				fclose(outputFile);
-				//std::vector<uint8_t> ppmv;
-				//ppmv.assign(ppm, ppm + hl + img->width * img->height * 3);
-				Mat decimg = imread("RES.ppm", CV_LOAD_IMAGE_COLOR);
-				imshow("ROV",decimg);
-				waitKey(1);
-				*/
+					/*
+					   FILE * outputFile = fopen("RES.ppm", "wb");
+					   fwrite(ppm, 1, ppmLength, outputFile);
+					   fclose(outputFile);
+					//std::vector<uint8_t> ppmv;
+					//ppmv.assign(ppm, ppm + hl + img->width * img->height * 3);
+					Mat decimg = imread("RES.ppm", CV_LOAD_IMAGE_COLOR);
+					imshow("ROV",decimg);
+					waitKey(1);
+					 */
 
-				//Enviando ppm por la salida estandar
-				write(1, ppm, ppmLength);
+					//Enviando ppm por la salida estandar
+					write(1, ppm, ppmLength);
+				}
+				else
+				{
+					write(1, y, yuvsize);
+				}
 				imgBuffer_del(img);
 				it++;
 				if(it > 3)

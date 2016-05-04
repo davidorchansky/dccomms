@@ -536,7 +536,8 @@ static int
 decode(struct debtDecParam *d, uint8_t * encoded, struct imgBuffer * dst)
 {
 	int debtimgsize = ((d->bitlen + 7) >> 3);
-	debt_decode_imgbuffer(dst, encoded, debtimgsize, d, NULL, NULL);
+	if(!debt_decode_imgbuffer(dst, encoded, debtimgsize, d, NULL, NULL))
+		fprintf(stderr, "ERROR al descomprimir!!");
 	return 0;
 }
 
