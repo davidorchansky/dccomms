@@ -102,10 +102,10 @@ uint32_t BlockRadioTransmitter::Receive(const char* identifier, void * buf, unsi
 
 #ifdef DEBUG
 	if(memcmp(md5, rmd5, 16)==0)
-		std::cout << "Integridad del bloque total" << std::endl;
+		std::cerr << "Integridad del bloque total" << std::endl;
 	else
 	{
-		std::cout << "Bloque no válido" << std::endl;
+		std::cerr << "Bloque no válido" << std::endl;
 		throw 88;
 	}
 
@@ -119,7 +119,7 @@ uint32_t BlockRadioTransmitter::Receive(const char* identifier, void * buf, unsi
 	gettimeofday(&time1, NULL);
 	t1 = time1.tv_sec*1000 + time1.tv_usec/1000;
 	tdif = t1 - t0;
-	std::cout << "Imagen recibida en: "<< tdif << " ms" <<std::endl;
+	std::cerr << "Imagen recibida en: "<< tdif << " ms" <<std::endl;
 #endif
 
 	return size;

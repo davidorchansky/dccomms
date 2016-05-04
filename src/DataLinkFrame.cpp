@@ -13,6 +13,9 @@
 
 namespace radiotransmission {
 
+static const unsigned char _manchesterPre[DLNK_PREAMBLE_SIZE] = {0x55,0x55,0x55,0x55,0x55,0x55,0x55,0x55,0x55,0x55};
+
+const unsigned char* DataLinkFrame::manchesterPre = _manchesterPre;
 
 DataLinkFrame::DataLinkFrame(DataLinkFrame::fcsType fcst)
 {
@@ -46,7 +49,7 @@ DataLinkFrame::DataLinkFrame(DataLinkFrame::fcsType fcst)
     dsize = (uint16_t *) (sdir   + DLNK_DIR_SIZE);
     fcs   = ((uint8_t *) dsize)  + DLNK_DSIZE_SIZE;
 
-    memcpy(pre, "juanito", DLNK_PREAMBLE_SIZE);
+    memcpy(pre, DataLinkFrame::manchesterPre, DLNK_PREAMBLE_SIZE);
     frameSize = overheadSize;
     totalInfoSize = DLNK_DIR_SIZE*2 + DLNK_DSIZE_SIZE;
 }
@@ -91,7 +94,7 @@ DataLinkFrame::DataLinkFrame(
     dsize = (uint16_t *) (sdir   + DLNK_DIR_SIZE);
     fcs   = ((uint8_t *) dsize)  + DLNK_DSIZE_SIZE;
 
-    memcpy(pre, "juanito", DLNK_PREAMBLE_SIZE);
+    memcpy(pre, DataLinkFrame::manchesterPre, DLNK_PREAMBLE_SIZE);
     *ddir = desdir;
     *sdir = srcdir;
     if(_BigEndian)
@@ -191,7 +194,7 @@ Stream& operator >> (Stream & i, DataLinkFrame & dlf)
 {
 	dlf._canDeletePayload = true;
 	dlf._deletePayloadBuffer();
-	i.WaitFor((const uint8_t*) "juanito", 7);
+	i.WaitFor((const uint8_t*) dlf.pre, DLNK_PREAMBLE_SIZE);
 
 	i.Read(dlf.ddir, DLNK_DIR_SIZE);
 	i.Read(dlf.sdir, DLNK_DIR_SIZE);
@@ -217,7 +220,6 @@ Stream& operator >> (Stream & i, DataLinkFrame & dlf)
 }
 Stream& operator << (Stream & i, const DataLinkFrame & dlf)
 {
-
 	i.Write(dlf.pre,DLNK_PREAMBLE_SIZE);
 	i.Write(dlf.ddir,DLNK_DIR_SIZE);
 	i.Write(dlf.sdir,DLNK_DIR_SIZE);

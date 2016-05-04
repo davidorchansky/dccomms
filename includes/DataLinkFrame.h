@@ -15,7 +15,7 @@
 
 namespace radiotransmission {
 
-#define DLNK_PREAMBLE_SIZE 7
+#define DLNK_PREAMBLE_SIZE 10
 #define DLNK_DIR_SIZE   1
 #define DLNK_DSIZE_SIZE 2
 
@@ -51,6 +51,7 @@ public:
 	bool checkFrame();
 
 	static bool IsBigEndian();
+	static const unsigned char * manchesterPre;
 private:
 	uint8_t * pre,* ddir,*sdir,* fcs;
 	uint16_t * dsize;

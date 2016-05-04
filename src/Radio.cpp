@@ -29,20 +29,20 @@ Radio::Radio(unsigned char d, Stream & s, Radio::fcsType fcst, uint32_t maxRxBuf
 		case Radio::fcsType::crc32:
 			FCSType = DataLinkFrame::fcsType::crc32;
 #ifdef DEBUG
-		std::cout << "Configurado crc32" << std::endl;
+		std::cerr << "Configurado crc32" << std::endl;
 #endif
 
 			break;
 		case Radio::fcsType::crc16:
 			FCSType = DataLinkFrame::fcsType::crc16;
 #ifdef DEBUG
-		std::cout << "Configurado crc16" << std::endl;
+		std::cerr << "Configurado crc16" << std::endl;
 #endif
 			break;
 		case Radio::fcsType::nofcs:
 			FCSType = DataLinkFrame::fcsType::nofcs;
 #ifdef DEBUG
-		std::cout << "Configurado crc16" << std::endl;
+		std::cerr << "Configurado crc16" << std::endl;
 #endif
 			break;
 	}
@@ -64,8 +64,8 @@ void Radio::SendBytes(const void * buf, uint32_t size, uint8_t dirTo, uint32_t p
 	{
 		DataLinkFrame dlf(dirTo, dir, packetSize, buffer, FCSType);
 #ifdef DEBUG
-		std::cout << "Enviando paquete..." << std::endl;
-		dlf.printFrame(std::cout);
+		std::cerr << "Enviando paquete..." << std::endl;
+		dlf.printFrame(std::cerr);
 #endif
 		serial << dlf;
 		buffer += packetSize;
@@ -79,8 +79,8 @@ void Radio::SendBytes(const void * buf, uint32_t size, uint8_t dirTo, uint32_t p
 
 		DataLinkFrame dlf(dirTo, dir, packetSize, buffer, FCSType);
 #ifdef DEBUG
-		std::cout << "Enviando paquete..." << std::endl;
-		dlf.printFrame(std::cout);
+		std::cerr << "Enviando paquete..." << std::endl;
+		dlf.printFrame(std::cerr);
 #endif
 		serial << dlf;
 		buffer += packetSize;
@@ -95,8 +95,8 @@ void Radio::SendBytes(const void * buf, uint32_t size, uint8_t dirTo, uint32_t p
 			std::this_thread::sleep_for(std::chrono::milliseconds(ms));
 		DataLinkFrame dlf(dirTo, dir, bytesLeft, buffer, FCSType);
 #ifdef DEBUG
-		std::cout << "Enviando paquete..." << std::endl;
-		dlf.printFrame(std::cout);
+		std::cerr << "Enviando paquete..." << std::endl;
+		dlf.printFrame(std::cerr);
 #endif
 		serial << dlf;
 		serial.FlushIO();//Lo ideal seria FlushOutput, pero en algun lado hay algo que hace que se llene el buffer de entrada
