@@ -12,8 +12,11 @@
 #include <DataLinkFrame.h>
 #include <ostream>
 #include <Stream.h>
+#include <cstring>
 
 namespace radiotransmission {
+
+#define NO_CARRIER_SIZE 200
 
 #define DLNK_PREAMBLE_SIZE 10
 #define DLNK_DIR_SIZE   1
@@ -50,6 +53,8 @@ public:
 	void printFrame(std::ostream &);
 	bool checkFrame();
 
+	unsigned char _noCarrier[NO_CARRIER_SIZE];
+
 	static bool IsBigEndian();
 	static const unsigned char * manchesterPre;
 private:
@@ -70,6 +75,11 @@ private:
 	void _deletePayloadBuffer();
 	bool _BigEndian;
 	bool _canDeletePayload  = false;
+
+	void fill_noCarrier()
+	{
+		memset (_noCarrier,0x64,NO_CARRIER_SIZE);
+	}
 
 
 };
