@@ -52,6 +52,7 @@ DataLinkFrame::DataLinkFrame(DataLinkFrame::fcsType fcst)
     memcpy(pre, DataLinkFrame::manchesterPre, DLNK_PREAMBLE_SIZE);
     frameSize = overheadSize;
     totalInfoSize = DLNK_DIR_SIZE*2 + DLNK_DSIZE_SIZE;
+    fill_noCarrier();
 }
 
 DataLinkFrame::DataLinkFrame(
@@ -110,6 +111,7 @@ DataLinkFrame::DataLinkFrame(
     totalInfoSize = DLNK_DIR_SIZE*2 + DLNK_DSIZE_SIZE;
 
     _calculateCRC();
+    fill_noCarrier();
 }
 
 
@@ -220,12 +222,15 @@ Stream& operator >> (Stream & i, DataLinkFrame & dlf)
 }
 Stream& operator << (Stream & i, const DataLinkFrame & dlf)
 {
+	i.Write(dlf._noCarrier, NO_CARRIER_SIZE);
 	i.Write(dlf.pre,DLNK_PREAMBLE_SIZE);
 	i.Write(dlf.ddir,DLNK_DIR_SIZE);
 	i.Write(dlf.sdir,DLNK_DIR_SIZE);
 	i.Write(dlf.dsize,DLNK_DSIZE_SIZE);
 	i.Write(dlf.payload,dlf.dataSize);
 	i.Write(dlf.fcs, dlf.fcsSize);
+	i.Write(dlf._noCarrier, NO_CARRIER_SIZE);
+	//i.FlushOutput();
 
 	return i;
 }
