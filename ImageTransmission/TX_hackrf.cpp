@@ -23,9 +23,9 @@
 #include <cstring>
 #include <unistd.h>
 #include <sys/time.h>
-#include <videoServer.h>
 #include <pthread.h>
 #include <Arduino.h>
+#include <videoServer.h>
 
 extern "C"
 {
@@ -36,47 +36,6 @@ extern "C"
 using namespace std;
 using namespace radiotransmission;
 
-pthread_mutex_t lock;
-
-#define VIDEO_SERVER_RX 3
-
-void *serverInterface(void * conf)
-{
-	videoTransmissionConfig *config = (videoTransmissionConfig*) conf;
-
-	int n;
-	char c;
-	fd_set fds;
-	char msg[100];
-
-	while(1)
-	{
-		FD_ZERO(&fds);
-		FD_SET(VIDEO_SERVER_RX, &fds);
-		struct timeval tv = {0};
-		tv.tv_sec = 0;
-		int r = select(VIDEO_SERVER_RX+1, &fds, NULL, NULL, &tv);
-
-		if(r == 1)
-		{
-			read(VIDEO_SERVER_RX,&c,1);
-			if( c == '{')
-			{
-
-    				pthread_mutex_lock(&lock); 
-				if(getVideoTransmissionConfig(VIDEO_SERVER_RX, config)==-1)
-				{
-    					pthread_mutex_unlock(&lock); 
-					continue;
-				}
-
-    				pthread_mutex_unlock(&lock); 
-			}
-
-		}
-
-	}
-}
 int
 readId(char* id, int len)
 {
@@ -317,20 +276,6 @@ int main(int argc, char ** argv) {
 
 	int ret = (act == -1) ? graph(&e, &d) : (!act ? isDec(&isDecoder) : isEnc(&isEncoder));
 	
-	//SETTING THE SERVER INTERFACE
-	if (pthread_mutex_init(&lock, NULL) != 0)
-	{
-		printf("\n mutex init failed\n");
-		return 1;
-	}
-
-	pthread_t thread_id;
-	
-	if( pthread_create( &thread_id , NULL ,  serverInterface , (void*) &config) < 0)
-	{
-		perror("could not create thread");
-		return 1;
-	}
 
 	//////////// GRABBER AND ENCODER SETUP
 	struct sigaction sa;
@@ -344,7 +289,7 @@ int main(int argc, char ** argv) {
 	const char * v4linuxDevice = "/dev/video0";
 	int fd;
 
-	fd = open(v4linuxDevice, O_RDWR);
+	fd = open(v4linuxDevice, O_RDWR | O_NONBLOCK);
 	if (fd == -1)
 	{
 		perror("Opening video device");
@@ -354,8 +299,10 @@ int main(int argc, char ** argv) {
 	if(print_caps(fd))
 		return 1;
 
+	
 	if(init_mmap(fd))
 		return 1;
+	
 
 	struct imgBuffer *img = NULL;
 	/* prepare an image buffer for the input image */
@@ -365,14 +312,20 @@ int main(int argc, char ** argv) {
 	}
 	else return 1;
 
+	long yuyv422_size = width_G * height_G * 2;
+	long inputBuffer_size = yuyv422_size; //El driver para raspicam captura 3 imagenes de golpe. Nosotros enviaremos la ultima
+
 	long yuv420p_size = width_G*height_G + width_G*height_G/2;
 
 	uint8_t * y = img->buffer;
 	uint8_t * u = y + width_G * height_G;
 	uint8_t * v = u + width_G * height_G / 4;
 
+	
 	if(start_capturing(fd))
 		return 1;
+	
+	uint8_t * inputBuffer = (uint8_t *) malloc(inputBuffer_size);
 	fd_set fds;
 
 	/* setup the output buffer */
@@ -391,6 +344,7 @@ int main(int argc, char ** argv) {
 		std::cout << pipepath << std::endl;
 		DataLinkStream arduTx(pipepath);
 		arduTx.Open();
+
 		std::cout <<"TX listo\n";
 
 		Radio radioTx(0,arduTx);
@@ -415,27 +369,14 @@ int main(int argc, char ** argv) {
 		fd_set fds;
 
 		unsigned long imagenesEnviadas = 0;
+
+		int frameReady = 0;
 		while(1)
 		{
 			try
 			{
-				/////////CAPTURA
-				fprintf(stderr, "GRABBER: capturando imagen...\n");
-				FD_ZERO(&fds);
-				FD_SET(fd, &fds);
-				struct timeval tv = {0};
-				tv.tv_sec = 2;
-				int r = select(fd+1, &fds, NULL, NULL, NULL);
-
-				int frameReady = 1;	
-
-				if(-1 == r)
-				{
-					perror("Waiting for Frame");
-					frameReady = 0;
-				}
-
-
+				discardNextFrames(1, fd, &fds);
+				frameReady = waitForNextFrame(fd, &fds);
 				if(frameReady)
 				{
 
@@ -451,7 +392,7 @@ int main(int argc, char ** argv) {
 						if(res)
 						{
 						
-    							pthread_mutex_lock(&lock); 
+    //							pthread_mutex_lock(&lock); 
 							std::cout << "ENVIANDO BLOQUE..." <<std::endl;
 
 							fileTx.Send(imId, buffer, config.frameSize, 255, config.maxPacketLength, config.delayBetweenPackets);
@@ -463,17 +404,11 @@ int main(int argc, char ** argv) {
 							imagenesEnviadas++;
 							std::cout << "Imagenes enviadas: "<< imagenesEnviadas << std::endl;
 
-    							pthread_mutex_unlock(&lock); 
+    //							pthread_mutex_unlock(&lock); 
 						}
 
 					}
 				}
-
-				
-
-
-			
-
 			}
 			catch(RadioException& e) //Control de excepciones
 			{

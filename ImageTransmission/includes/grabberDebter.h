@@ -224,7 +224,13 @@ int print_caps(int fd)
                 (caps.version>>16)&&0xff,
                 (caps.version>>24)&&0xff,
                 caps.capabilities);
- 
+
+	if (!(caps.capabilities & V4L2_CAP_READWRITE)) {
+		fprintf(stderr, "does not support read i/o\n");
+	} 
+	if (!(caps.capabilities & V4L2_CAP_STREAMING)) {
+		fprintf(stderr, "%s does not support streaming i/o\n");
+	}
 /* 
         struct v4l2_cropcap cropcap = {0};
         cropcap.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -372,6 +378,52 @@ int read_frame(int fd)
 		return 0;
 
 	return 1;
+}
+
+int waitForNextFrame(int fd, fd_set * fds)
+{
+	fprintf(stderr, "GRABBER: capturando imagen...\n");
+	FD_ZERO(fds);
+	FD_SET(fd, fds);
+	int r = select(fd+1, fds, NULL, NULL, NULL); //se bloquea (ultimo param es null)
+
+	if(-1 == r)
+	{
+		perror("Waiting for Frame");
+		return 0;
+	}
+	else
+	{
+		return 1;
+	}
+}
+
+void discardNextFrames(int nframes, int fd, fd_set *fds)
+{
+	int newestFrame = 0;
+	do
+	{
+		fprintf(stderr, "GRABBER: capturando imagen...\n");
+		FD_ZERO(fds);
+		FD_SET(fd, fds);
+		//	struct timeval tv = {0};
+		//	tv.tv_sec = 2;
+		int r = select(fd+1, fds, NULL, NULL, NULL); //se bloquea (ultimo param es null)
+
+		fprintf(stderr, "fd: %d ; r: %d\n",fd, r);
+		if(-1 == r)
+		{
+			perror("Waiting for Frame");
+			newestFrame = 0;
+		}
+		else
+		{
+			newestFrame += 1;
+			read_frame(fd);
+			fprintf(stderr, "frame: %d\n", newestFrame);
+		}
+	}while(newestFrame < nframes);
+
 }
 
 int start_capturing(int fd)
