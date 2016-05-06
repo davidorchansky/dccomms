@@ -16,7 +16,7 @@
 
 namespace radiotransmission {
 
-#define NO_CARRIER_SIZE 200
+#define NO_CARRIER_SIZE 50
 
 #define DLNK_PREAMBLE_SIZE 10
 #define DLNK_DIR_SIZE   1
