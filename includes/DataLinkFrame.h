@@ -45,6 +45,8 @@ public:
 	friend Stream& operator >> (Stream & i, DataLinkFrame & dlf);
 	friend Stream& operator << (Stream & i, const DataLinkFrame & dlf);
 
+	uint8_t* getFrameBits(void *dst);
+
 	int frameSize = 0;
 
 	uint16_t dataSize = 0;

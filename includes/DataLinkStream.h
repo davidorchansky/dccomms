@@ -24,6 +24,10 @@
 
 namespace radiotransmission {
 
+#define DLS_INBUFFER_SIZE 10000
+#define DLS_INBUFFER_SIZE_FLUSH 200000
+
+
 class DataLinkStream : public Stream {
 public:
 
@@ -67,11 +71,18 @@ public:
 
 	void SetTimeout(unsigned long ms);
 
+	int GetBufferSize();
+	void SetBufferSize(int);
+
+
 protected:
 	PortSettings portSettings;
 	int fd;
     bool _open = false;
     char *  port;
+private:
+    int bufferSize = 0;
+    char tmp[DLS_INBUFFER_SIZE_FLUSH];
 
 
 };
