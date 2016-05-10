@@ -114,6 +114,37 @@ DataLinkFrame::DataLinkFrame(
     fill_noCarrier();
 }
 
+static uint8_t * getBits(void * data, int length, void * bits)
+{
+
+		unsigned char * sptr, * dptr, *maxsptr;
+
+		for(sptr = (unsigned char*)data, dptr = (unsigned char*)bits, maxsptr = sptr + length; sptr < maxsptr; sptr++)
+		{
+			*dptr++ = *sptr & 1;
+			*dptr++ = (*sptr >> 1) & 1;
+			*dptr++ = (*sptr >> 2) & 1;
+			*dptr++ = (*sptr >> 3) & 1;
+			*dptr++ = (*sptr >> 4) & 1;
+			*dptr++ = (*sptr >> 5) & 1;
+			*dptr++ = (*sptr >> 6) & 1;
+			*dptr++ = (*sptr >> 7) & 1;
+		}
+		return dptr;
+
+}
+
+uint8_t* DataLinkFrame::getFrameBits(void * dst)
+{
+	uint8_t * ptr = (uint8_t*)dst;
+	ptr = getBits(pre, DLNK_PREAMBLE_SIZE, ptr);
+	ptr = getBits(ddir, DLNK_DIR_SIZE, ptr);
+	ptr = getBits(sdir, DLNK_DIR_SIZE, ptr);
+	ptr = getBits(dsize, DLNK_DSIZE_SIZE, ptr);
+	ptr = getBits(payload, dataSize, ptr);
+	ptr = getBits(fcs, fcsSize, ptr);
+	return ptr;
+}
 
 DataLinkFrame::~DataLinkFrame() {
 	if(buffer != NULL)
@@ -222,14 +253,14 @@ Stream& operator >> (Stream & i, DataLinkFrame & dlf)
 }
 Stream& operator << (Stream & i, const DataLinkFrame & dlf)
 {
-	i.Write(dlf._noCarrier, NO_CARRIER_SIZE);
+	//i.Write(dlf._noCarrier, NO_CARRIER_SIZE);
 	i.Write(dlf.pre,DLNK_PREAMBLE_SIZE);
 	i.Write(dlf.ddir,DLNK_DIR_SIZE);
 	i.Write(dlf.sdir,DLNK_DIR_SIZE);
 	i.Write(dlf.dsize,DLNK_DSIZE_SIZE);
 	i.Write(dlf.payload,dlf.dataSize);
 	i.Write(dlf.fcs, dlf.fcsSize);
-	i.Write(dlf._noCarrier, NO_CARRIER_SIZE);
+	//i.Write(dlf._noCarrier, NO_CARRIER_SIZE);
 	//i.FlushOutput();
 
 	return i;

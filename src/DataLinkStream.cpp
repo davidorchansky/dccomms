@@ -48,7 +48,8 @@ bool DataLinkStream::Open()
 	fd = open(port, O_RDWR );
 	if (fd != -1)
 	{
-
+		SetBufferSize(DLS_INBUFFER_SIZE);
+		bufferSize = GetBufferSize();
 		return true;
 	}
 	_open = false;
@@ -162,20 +163,39 @@ void DataLinkStream::SetTimeout(unsigned long ms)
 		fcntl(fd, F_SETFL, 0);
 }
 
+int DataLinkStream::GetBufferSize()
+{
+	return fcntl(fd, F_GETPIPE_SZ);
+}
+
+void DataLinkStream::SetBufferSize(int bs)
+{
+	fcntl(fd, F_SETPIPE_SZ, bs);
+	bufferSize = GetBufferSize();
+}
 
 void DataLinkStream::FlushInput()
 {
-	char b[500];
 	int n;
-	fcntl(fd, F_SETFL, FNDELAY);
+	n = read(fd, tmp, DLS_INBUFFER_SIZE_FLUSH);
 
-	while((n=read(fd, b, 500))>0);
+	std::cerr << "N: " << n << " Buff. Size: " << bufferSize << std::endl;
+
 	/*
-	{
-		std::cout <<"n: "<< n << std::endl;
-	}
+	int flags=fcntl(fd, F_GETFL,0);
+	int flags2 = flags;
+	flags2 |= O_NONBLOCK;
+	fcntl(fd, F_SETFL, flags2);
 	*/
-	fcntl(fd, F_SETFL, 0);
+
+	//while((n = read(fd, tmp, DLS_INBUFFER_SIZE_FLUSH))>0)
+	//{
+	//	std::cerr << "N: " << n << " Buff. Size: " << bufferSize << std::endl;
+	//}
+	//std::cerr << "N: " << n << " Buff. Size: " << bufferSize << std::endl;
+	//fcntl(fd, F_SETFL, flags); /* set the new flagts */
+
+
 }
 
 void DataLinkStream::FlushIO()
