@@ -6,7 +6,7 @@ set style data histogram
 set style histogram errorbars gap 1 lw 2
 #set style fill solid 0.5 border 1
 set auto x
-set auto y
+set yrange [0<*:]
 set ylabel "Time (us)"
 set xlabel "Stage"
 set xtics rotate by -45

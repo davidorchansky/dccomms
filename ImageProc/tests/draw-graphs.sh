@@ -37,7 +37,9 @@ arch=$2
 for i in $1/*
 do
 	echo Tratando imagen $i...
-
+	if [ -f $i ]; then
+	continue
+	fi
 	for per in $(ls $i); do
 		perdir=$i/$per
 		for filterSize in $(ls $perdir); do
