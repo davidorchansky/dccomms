@@ -375,7 +375,11 @@ int main(int argc, char ** argv) {
 		{
 			try
 			{
+#ifdef RASPI
+				discardNextFrames(20, fd, &fds);
+#else
 				discardNextFrames(1, fd, &fds);
+#endif
 				frameReady = waitForNextFrame(fd, &fds);
 				if(frameReady)
 				{
