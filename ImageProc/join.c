@@ -1566,7 +1566,6 @@ static void _computeGradient(float ** sM, float ** xM, float **  yM, float ** xf
 			float * cpixel;
 			float * psM;
 			cpixel = &xM[f][c];
-			float x = *cpixel;
 
 			psM = &sM[f0][c0];
 			tmp = vld1q_f32(psM);
@@ -1589,12 +1588,11 @@ static void _computeGradient(float ** sM, float ** xM, float **  yM, float ** xf
 			*cpixel = vget_lane_f32(nsumlow,0);
 			*cpixel += vget_lane_f32(nsumlow,1);	
 			*cpixel += vget_lane_f32(nsumhigh,0);
-			
+			float x = *cpixel;
 			//gradiente en Y
 			nsum = vdupq_n_f32(0);
 
 			cpixel = &yM[f][c];
-			float y = *cpixel;
 
 			psM = &sM[f0][c0];
 			tmp = vld1q_f32(psM);
@@ -1617,7 +1615,7 @@ static void _computeGradient(float ** sM, float ** xM, float **  yM, float ** xf
 			*cpixel = vget_lane_f32(nsumlow,0);
 			*cpixel += vget_lane_f32(nsumlow,1);	
 			*cpixel += vget_lane_f32(nsumhigh,0);	
-
+			float y = *cpixel;
 
 		#else
 			int c0=c-1, c1=c, c2=c+1,
