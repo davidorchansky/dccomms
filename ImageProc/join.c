@@ -373,15 +373,35 @@ void getGaussian2DFilter(float ** filtro, unsigned int tam, float sigma)
 	int ls = li*(-1);
 	float v, suma=0;
 	int x, y;
+#ifdef SHOW_GAUSSIAN_FILTER
+	fprintf(stderr, "[\n");
+#endif
+
 	for(x=li; x<=ls; x++)
 	{
+#ifdef SHOW_GAUSSIAN_FILTER
+	fprintf(stderr, "[");
+#endif
 		for(y=li; y<=ls; y++)
 		{
 			v = gaussianZeroMean2D(x,y,sigma);
 			filtro[x+ls][y+ls] = v;
+#ifdef SHOW_GAUSSIAN_FILTER
+		fprintf(stderr, "%.4f , ",v);
+#endif
+
 			suma += v;
 		}
+#ifdef SHOW_GAUSSIAN_FILTER
+	fprintf(stderr, "]\n");
+#endif
+
 	}
+#ifdef SHOW_GAUSSIAN_FILTER
+	fprintf(stderr, "] * 1/%.4f\n", suma);
+#endif
+
+
 	for(x=li; x<=ls; x++)
 	{
 		for(y=li; y<=ls; y++)
@@ -389,6 +409,7 @@ void getGaussian2DFilter(float ** filtro, unsigned int tam, float sigma)
 			filtro[x+ls][y+ls] = filtro[x+ls][y+ls] / suma;
 		}
 	}
+
 
 }
 
@@ -400,9 +421,16 @@ void getGaussianFilter(float * filtro, unsigned int tam, float sigma)
 	int idx;
 	float * ptr;
 	float sum = 0;
+
+#ifdef SHOW_GAUSSIAN_FILTER
+	fprintf(stderr, "[");
+#endif
 	for(idx = -offset, ptr = filtro; idx <= offset; idx++, ptr++)
 	{
 		*ptr = gaussianZeroMean(idx, sigma);
+#ifdef SHOW_GAUSSIAN_FILTER
+		fprintf(stderr, "%.4f , ",*ptr);
+#endif
 		sum += *ptr;
 	}
 	for(idx = 0; idx < tam; idx++)
@@ -410,6 +438,9 @@ void getGaussianFilter(float * filtro, unsigned int tam, float sigma)
 		filtro[idx] /= sum;
 	}
 
+#ifdef SHOW_GAUSSIAN_FILTER
+	fprintf(stderr, "]*1/%.4f\n", sum);
+#endif
 }
 static void getMatrixFromArray_Float_buffer(float* vec, unsigned int width, unsigned int height, unsigned int size, float** mat)
 {
@@ -610,62 +641,6 @@ static void init(uint8_t * img, unsigned int width, unsigned int height, float s
 static void showError()
 {
 	fprintf(stderr, "Ha ocurrido algun error: %s\n", strerror(errno));
-}
-
-static uint8_t getDireccion(float rad)
-{
-
-	float deg = rad * RAD_2_DEG;
-
-	if(deg < 0)
-		deg = 180 + deg;
-
-	float dif180 = fabsf(deg - 180);
-	float dif135 = fabsf(deg - 135);
-	float dif90 = fabsf(deg - 90);
-	float dif45 = fabsf(deg - 45);
-	float dif0 = deg;
-
-	uint8_t res = 0;
-	float diff = dif180;
-
-	if(dif135 < diff){ res = 135; diff = dif135;}
-	if(dif90 < diff){ res = 90; diff = dif90;}
-	if(dif45 < diff){ res = 45; diff = dif45;}
-	if(dif0 < diff){ res =  0; diff = dif0;}
-
-        return res;
-}
-
-static void obtenerDireccionGradienteDiscreta(float * xg, float * yg, uint8_t * dgd, unsigned int width, unsigned int height)
-{
-	unsigned int length = width * height;
-	int i;
-
-	float vmax=0, vmin=0;
-	omp_set_num_threads(THREADS);
-
-
-#ifdef RASPI2
-	#pragma omp parallel for schedule(static, 311372) //La mitad del tamano de la imagen que le pasaremos en los tests...
-#else
-	#pragma omp parallel for schedule(static, 622744) //La mitad del tamano de la imagen que le pasaremos en los tests...
-#endif
-
-//	#pragma omp parallel for schedule(static, 2)
-	for(i = 0 ; i < length; i++)
-	{
-		float x = xg[i];
-		float y = yg[i];
-#ifdef NO_DEG_LOOKUPTABLE
-		float deg = atan(y/x);
-		dgd[i] = getDireccion(deg);
-#else
-
-		dgd[i] =  LOOKUP_DEG[(int)round(y)+LOOKUPTABLE_DEG_VMAX][(int)round(x)+LOOKUPTABLE_DEG_VMAX];
-#endif
-	}
-
 }
 
 
@@ -1246,7 +1221,143 @@ static void aplicarFiltro(float ** gsFiltradoM)
 	}
 
 }
-	
+static uint8_t getDireccion(float rad)
+{
+
+	float deg = rad * RAD_2_DEG;
+
+	if(deg < 0)
+		deg = 180 + deg;
+
+	float dif180 = fabsf(deg - 180);
+	float dif135 = fabsf(deg - 135);
+	float dif90 = fabsf(deg - 90);
+	float dif45 = fabsf(deg - 45);
+	float dif0 = deg;
+
+	uint8_t res = 0;
+	float diff = dif180;
+
+	if(dif135 < diff){ res = 135; diff = dif135;}
+	if(dif90 < diff){ res = 90; diff = dif90;}
+	if(dif45 < diff){ res = 45; diff = dif45;}
+	if(dif0 < diff){ res =  0; diff = dif0;}
+
+	return res;
+}
+
+static void obtenerDireccionGradienteDiscreta(float * xg, float * yg, uint8_t * dgd, unsigned int width, unsigned int height)
+{
+	unsigned int length = width * height;
+	int i;
+
+	float vmax=0, vmin=0;
+	omp_set_num_threads(THREADS);
+
+
+#ifdef RASPI2
+	#pragma omp parallel for schedule(static, 311372) //La mitad del tamano de la imagen que le pasaremos en los tests...
+#else
+	#pragma omp parallel for schedule(static, 622744) //La mitad del tamano de la imagen que le pasaremos en los tests...
+#endif
+
+//	#pragma omp parallel for schedule(static, 2)
+	for(i = 0 ; i < length; i++)
+	{
+		float x = xg[i];
+		float y = yg[i];
+#ifdef NO_DEG_LOOKUPTABLE
+		float deg = atan(y/x);
+		dgd[i] = getDireccion(deg);
+#else
+
+		dgd[i] =  LOOKUP_DEG[(int)round(y)+LOOKUPTABLE_DEG_VMAX][(int)round(x)+LOOKUPTABLE_DEG_VMAX];
+#endif
+	}
+
+}
+
+static void aplicarFiltroGradiente(float ** sM, float ** dM, float ** filtro, unsigned int height, unsigned int width)
+{
+	//cambia
+	unsigned int foffset = 1;
+	//fin-cambia
+
+	unsigned int maxHeight = height-foffset;
+	unsigned int maxWidth = width-foffset;
+	int f;
+
+#ifdef NEON
+	float32x4_t ff0,ff1,ff2;
+	ff0 = vld1q_f32(filtro[0]);
+	ff1 = vld1q_f32(filtro[1]);
+	ff2 = vld1q_f32(filtro[2]);
+#endif
+
+	omp_set_num_threads(THREADS);
+	#pragma omp parallel for schedule(runtime)
+	for(f=foffset; f < maxHeight; f++)
+	{
+		int c;
+		for(c=foffset; c < maxWidth; c++)
+		{
+		#ifdef NEON
+			int c0=c-1, c1=c, c2=c+1,
+			f0=f-1, f1=f, f2=f+1;
+
+			float32x4_t nsum, tmp, resf;
+			nsum = vdupq_n_f32(0);
+
+			float * cpixel;
+			float * psM;
+			cpixel = &dM[f][c];
+
+			psM = &sM[f0][c0];
+			tmp = vld1q_f32(psM);
+			resf = vmulq_f32(ff0, tmp);
+			nsum = vaddq_f32(nsum, resf);
+
+			psM = &sM[f1][c0];
+			tmp = vld1q_f32(psM);
+			resf = vmulq_f32(ff1, tmp);
+			nsum = vaddq_f32(nsum, resf);
+
+			psM = &sM[f2][c0];
+			tmp = vld1q_f32(psM);
+			resf = vmulq_f32(ff2, tmp);
+			nsum = vaddq_f32(nsum, resf);
+
+			float32x2_t nsumlow = vget_low_f32(nsum);
+			float32x2_t nsumhigh = vget_high_f32(nsum);
+
+			*cpixel = vget_lane_f32(nsumlow,0);
+			*cpixel += vget_lane_f32(nsumlow,1);	
+			*cpixel += vget_lane_f32(nsumhigh,0);	
+
+		#else
+			int c0=c-1, c1=c, c2=c+1,
+			f0=f-1, f1=f, f2=f+1;
+
+			float * cpixel = &dM[f][c];
+			
+			*cpixel = 0;
+			*cpixel += sM[f0][c0] * filtro[0][0];
+			*cpixel += sM[f0][c1] * filtro[0][1];
+			*cpixel += sM[f0][c2] * filtro[0][2];
+			*cpixel += sM[f1][c0] * filtro[1][0];
+			*cpixel += sM[f1][c1] * filtro[1][1];
+			*cpixel += sM[f1][c2] * filtro[1][2];
+			*cpixel += sM[f2][c0] * filtro[2][0];
+			*cpixel += sM[f2][c1] * filtro[2][1];
+			*cpixel += sM[f2][c2] * filtro[2][2];
+
+		#endif
+		}
+	}
+
+}
+
+#ifdef GRAD_SEPARADAS_OPERACIONES 
 static void _computeGradient(float ** sM, float ** xM, float **  yM, float ** xfiltro, float ** yfiltro, unsigned int height, unsigned int width)
 {
 	//cambia
@@ -1377,86 +1488,6 @@ static void _computeGradient(float ** sM, float ** xM, float **  yM, float ** xf
 
 }
 
-static void aplicarFiltroGradiente(float ** sM, float ** dM, float ** filtro, unsigned int height, unsigned int width)
-{
-	//cambia
-	unsigned int foffset = 1;
-	//fin-cambia
-
-	unsigned int maxHeight = height-foffset;
-	unsigned int maxWidth = width-foffset;
-	int f;
-
-#ifdef NEON
-	float32x4_t ff0,ff1,ff2;
-	ff0 = vld1q_f32(filtro[0]);
-	ff1 = vld1q_f32(filtro[1]);
-	ff2 = vld1q_f32(filtro[2]);
-#endif
-
-	omp_set_num_threads(THREADS);
-	#pragma omp parallel for schedule(runtime)
-	for(f=foffset; f < maxHeight; f++)
-	{
-		int c;
-		for(c=foffset; c < maxWidth; c++)
-		{
-		#ifdef NEON
-			int c0=c-1, c1=c, c2=c+1,
-			f0=f-1, f1=f, f2=f+1;
-
-			float32x4_t nsum, tmp, resf;
-			nsum = vdupq_n_f32(0);
-
-			float * cpixel;
-			float * psM;
-			cpixel = &dM[f][c];
-
-			psM = &sM[f0][c0];
-			tmp = vld1q_f32(psM);
-			resf = vmulq_f32(ff0, tmp);
-			nsum = vaddq_f32(nsum, resf);
-
-			psM = &sM[f1][c0];
-			tmp = vld1q_f32(psM);
-			resf = vmulq_f32(ff1, tmp);
-			nsum = vaddq_f32(nsum, resf);
-
-			psM = &sM[f2][c0];
-			tmp = vld1q_f32(psM);
-			resf = vmulq_f32(ff2, tmp);
-			nsum = vaddq_f32(nsum, resf);
-
-			float32x2_t nsumlow = vget_low_f32(nsum);
-			float32x2_t nsumhigh = vget_high_f32(nsum);
-
-			*cpixel = vget_lane_f32(nsumlow,0);
-			*cpixel += vget_lane_f32(nsumlow,1);	
-			*cpixel += vget_lane_f32(nsumhigh,0);	
-
-		#else
-			int c0=c-1, c1=c, c2=c+1,
-			f0=f-1, f1=f, f2=f+1;
-
-			float * cpixel = &dM[f][c];
-			
-			*cpixel = 0;
-			*cpixel += sM[f0][c0] * filtro[0][0];
-			*cpixel += sM[f0][c1] * filtro[0][1];
-			*cpixel += sM[f0][c2] * filtro[0][2];
-			*cpixel += sM[f1][c0] * filtro[1][0];
-			*cpixel += sM[f1][c1] * filtro[1][1];
-			*cpixel += sM[f1][c2] * filtro[1][2];
-			*cpixel += sM[f2][c0] * filtro[2][0];
-			*cpixel += sM[f2][c1] * filtro[2][1];
-			*cpixel += sM[f2][c2] * filtro[2][2];
-
-		#endif
-		}
-	}
-
-}
-
 static void computeGradient(float ** imM, float ** gradientxM, float ** gradientyM)
 {
 	float ** sM = imM;
@@ -1472,9 +1503,9 @@ static void computeGradient(float ** imM, float ** gradientxM, float ** gradient
 
 
 
-static void computeGradientX(float ** gradientxM)
+static void computeGradientX(float **imM, float ** gradientxM)
 {
-	float ** sM = G_copiaImagenM;
+	float ** sM = imM;
 	float ** dM = gradientxM;
 	float ** filtro = G_filtroGradienteX;
 	unsigned int height = G_height;
@@ -1483,9 +1514,9 @@ static void computeGradientX(float ** gradientxM)
 	aplicarFiltroGradiente(sM, dM, filtro, height,  width);
 }
 
-static void computeGradientY(float ** gradientyM)
+static void computeGradientY(float** imM, float ** gradientyM)
 {
-	float ** sM = G_copiaImagenM;
+	float ** sM = imM;
 	float ** dM = gradientyM;
 	float ** filtro = G_filtroGradienteY;
 	unsigned int height = G_height;
@@ -1493,6 +1524,170 @@ static void computeGradientY(float ** gradientyM)
 
 	aplicarFiltroGradiente(sM, dM, filtro, height,  width);
 }
+
+
+#else
+static void _computeGradient(float ** sM, float ** xM, float **  yM, float ** xfiltro, float ** yfiltro, float** mgM, uint8_t ** dgdM, unsigned int height, unsigned int width)
+{
+	//cambia
+	unsigned int foffset = 1;
+	//fin-cambia
+
+	unsigned int maxHeight = height-foffset;
+	unsigned int maxWidth = width-foffset;
+	int f;
+
+#ifdef NEON
+	float32x4_t xff0,xff1,xff2, yff0, yff1, yff2;
+	xff0 = vld1q_f32(xfiltro[0]);
+	xff1 = vld1q_f32(xfiltro[1]);
+	xff2 = vld1q_f32(xfiltro[2]);
+	yff0 = vld1q_f32(yfiltro[0]);
+	yff1 = vld1q_f32(yfiltro[1]);
+	yff2 = vld1q_f32(yfiltro[2]);
+
+#endif
+
+	omp_set_num_threads(THREADS);
+	#pragma omp parallel for schedule(runtime)
+	for(f=foffset; f < maxHeight; f++)
+	{
+		int c;
+		for(c=foffset; c < maxWidth; c++)
+		{
+		#ifdef NEON
+			int c0=c-1, c1=c, c2=c+1,
+			f0=f-1, f1=f, f2=f+1;
+
+			//gradiente en X
+			float32x4_t nsum, tmp, resf;
+			nsum = vdupq_n_f32(0);
+
+			float * cpixel;
+			float * psM;
+			cpixel = &xM[f][c];
+			float x = *cpixel;
+
+			psM = &sM[f0][c0];
+			tmp = vld1q_f32(psM);
+			resf = vmulq_f32(xff0, tmp);
+			nsum = vaddq_f32(nsum, resf);
+
+			psM = &sM[f1][c0];
+			tmp = vld1q_f32(psM);
+			resf = vmulq_f32(xff1, tmp);
+			nsum = vaddq_f32(nsum, resf);
+
+			psM = &sM[f2][c0];
+			tmp = vld1q_f32(psM);
+			resf = vmulq_f32(xff2, tmp);
+			nsum = vaddq_f32(nsum, resf);
+
+			float32x2_t nsumlow = vget_low_f32(nsum);
+			float32x2_t nsumhigh = vget_high_f32(nsum);
+
+			*cpixel = vget_lane_f32(nsumlow,0);
+			*cpixel += vget_lane_f32(nsumlow,1);	
+			*cpixel += vget_lane_f32(nsumhigh,0);
+			
+			//gradiente en Y
+			nsum = vdupq_n_f32(0);
+
+			cpixel = &yM[f][c];
+			float y = *cpixel;
+
+			psM = &sM[f0][c0];
+			tmp = vld1q_f32(psM);
+			resf = vmulq_f32(yff0, tmp);
+			nsum = vaddq_f32(nsum, resf);
+
+			psM = &sM[f1][c0];
+			tmp = vld1q_f32(psM);
+			resf = vmulq_f32(yff1, tmp);
+			nsum = vaddq_f32(nsum, resf);
+
+			psM = &sM[f2][c0];
+			tmp = vld1q_f32(psM);
+			resf = vmulq_f32(yff2, tmp);
+			nsum = vaddq_f32(nsum, resf);
+
+			nsumlow = vget_low_f32(nsum);
+			nsumhigh = vget_high_f32(nsum);
+
+			*cpixel = vget_lane_f32(nsumlow,0);
+			*cpixel += vget_lane_f32(nsumlow,1);	
+			*cpixel += vget_lane_f32(nsumhigh,0);	
+
+
+		#else
+			int c0=c-1, c1=c, c2=c+1,
+			f0=f-1, f1=f, f2=f+1;
+
+			//gradiente en X
+			float * cpixel = &xM[f][c];
+
+			*cpixel = 0;
+			*cpixel += sM[f0][c0] * xfiltro[0][0];
+			*cpixel += sM[f0][c1] * xfiltro[0][1];
+			*cpixel += sM[f0][c2] * xfiltro[0][2];
+			*cpixel += sM[f1][c0] * xfiltro[1][0];
+			*cpixel += sM[f1][c1] * xfiltro[1][1];
+			*cpixel += sM[f1][c2] * xfiltro[1][2];
+			*cpixel += sM[f2][c0] * xfiltro[2][0];
+			*cpixel += sM[f2][c1] * xfiltro[2][1];
+			*cpixel += sM[f2][c2] * xfiltro[2][2];
+			float x = *cpixel;
+			//gradiente en Y
+			cpixel = &yM[f][c];
+
+
+			*cpixel = 0;
+			*cpixel += sM[f0][c0] * yfiltro[0][0];
+			*cpixel += sM[f0][c1] * yfiltro[0][1];
+			*cpixel += sM[f0][c2] * yfiltro[0][2];
+			*cpixel += sM[f1][c0] * yfiltro[1][0];
+			*cpixel += sM[f1][c1] * yfiltro[1][1];
+			*cpixel += sM[f1][c2] * yfiltro[1][2];
+			*cpixel += sM[f2][c0] * yfiltro[2][0];
+			*cpixel += sM[f2][c1] * yfiltro[2][1];
+			*cpixel += sM[f2][c2] * yfiltro[2][2];
+			float y = *cpixel;
+
+		#endif
+			//Modulo del gradiente
+			mgM[f][c]=sqrt(x*x+y*y);
+			//Direccion del gradiente
+		#ifdef NO_DEG_LOOKUPTABLE
+			float deg = atan(y/x);
+			dgdM[f][c] = getDireccion(deg);
+		#else
+
+			dgdM[f][c] =  LOOKUP_DEG[(int)round(y)+LOOKUPTABLE_DEG_VMAX][(int)round(x)+LOOKUPTABLE_DEG_VMAX];
+		#endif
+
+		}
+	}
+
+
+}
+
+static void computeGradient(float ** imM, float ** gradientxM, float ** gradientyM, float** mgM, uint8_t ** dgdM)
+{
+	float ** sM = imM;
+	float ** xM = gradientxM;
+	float ** yM = gradientyM;
+	float ** xfiltro = G_filtroGradienteX;
+	float ** yfiltro = G_filtroGradienteY;
+	unsigned int height = G_height;
+	unsigned int width = G_width;
+	
+	_computeGradient(sM, xM, yM, xfiltro, yfiltro, mgM, dgdM, height,  width);
+}
+
+
+
+#endif
+
 
 static void dibujarRectas(unsigned int ** accM, unsigned int nangulos, unsigned int ndistancias, unsigned int rhoOffset, uint8_t ** rectasM, float * sinTable, float * cosTable, unsigned int width, unsigned int height)
 {
@@ -1714,21 +1909,26 @@ int main(int argc, char ** argv)
 #ifdef TIMMING
 		gettimeofday(&t0, NULL);
 #endif
-	#ifndef GRAD_SEPARADOS		
-		//Obtenemos el cambio de intensidad del gradiente en X
-		#ifdef GRAD_SEPARABLE
-		//TODO:...
+	#ifdef GRAD_SEPARADAS_OPERACIONES 
+		#ifndef GRAD_SEPARADOS		
+			//Obtenemos el cambio de intensidad del gradiente en X
+			#ifdef GRAD_SEPARABLE
+			//TODO:...
+			#else
+			computeGradient(gsFiltradoM, xgradienteM, ygradienteM);
+			#endif
 		#else
-		computeGradient(gsFiltradoM, xgradienteM, ygradienteM);
+			//Obtenemos el cambio de intensidad del gradiente en X
+			#ifdef GRAD_SEPARABLE
+			//TODO:...
+			#else
+			computeGradientX(gsFiltradoM, xgradienteM);
+			#endif
+
 		#endif
 	#else
-		//Obtenemos el cambio de intensidad del gradiente en X
-		#ifdef GRAD_SEPARABLE
-		//TODO:...
-		#else
-		computeGradientX(xgradienteM);
-		#endif
-
+		computeGradient(gsFiltradoM, xgradienteM, ygradienteM, mgradienteM, dgdiscretaM);
+		
 	#endif
 
 #ifdef TIMMING
@@ -1740,14 +1940,17 @@ int main(int argc, char ** argv)
 		gettimeofday(&t0, NULL);
 #endif
 
-	#ifdef GRAD_SEPARADOS		
-		//Obtenemos el cambio de intensidad del gradiente en Y
-		#ifdef GRAD_SEPARABLE
-		//TODO:...
-		#else
-		computeGradientY(ygradienteM);
-		#endif
 
+	#ifdef GRAD_SEPARADAS_OPERACIONES
+		#ifdef GRAD_SEPARADOS		
+			//Obtenemos el cambio de intensidad del gradiente en Y
+			#ifdef GRAD_SEPARABLE
+			//TODO:...
+			#else
+			computeGradientY(gsFiltradoM, ygradienteM);
+			#endif
+
+		#endif
 	#endif
 
 
@@ -1760,7 +1963,10 @@ int main(int argc, char ** argv)
 		gettimeofday(&t0, NULL);
 #endif
 		//Obtenemos el modulo del gradiente
+
+	#ifdef GRAD_SEPARADAS_OPERACIONES
 		obtenerModuloGradiente(xgradiente, ygradiente, mgradiente, width, height);
+	#endif
 #ifdef TIMMING
 		gettimeofday(&t1, NULL);
 		mostrarTiempo("04-Modulo gradiente", &t0,&t1,&tacc);
@@ -1784,7 +1990,9 @@ int main(int argc, char ** argv)
 
 		//Discretizamos la direccion del gradiente en 4 direcciones (0, 45, 90 y 135º), es decir: 0, 85, 170 y 255
 		//discretizarDireccionGradiente(dgradiente, dgdiscreta, width, height);
+	#ifdef GRAD_SEPARADAS_OPERACIONES
 		obtenerDireccionGradienteDiscreta(xgradiente, ygradiente, dgdiscreta, width, height);
+	#endif
 
 #ifdef TIMMING
 		gettimeofday(&t1, NULL);
