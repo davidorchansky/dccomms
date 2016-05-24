@@ -17,6 +17,8 @@ pruebas: pruebas.o
 	gcc $< $(ARGS) $(CFLAGS) -lm -o $@
 join: join.o
 	gcc $< $(ARGS) $(CFLAGS) -lm -o $@
+	mv $< bin
+	mv $@ bin
 
 pruebas-pg: pruebas-pg.o
 	gcc $< $(ARGS) -fopenmp -lm -o $@ -pg
