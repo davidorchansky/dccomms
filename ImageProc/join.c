@@ -506,50 +506,15 @@ static uint8_t ** getMatrixFromArray_Uint8(uint8_t* vec, unsigned int width, uns
 static void obtenerModuloGradiente(float * xg, float * yg, float * mg, unsigned int width, unsigned int height)
 {
 	unsigned int length = width * height;
-	
-/*	float * xptr, *yptr, *mptr, *maxxptr;
-	
 
-	for(xptr = xg, yptr = yg, mptr = mg, maxxptr = xptr + length; xptr < maxxptr; mptr++, xptr++, yptr++)
-	{
-		*mptr = sqrt(*xptr**xptr +  *yptr**yptr);
-	}
-*/	
-/*
-
-//Da un error de violacion de segmento al paralelizar
-	yptr = yg;
-	mptr = mg;
-	maxxptr = xg + length;
-
+	int i;	
 	omp_set_num_threads(THREADS);
-	#pragma omp parallel for schedule(runtime) private(mptr, yptr)
-	for(xptr = xg;  xptr < maxxptr; xptr++)
-	{
-		*mptr = sqrt(*xptr**xptr +  *yptr**yptr);
-		mptr++;
-		yptr++;
-	}
-*/
-
-	int i;
-	omp_set_num_threads(THREADS);
-
-#ifdef RASPI2
-	#pragma omp parallel for schedule(static, 311372) //La mitad del tamano de la imagen que le pasaremos en los tests...
-#else
-	#pragma omp parallel for schedule(static, 622744) //La mitad del tamano de la imagen que le pasaremos en los tests...
-#endif
-
-	//#pragma omp parallel for schedule(static, 2)
+	#pragma omp parallel for schedule(runtime)
 	for(i = 0 ; i < length; i++)
 	{
 		float x = xg[i];
 		float y = yg[i];
 		mg[i]=sqrt(x*x+y*y);
-		
-//		fprintf(stderr, "x: %d ; y: %d\n",(int)round(x), (int)round(y));
-//		mg[i]=LOOKUP_GRADM[(int)round(x)+LOOKUPTABLE_GRADM_VMAX][(int)round(y)+LOOKUPTABLE_GRADM_VMAX];
 	}
 	
 	
@@ -1046,6 +1011,7 @@ static void aplicarFiltro_noSeparable(float ** gsFiltradoM)
 
 }
 
+#ifdef NOCACHE
 static void aplicarFiltro_size5(float ** gsFiltradoM)
 {
 	unsigned int tamFiltro = G_tamFiltro;
@@ -1170,7 +1136,284 @@ static void aplicarFiltro_size5(float ** gsFiltradoM)
 	}
 
 }
+#else
+typedef struct RegionLoc
+{
+	unsigned int fini,cini,ffin,cfin,idx;
+} RegionLoc;
 
+
+static RegionLoc * getRegionsLoc(unsigned int *nregions, unsigned int rw, unsigned int rh, unsigned int imw, unsigned int imh, unsigned int filterOffset, unsigned int * regPerRow)
+{
+
+	unsigned int overlapping = filterOffset*2;
+	unsigned int filterSize = overlapping > 0 ? overlapping+1 : 0;
+	unsigned int hinc = rw-overlapping;
+	unsigned int vinc = rh-overlapping;
+
+	unsigned int lastRegCol = rw-1;
+	unsigned int lastRegRow = rh-1;
+
+	unsigned int lastImCol = imw-1;
+	unsigned int lastImRow = imh-1;
+
+	unsigned int regionsize = rw*rh;
+	unsigned int imsize = imw*imh;
+	RegionLoc *regions = (RegionLoc*)malloc(imsize*sizeof(RegionLoc));
+
+	*nregions = 0;
+	int fila, maxf, col, maxc;
+
+	maxf = imh/vinc * vinc;
+	*regPerRow = imw/hinc;
+
+	maxc = *regPerRow * hinc;
+
+	int firstColLastRegionInRow = maxc;
+	int firstRowLastRegionInCol = maxf;
+
+
+	for(fila = 0; fila < firstRowLastRegionInCol; fila += vinc)
+	{
+		int filaFin = fila + lastRegRow;
+		if(filaFin <= lastImRow)
+		{
+			for(col = 0; col < firstColLastRegionInRow ; col += hinc)
+			{
+				int colFin = col + lastRegCol;
+				if(colFin <= lastImCol)
+				{
+					RegionLoc *reg = &regions[*nregions];
+					reg->fini = fila;
+					reg->ffin = filaFin;
+					reg->cini = col;
+					reg->cfin = colFin;
+		#ifdef PRINT_REGIONS
+					fprintf(stderr, "Region %d: (%d,%d; %d,%d)\n",(int) *nregions, (int) reg->fini, (int)reg->cini, (int)reg->ffin, (int)reg->cfin);
+		#endif
+					reg->idx = *nregions;
+					*nregions += 1;
+				}
+			}
+			RegionLoc *reg = &regions[*nregions];
+			reg->fini = fila;
+			reg->ffin = filaFin;
+			reg->cini = col;
+			reg->cfin = lastImCol;
+	#ifdef PRINT_REGIONS
+			fprintf(stderr, "Region %d: (%d,%d; %d,%d)\n",(int) *nregions, (int) reg->fini, (int)reg->cini, (int)reg->ffin, (int)reg->cfin);
+	#endif
+			reg->idx = *nregions;
+			*nregions += 1;
+		}
+	}
+	if(imh - fila >= filterSize)
+	{
+		int filaFin = lastImRow;
+		for(col = 0; col < firstColLastRegionInRow; col += hinc)
+		{
+			int colFin = col + lastRegCol;
+			if(colFin <= lastImCol)
+			{
+				RegionLoc *reg = &regions[*nregions];
+				reg->fini = fila;
+				reg->ffin = filaFin;
+				reg->cini = col;
+				reg->cfin = colFin;
+
+	#ifdef PRINT_REGIONS
+				fprintf(stderr, "Region %d: (%d,%d; %d,%d)\n",(int) *nregions, (int) reg->fini, (int)reg->cini, (int)reg->ffin, (int)reg->cfin);
+	#endif
+				reg->idx = *nregions;
+				*nregions += 1;
+			}
+		}
+		RegionLoc *reg = &regions[*nregions];
+		reg->fini = fila;
+		reg->ffin = filaFin;
+		reg->cini = col;
+		reg->cfin = lastImCol;
+
+#ifdef PRINT_REGIONS
+		fprintf(stderr, "Region %d: (%d,%d; %d,%d)\n",(int) *nregions, (int) reg->fini, (int)reg->cini, (int)reg->ffin, (int)reg->cfin);
+#endif
+		reg->idx = *nregions;
+		*nregions += 1;
+
+	}
+
+
+	return regions;
+
+
+
+}
+
+static void getRegion(float *region , int h, int w, float ** img, RegionLoc *regionLoc, int tvoffset, int bvoffset, int lhoffset, int rhoffset)
+{
+	int f,c;
+
+	int dstc, dstf;
+
+	int fini = regionLoc->fini + tvoffset;
+	int ffin = regionLoc->ffin - bvoffset;
+
+	//int cini = regionLoc->cini;
+	int cini = regionLoc->cini + lhoffset;
+	int cfin = regionLoc->cfin - rhoffset;
+
+	float * fila;
+	for(f = fini, dstf = tvoffset; f <= ffin; dstf++, f++)
+	{
+		fila = region + dstf * w;
+		for(c = cini, dstc = lhoffset; c <= cfin; dstc++, c++)
+		{
+			*(fila + dstc) = img[f][c];
+		}
+
+	}
+}
+static void aplicarFiltro_size5(float ** gsFiltradoM)
+{
+	unsigned int tamFiltro = G_tamFiltro;
+	float ** auxM = G_bufferDeTrabajoM;
+	float ** oM = G_copiaImagenM;
+	float * hfiltro = G_filtroRuido1D;
+	float * vfiltro = hfiltro;
+	unsigned int height = G_height;
+	unsigned int width = G_width;
+
+#ifdef NEON
+	float32x4_t nhfiltro, nvfiltro;
+	nhfiltro = vld1q_f32(hfiltro);
+	nvfiltro = vld1q_f32(vfiltro);
+#endif
+	//cambia
+	int foffset = 2;
+	float * centroFiltroH = hfiltro + foffset;
+	float * fph0 = centroFiltroH-2,
+	*fph1 = centroFiltroH-1,
+	*fph2 = centroFiltroH,
+	*fph3 = centroFiltroH+1,
+	*fph4 = centroFiltroH+2;
+	//fin-cambia
+	int f,c;
+	
+	int maxHeight = height-foffset;
+	int maxWidth = width-foffset;
+
+	unsigned int _h = REG_H;
+	unsigned int _w = REG_W;
+	unsigned int _size = _h*_w;
+
+	unsigned int nregions;
+	unsigned int regPerRow;
+
+	RegionLoc * regions = getRegionsLoc(&nregions, _w, _h, width, height, 2, &regPerRow);
+
+
+	float * centroFiltroV = vfiltro + foffset;
+	float * fpv0 = centroFiltroV-2,
+	*fpv1 = centroFiltroV-1,
+	*fpv2 = centroFiltroV,
+	*fpv3 = centroFiltroV+1,
+	*fpv4 = centroFiltroV+2;
+
+	int vfoffset = foffset*2;
+
+
+	omp_set_num_threads(THREADS);
+	RegionLoc * row, *maxRow, *regLoc, *maxRowPtr;
+	maxRow = regions + nregions;
+
+
+	float * _buffer = malloc(_size*sizeof(float)*nregions);
+
+
+	#pragma omp parallel for schedule(runtime) private(f, c, regLoc, row, maxRowPtr)
+	for(row = regions; row < maxRow; row += regPerRow) 
+	{
+		maxRowPtr = row + regPerRow;
+		for(regLoc = row; regLoc < maxRowPtr; regLoc++)
+		{
+
+			int regMaxRow, regMaxCol;
+			regMaxRow = regLoc->ffin-regLoc->fini;
+			regMaxCol = regLoc->cfin-regLoc->cini-foffset;
+
+			float * _region = _buffer + regLoc->idx * _size;
+
+			getRegion(_region, _h, _w, oM, regLoc, 0, 0, 0, 0);
+			//APLICAMOS EL FILTRO HORIZONTAL DONDE NO ESTE YA APLICADO
+			for(f=0; f <= regMaxRow; f++)
+			{
+				float * _rfila = _region + _w * f;
+				for(c=foffset; c <= regMaxCol; c++)
+				{
+					int _f,_c;
+					_f = f + regLoc->fini;
+					_c = c + regLoc->cini;
+
+				#ifdef NEON
+					float * sptr = &oM[_f][_c-2];
+					float32x4_t tmp;
+					tmp = vld1q_f32(sptr);
+					tmp = vmulq_f32(tmp, nhfiltro);
+
+					float32x2_t low = vget_low_f32(tmp);
+					float32x2_t high = vget_high_f32(tmp);
+
+					low = vadd_f32(low, high);
+
+					float * dptr = &auxM[_f][_c];
+					*dptr = vget_lane_f32(low,0);
+					*dptr += vget_lane_f32(low,1);
+
+					*dptr += *(sptr+4)**fph4;
+				#else
+
+					float * dptr = &auxM[_f][_c];
+					float * rptr = _rfila + c-2;
+					*dptr = 0;
+					*dptr += *(rptr )**fph0;
+					*dptr += *(rptr + 1)**fph1;
+					*dptr += *(rptr + 2)**fph2;
+					*dptr += *(rptr + 3)**fph3;
+					*dptr += *(rptr + 4)**fph4;
+				#endif
+
+				}
+			}
+			//APLICAMOS EL FILTRO VERTICAL DONDE NO ESTE YA APLICADO
+			regMaxRow = regLoc->ffin - foffset;
+			regMaxCol = regLoc->cfin - foffset;
+			for(f=regLoc->fini+foffset; f <= regMaxRow; f++)
+			{
+				for(c=regLoc->cini+foffset; c <= regMaxCol; c++)
+				{
+					float * dptr = &gsFiltradoM[f][c];
+					*dptr = 0;
+					*dptr += auxM[f-2][c]**fpv0;
+					*dptr += auxM[f-1][c]**fpv1;
+					*dptr += auxM[f][c]**fpv2;
+					*dptr += auxM[f+1][c]**fpv3;
+					*dptr += auxM[f+2][c]**fpv4;
+				}
+			}
+
+
+		}
+
+	}
+
+	free(regions);
+	free(_buffer);
+
+}
+
+
+
+#endif
 static void aplicarFiltro(float ** gsFiltradoM)
 {
 
@@ -1695,142 +1938,7 @@ static void computeGradient(float ** imM, float ** gradientxM, float ** gradient
 
 
 #else
-typedef struct RegionLoc
-{
-	unsigned int fini,cini,ffin,cfin,idx;
-} RegionLoc;
 
-
-static RegionLoc * getRegionsLoc(unsigned int *nregions, unsigned int rw, unsigned int rh, unsigned int imw, unsigned int imh, unsigned int filterOffset, unsigned int * regPerRow)
-{
-
-	unsigned int overlapping = filterOffset*2;
-	unsigned int filterSize = overlapping > 0 ? overlapping+1 : 0;
-	unsigned int hinc = rw-overlapping;
-	unsigned int vinc = rh-overlapping;
-
-	unsigned int lastRegCol = rw-1;
-	unsigned int lastRegRow = rh-1;
-
-	unsigned int lastImCol = imw-1;
-	unsigned int lastImRow = imh-1;
-
-	unsigned int regionsize = rw*rh;
-	unsigned int imsize = imw*imh;
-	RegionLoc *regions = (RegionLoc*)malloc(imsize*sizeof(RegionLoc));
-
-	*nregions = 0;
-	int fila, maxf, col, maxc;
-
-	maxf = imh/vinc * vinc;
-	*regPerRow = imw/hinc;
-
-	maxc = *regPerRow * hinc;
-
-	int firstColLastRegionInRow = maxc;
-	int firstRowLastRegionInCol = maxf;
-
-
-	for(fila = 0; fila < firstRowLastRegionInCol; fila += vinc)
-	{
-		int filaFin = fila + lastRegRow;
-		if(filaFin <= lastImRow)
-		{
-			for(col = 0; col < firstColLastRegionInRow ; col += hinc)
-			{
-				int colFin = col + lastRegCol;
-				if(colFin <= lastImCol)
-				{
-					RegionLoc *reg = &regions[*nregions];
-					reg->fini = fila;
-					reg->ffin = filaFin;
-					reg->cini = col;
-					reg->cfin = colFin;
-		#ifdef PRINT_REGIONS
-					fprintf(stderr, "Region %d: (%d,%d; %d,%d)\n",(int) *nregions, (int) reg->fini, (int)reg->cini, (int)reg->ffin, (int)reg->cfin);
-		#endif
-					reg->idx = *nregions;
-					*nregions += 1;
-				}
-			}
-			RegionLoc *reg = &regions[*nregions];
-			reg->fini = fila;
-			reg->ffin = filaFin;
-			reg->cini = col;
-			reg->cfin = lastImCol;
-	#ifdef PRINT_REGIONS
-			fprintf(stderr, "Region %d: (%d,%d; %d,%d)\n",(int) *nregions, (int) reg->fini, (int)reg->cini, (int)reg->ffin, (int)reg->cfin);
-	#endif
-			reg->idx = *nregions;
-			*nregions += 1;
-		}
-	}
-	if(imh - fila >= filterSize)
-	{
-		int filaFin = lastImRow;
-		for(col = 0; col < firstColLastRegionInRow; col += hinc)
-		{
-			int colFin = col + lastRegCol;
-			if(colFin <= lastImCol)
-			{
-				RegionLoc *reg = &regions[*nregions];
-				reg->fini = fila;
-				reg->ffin = filaFin;
-				reg->cini = col;
-				reg->cfin = colFin;
-
-	#ifdef PRINT_REGIONS
-				fprintf(stderr, "Region %d: (%d,%d; %d,%d)\n",(int) *nregions, (int) reg->fini, (int)reg->cini, (int)reg->ffin, (int)reg->cfin);
-	#endif
-				reg->idx = *nregions;
-				*nregions += 1;
-			}
-		}
-		RegionLoc *reg = &regions[*nregions];
-		reg->fini = fila;
-		reg->ffin = filaFin;
-		reg->cini = col;
-		reg->cfin = lastImCol;
-
-#ifdef PRINT_REGIONS
-		fprintf(stderr, "Region %d: (%d,%d; %d,%d)\n",(int) *nregions, (int) reg->fini, (int)reg->cini, (int)reg->ffin, (int)reg->cfin);
-#endif
-		reg->idx = *nregions;
-		*nregions += 1;
-
-	}
-
-
-	return regions;
-
-
-
-}
-
-static void getRegion(float *region , int h, int w, float ** img, RegionLoc *regionLoc, int tvoffset, int bvoffset, int lhoffset, int rhoffset)
-{
-	int f,c;
-
-	int dstc, dstf;
-
-	int fini = regionLoc->fini + tvoffset;
-	int ffin = regionLoc->ffin - bvoffset;
-
-	//int cini = regionLoc->cini;
-	int cini = regionLoc->cini + lhoffset;
-	int cfin = regionLoc->cfin - rhoffset;
-
-	float * fila;
-	for(f = fini, dstf = tvoffset; f <= ffin; dstf++, f++)
-	{
-		fila = region + dstf * w;
-		for(c = cini, dstc = lhoffset; c <= cfin; dstc++, c++)
-		{
-			*(fila + dstc) = img[f][c];
-		}
-
-	}
-}
 
 static void _computeGradient(float ** sM, float ** xM, float **  yM, float ** xfiltro, float ** yfiltro, float** mgM, uint8_t ** dgdM, unsigned int height, unsigned int width)
 {
@@ -1891,8 +1999,8 @@ static void _computeGradient(float ** sM, float ** xM, float **  yM, float ** xf
 				int f,c;
 				f = _f + regLoc->fini;
 
-				mg = mgM[f];
-				dgd = dgdM[f];
+				mg = mgM[f] + regLoc->cini;
+				dgd = dgdM[f] + regLoc->cini;
 
 				for(_c=foffset; _c <= regMaxCol; _c++)
 				{
