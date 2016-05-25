@@ -22,7 +22,9 @@
 #include <sys/time.h>
 #endif
 
+#ifndef NO_DEG_LOOKUPTABLE
 #include "lookupTable.h"
+#endif
 
 #define RAD_2_DEG 57.29577951308232
 
@@ -1547,12 +1549,18 @@ static void _computeGradient(float ** sM, float ** xM, float **  yM, float ** xf
 	yff2 = vld1q_f32(yfiltro[2]);
 
 #endif
+	float * mg;
+	uint8_t * dgd;
 
 	omp_set_num_threads(THREADS);
-	#pragma omp parallel for schedule(runtime)
+	#pragma omp parallel for schedule(runtime) private(mg, dgd)
 	for(f=foffset; f < maxHeight; f++)
 	{
 		int c;
+
+		mg = mgM[f];
+		dgd = dgdM[f];
+
 		for(c=foffset; c < maxWidth; c++)
 		{
 		#ifdef NEON
@@ -1653,14 +1661,16 @@ static void _computeGradient(float ** sM, float ** xM, float **  yM, float ** xf
 
 		#endif
 			//Modulo del gradiente
-			mgM[f][c]=sqrt(x*x+y*y);
+			//mgM[f][c]=sqrt(x*x+y*y);
+			*mg++ = sqrt(x*x+y*y);
 			//Direccion del gradiente
 		#ifdef NO_DEG_LOOKUPTABLE
-			float deg = atan(y/x);
-			dgdM[f][c] = getDireccion(deg);
+			//dgdM[f][c] = getDireccion(deg);
+			*dgd++ = getDireccion(atan(y/x));
 		#else
 
-			dgdM[f][c] =  LOOKUP_DEG[(int)round(y)+LOOKUPTABLE_DEG_VMAX][(int)round(x)+LOOKUPTABLE_DEG_VMAX];
+			*dgd++ =  LOOKUP_DEG[(int)round(y)+LOOKUPTABLE_DEG_VMAX][(int)round(x)+LOOKUPTABLE_DEG_VMAX];
+			//dgdM[f][c] =  LOOKUP_DEG[(int)round(y)+LOOKUPTABLE_DEG_VMAX][(int)round(x)+LOOKUPTABLE_DEG_VMAX];
 		#endif
 
 		}
@@ -1857,9 +1867,11 @@ static void _computeGradient(float ** sM, float ** xM, float **  yM, float ** xf
 
 	float * _buffer = malloc(_size*sizeof(float)*nregions);
 
+	float * mg;
+	uint8_t * dgd;
 
 	omp_set_num_threads(THREADS);
-	#pragma omp parallel for schedule(runtime) private(_f, _c, regLoc, row, maxRowPtr)
+	#pragma omp parallel for schedule(runtime) private(_f, _c, regLoc, row, maxRowPtr, mg, dgd)
 	for(row = regions; row < maxRow; row += regPerRow)
 	{
 		maxRowPtr = row + regPerRow;
@@ -1876,10 +1888,14 @@ static void _computeGradient(float ** sM, float ** xM, float **  yM, float ** xf
 
 			for(_f=foffset; _f <= regMaxRow; _f++)
 			{
+				int f,c;
+				f = _f + regLoc->fini;
+
+				mg = mgM[f];
+				dgd = dgdM[f];
+
 				for(_c=foffset; _c <= regMaxCol; _c++)
 				{
-					int f,c;
-					f = _f + regLoc->fini;
 					c = _c + regLoc->cini;
 				#ifdef NEON
 					int c0=_c-1, c1=_c, c2=_c+1,
@@ -1974,18 +1990,17 @@ static void _computeGradient(float ** sM, float ** xM, float **  yM, float ** xf
 					*cpixel += *(_region + _w*f2 + c1) * yfiltro[2][1];
 					*cpixel += *(_region + _w*f2 + c2) * yfiltro[2][2];
 					float y = *cpixel;
-
 				#endif
 					//Modulo del gradiente
-					mgM[f][c]=sqrt(x*x+y*y);
-					//Direccion del gradiente
+					*mg++ = sqrt(x*x+y*y);
 				#ifdef NO_DEG_LOOKUPTABLE
 					float deg = atan(y/x);
-					dgdM[f][c] = getDireccion(deg);
+					*dgd++ = getDireccion(atan(y/x));
 				#else
 
-					dgdM[f][c] =  LOOKUP_DEG[(int)round(y)+LOOKUPTABLE_DEG_VMAX][(int)round(x)+LOOKUPTABLE_DEG_VMAX];
+					*dgd++ =  LOOKUP_DEG[(int)round(y)+LOOKUPTABLE_DEG_VMAX][(int)round(x)+LOOKUPTABLE_DEG_VMAX];
 				#endif
+
 				}
 			}
 		}
