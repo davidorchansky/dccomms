@@ -1010,133 +1010,7 @@ static void aplicarFiltro_noSeparable(float ** gsFiltradoM)
 	}
 
 }
-
-#ifdef NOCACHE
-static void aplicarFiltro_size5(float ** gsFiltradoM)
-{
-	unsigned int tamFiltro = G_tamFiltro;
-	float ** auxM = G_bufferDeTrabajoM;
-	float ** oM = G_copiaImagenM;
-	float * hfiltro = G_filtroRuido1D;
-	float * vfiltro = hfiltro;
-	unsigned int height = G_height;
-	unsigned int width = G_width;
-
-#ifdef NEON
-	float32x4_t nhfiltro, nvfiltro;
-	nhfiltro = vld1q_f32(hfiltro);
-	nvfiltro = vld1q_f32(vfiltro);
-#endif
-	//cambia
-	int foffset = 2;
-	float * centroFiltro = hfiltro + foffset;
-	float * fp0 = centroFiltro-2,
-	*fp1 = centroFiltro-1,
-	*fp2 = centroFiltro,
-	*fp3 = centroFiltro+1,
-	*fp4 = centroFiltro+2;
-	//fin-cambia
-	int f;
-	
-	int maxHeight = height-foffset;
-	int maxWidth = width-foffset;
-
-
-	omp_set_num_threads(THREADS);
-	#pragma omp parallel for schedule(runtime)
-	for(f=0; f < height; f++)
-	{
-		int c;
-		for(c=foffset; c < maxWidth; c++)
-		{
-		#ifdef NEON
-			float * sptr = &oM[f][c-2];
-			float32x4_t tmp;
-			tmp = vld1q_f32(sptr);
-			tmp = vmulq_f32(tmp, nhfiltro);
-
-			float32x2_t low = vget_low_f32(tmp);
-			float32x2_t high = vget_high_f32(tmp);
-
-			low = vadd_f32(low, high);
-
-			float * dptr = &auxM[f][c];
-			*dptr = vget_lane_f32(low,0);
-			*dptr += vget_lane_f32(low,1);
-
-			*dptr += *(sptr+4)**fp4;
-
-		#else
-			float * dptr = &auxM[f][c];
-			*dptr = 0;
-			*dptr += oM[f][c-2]**fp0;
-			*dptr += oM[f][c-1]**fp1;
-			*dptr += oM[f][c]**fp2;
-			*dptr += oM[f][c+1]**fp3;
-			*dptr += oM[f][c+2]**fp4;
-
-		#endif
-		}
-	}
-	
-	//cambia
-	centroFiltro = vfiltro + foffset;
-	fp0 = centroFiltro-2;
-	fp1 = centroFiltro-1;
-	fp2 = centroFiltro;
-	fp3 = centroFiltro+1;
-	fp4 = centroFiltro+2;
-	//fin-cambia
-
-#ifdef NEON_VF
-	float32_t auxVector[4];
-	#pragma omp parallel for schedule(runtime) private(auxVector)
-#else
-	#pragma omp parallel for schedule(runtime)
-#endif
-	for(f=foffset; f < maxHeight; f++)
-	{
-		int c;
-
-		for(c=0; c < width; c++)
-		{
-		#ifdef NEON_VF
-			auxVector[0] = auxM[f-2][c];
-			auxVector[1] = auxM[f-1][c];
-			auxVector[2] = auxM[f][c];
-			auxVector[3] = auxM[f+1][c];
-
-			float32x4_t tmp;
-			tmp = vld1q_f32(auxVector);
-			tmp = vmulq_f32(tmp, nvfiltro);
-			
-			float32x2_t low = vget_low_f32(tmp);
-			float32x2_t high = vget_high_f32(tmp);
-
-			low = vadd_f32(low, high);
-
-			float * dptr = &gsFiltradoM[f][c];
-			*dptr = vget_lane_f32(low,0);
-			*dptr += vget_lane_f32(low,1);
-
-			*dptr += auxM[f+2][c]**fp4;
-
-
-
-		#else
-			float * dptr = &gsFiltradoM[f][c];
-			*dptr = 0;
-			*dptr += auxM[f-2][c]**fp0;
-			*dptr += auxM[f-1][c]**fp1;
-			*dptr += auxM[f][c]**fp2;
-			*dptr += auxM[f+1][c]**fp3;
-			*dptr += auxM[f+2][c]**fp4;
-		#endif
-		}
-	}
-
-}
-#else
+#if !defined(FILTRO_NOCACHE) || !defined(GRAD_NOCACHE)
 typedef struct RegionLoc
 {
 	unsigned int fini,cini,ffin,cfin,idx;
@@ -1248,7 +1122,6 @@ static RegionLoc * getRegionsLoc(unsigned int *nregions, unsigned int rw, unsign
 
 
 }
-
 static void getRegion(float *region , int h, int w, float ** img, RegionLoc *regionLoc, int tvoffset, int bvoffset, int lhoffset, int rhoffset)
 {
 	int f,c;
@@ -1273,6 +1146,148 @@ static void getRegion(float *region , int h, int w, float ** img, RegionLoc *reg
 
 	}
 }
+
+#endif
+
+
+#ifdef FILTRO_NOCACHE
+static void aplicarFiltro_size5(float ** gsFiltradoM)
+{
+	unsigned int tamFiltro = G_tamFiltro;
+	float ** auxM = G_bufferDeTrabajoM;
+	float ** oM = G_copiaImagenM;
+	float * hfiltro = G_filtroRuido1D;
+	float * vfiltro = hfiltro;
+	unsigned int height = G_height;
+	unsigned int width = G_width;
+
+#ifdef NEON
+	float32x4_t nhfiltro, nvfiltro;
+	nhfiltro = vld1q_f32(hfiltro);
+	nvfiltro = vld1q_f32(vfiltro);
+#endif
+	//cambia
+	int foffset = 2;
+	float * centroFiltro = hfiltro + foffset;
+	float * fp0 = centroFiltro-2,
+	*fp1 = centroFiltro-1,
+	*fp2 = centroFiltro,
+	*fp3 = centroFiltro+1,
+	*fp4 = centroFiltro+2;
+	//fin-cambia
+	int f;
+	
+	int maxHeight = height-foffset;
+	int maxWidth = width-foffset;
+
+
+	omp_set_num_threads(THREADS);
+	#pragma omp parallel for schedule(runtime)
+	for(f=0; f < height; f++)
+	{
+		int c;
+		#ifdef NEON
+		float * inioptr = oM[f];
+		float * iniaptr = auxM[f];
+		#endif
+		for(c=foffset; c < maxWidth; c++)
+		{
+		#ifdef NEON
+			float * sptr = inioptr + (c-2);
+			float32x4_t tmp;
+			tmp = vld1q_f32(sptr);
+			tmp = vmulq_f32(tmp, nhfiltro);
+
+			float32x2_t low = vget_low_f32(tmp);
+			float32x2_t high = vget_high_f32(tmp);
+
+			low = vadd_f32(low, high);
+
+			float * dptr = iniaptr + c;
+			*dptr = vget_lane_f32(low,0);
+			*dptr += vget_lane_f32(low,1);
+
+			*dptr += *(sptr+4)**fp4;
+
+		#else
+			float * dptr = &auxM[f][c];
+			*dptr = 0;
+			*dptr += oM[f][c-2]**fp0;
+			*dptr += oM[f][c-1]**fp1;
+			*dptr += oM[f][c]**fp2;
+			*dptr += oM[f][c+1]**fp3;
+			*dptr += oM[f][c+2]**fp4;
+
+		#endif
+		}
+	}
+	
+	//cambia
+	centroFiltro = vfiltro + foffset;
+	fp0 = centroFiltro-2;
+	fp1 = centroFiltro-1;
+	fp2 = centroFiltro;
+	fp3 = centroFiltro+1;
+	fp4 = centroFiltro+2;
+	//fin-cambia
+
+#ifdef NEON_VF
+	float32_t auxVector[4];
+	#pragma omp parallel for schedule(runtime) private(auxVector)
+#else
+	#pragma omp parallel for schedule(runtime)
+#endif
+	for(f=foffset; f < maxHeight; f++)
+	{
+		int c;
+
+		#ifdef NEON_VF
+		float * iniaptr0 = auxM[f-2],
+		*iniaptr1 = auxM[f-1],
+		*iniaptr2 = auxM[f],
+		*iniaptr3 = auxM[f+1],
+		*iniaptr4 = auxM[f+2];
+		#endif
+
+		for(c=0; c < width; c++)
+		{
+		#ifdef NEON_VF
+			auxVector[0] = *(iniaptr0 + c);
+			auxVector[1] = *(iniaptr1 + c);
+			auxVector[2] = *(iniaptr2 + c);
+			auxVector[3] = *(iniaptr3 + c);
+
+			float32x4_t tmp;
+			tmp = vld1q_f32(auxVector);
+			tmp = vmulq_f32(tmp, nvfiltro);
+			
+			float32x2_t low = vget_low_f32(tmp);
+			float32x2_t high = vget_high_f32(tmp);
+
+			low = vadd_f32(low, high);
+
+			float * dptr = &gsFiltradoM[f][c];
+			*dptr = vget_lane_f32(low,0);
+			*dptr += vget_lane_f32(low,1);
+
+			*dptr += *(iniaptr4+c)**fp4;
+
+
+
+		#else
+			float * dptr = &gsFiltradoM[f][c];
+			*dptr = 0;
+			*dptr += auxM[f-2][c]**fp0;
+			*dptr += auxM[f-1][c]**fp1;
+			*dptr += auxM[f][c]**fp2;
+			*dptr += auxM[f+1][c]**fp3;
+			*dptr += auxM[f+2][c]**fp4;
+		#endif
+		}
+	}
+
+}
+#else
 static void aplicarFiltro_size5(float ** gsFiltradoM)
 {
 	unsigned int tamFiltro = G_tamFiltro;
@@ -1323,97 +1338,89 @@ static void aplicarFiltro_size5(float ** gsFiltradoM)
 
 
 	omp_set_num_threads(THREADS);
-	RegionLoc * row, *maxRow, *regLoc, *maxRowPtr;
-	maxRow = regions + nregions;
-
+	RegionLoc *regLoc;
 
 	float * _buffer = malloc(_size*sizeof(float)*nregions);
 
-
-	#pragma omp parallel for schedule(runtime) private(f, c, regLoc, row, maxRowPtr)
-	for(row = regions; row < maxRow; row += regPerRow) 
+	int regionIdx;
+	#pragma omp parallel for schedule(runtime) private(f, c, regLoc)
+	for(regionIdx = 0; regionIdx < nregions; regionIdx++)
 	{
-		maxRowPtr = row + regPerRow;
-		for(regLoc = row; regLoc < maxRowPtr; regLoc++)
+		int regMaxRow, regMaxCol;
+		regLoc = &regions[regionIdx];
+		regMaxRow = regLoc->ffin-regLoc->fini;
+		regMaxCol = regLoc->cfin-regLoc->cini-foffset;
+
+		float * _region = _buffer + regLoc->idx * _size;
+
+		getRegion(_region, _h, _w, oM, regLoc, 0, 0, 0, 0);
+		//APLICAMOS EL FILTRO HORIZONTAL DONDE NO ESTE YA APLICADO
+		for(f=0; f <= regMaxRow; f++)
 		{
-
-			int regMaxRow, regMaxCol;
-			regMaxRow = regLoc->ffin-regLoc->fini;
-			regMaxCol = regLoc->cfin-regLoc->cini-foffset;
-
-			float * _region = _buffer + regLoc->idx * _size;
-
-			getRegion(_region, _h, _w, oM, regLoc, 0, 0, 0, 0);
-			//APLICAMOS EL FILTRO HORIZONTAL DONDE NO ESTE YA APLICADO
-			for(f=0; f <= regMaxRow; f++)
+			float * _rfila = _region + _w * f;
+			for(c=foffset; c <= regMaxCol; c++)
 			{
-				float * _rfila = _region + _w * f;
-				for(c=foffset; c <= regMaxCol; c++)
-				{
-					int _f,_c;
-					_f = f + regLoc->fini;
-					_c = c + regLoc->cini;
+				int _f,_c;
+				_f = f + regLoc->fini;
+				_c = c + regLoc->cini;
 
-				#ifdef NEON
-					float * sptr = &oM[_f][_c-2];
-					float32x4_t tmp;
-					tmp = vld1q_f32(sptr);
-					tmp = vmulq_f32(tmp, nhfiltro);
+#ifdef NEON
+				float * sptr = &oM[_f][_c-2];
+				float32x4_t tmp;
+				tmp = vld1q_f32(sptr);
+				tmp = vmulq_f32(tmp, nhfiltro);
 
-					float32x2_t low = vget_low_f32(tmp);
-					float32x2_t high = vget_high_f32(tmp);
+				float32x2_t low = vget_low_f32(tmp);
+				float32x2_t high = vget_high_f32(tmp);
 
-					low = vadd_f32(low, high);
+				low = vadd_f32(low, high);
 
-					float * dptr = &auxM[_f][_c];
-					*dptr = vget_lane_f32(low,0);
-					*dptr += vget_lane_f32(low,1);
+				float * dptr = &auxM[_f][_c];
+				*dptr = vget_lane_f32(low,0);
+				*dptr += vget_lane_f32(low,1);
 
-					*dptr += *(sptr+4)**fph4;
-				#else
+				*dptr += *(sptr+4)**fph4;
+#else
 
-					float * dptr = &auxM[_f][_c];
-					float * rptr = _rfila + c-2;
-					*dptr = 0;
-					*dptr += *(rptr )**fph0;
-					*dptr += *(rptr + 1)**fph1;
-					*dptr += *(rptr + 2)**fph2;
-					*dptr += *(rptr + 3)**fph3;
-					*dptr += *(rptr + 4)**fph4;
-				#endif
+				float * dptr = &auxM[_f][_c];
+				float * rptr = _rfila + c-2;
+				*dptr = 0;
+				*dptr += *(rptr )**fph0;
+				*dptr += *(rptr + 1)**fph1;
+				*dptr += *(rptr + 2)**fph2;
+				*dptr += *(rptr + 3)**fph3;
+				*dptr += *(rptr + 4)**fph4;
+#endif
 
-				}
 			}
-			//APLICAMOS EL FILTRO VERTICAL DONDE NO ESTE YA APLICADO
-			regMaxRow = regLoc->ffin - foffset;
-			regMaxCol = regLoc->cfin - foffset;
-			for(f=regLoc->fini+foffset; f <= regMaxRow; f++)
+		}
+		//APLICAMOS EL FILTRO VERTICAL DONDE NO ESTE YA APLICADO
+		regMaxRow = regLoc->ffin - foffset;
+		regMaxCol = regLoc->cfin - foffset;
+		for(f=regLoc->fini+foffset; f <= regMaxRow; f++)
+		{
+			for(c=regLoc->cini+foffset; c <= regMaxCol; c++)
 			{
-				for(c=regLoc->cini+foffset; c <= regMaxCol; c++)
-				{
-					float * dptr = &gsFiltradoM[f][c];
-					*dptr = 0;
-					*dptr += auxM[f-2][c]**fpv0;
-					*dptr += auxM[f-1][c]**fpv1;
-					*dptr += auxM[f][c]**fpv2;
-					*dptr += auxM[f+1][c]**fpv3;
-					*dptr += auxM[f+2][c]**fpv4;
-				}
+				float * dptr = &gsFiltradoM[f][c];
+				*dptr = 0;
+				*dptr += auxM[f-2][c]**fpv0;
+				*dptr += auxM[f-1][c]**fpv1;
+				*dptr += auxM[f][c]**fpv2;
+				*dptr += auxM[f+1][c]**fpv3;
+				*dptr += auxM[f+2][c]**fpv4;
 			}
-
-
 		}
 
+
 	}
+
 
 	free(regions);
 	free(_buffer);
 
 }
-
-
-
 #endif
+
 static void aplicarFiltro(float ** gsFiltradoM)
 {
 
@@ -1500,13 +1507,7 @@ static void obtenerDireccionGradienteDiscreta(float * xg, float * yg, uint8_t * 
 	omp_set_num_threads(THREADS);
 
 
-#ifdef RASPI2
-	#pragma omp parallel for schedule(static, 311372) //La mitad del tamano de la imagen que le pasaremos en los tests...
-#else
-	#pragma omp parallel for schedule(static, 622744) //La mitad del tamano de la imagen que le pasaremos en los tests...
-#endif
-
-//	#pragma omp parallel for schedule(static, 2)
+	#pragma omp parallel for schedule(runtime) 
 	for(i = 0 ; i < length; i++)
 	{
 		float x = xg[i];
@@ -1524,9 +1525,7 @@ static void obtenerDireccionGradienteDiscreta(float * xg, float * yg, uint8_t * 
 
 static void aplicarFiltroGradiente(float ** sM, float ** dM, float ** filtro, unsigned int height, unsigned int width)
 {
-	//cambia
 	unsigned int foffset = 1;
-	//fin-cambia
 
 	unsigned int maxHeight = height-foffset;
 	unsigned int maxWidth = width-foffset;
@@ -1600,6 +1599,28 @@ static void aplicarFiltroGradiente(float ** sM, float ** dM, float ** filtro, un
 		}
 	}
 
+}
+
+static void computeGradientX(float **imM, float ** gradientxM)
+{
+	float ** sM = imM;
+	float ** dM = gradientxM;
+	float ** filtro = G_filtroGradienteX;
+	unsigned int height = G_height;
+	unsigned int width = G_width;
+	
+	aplicarFiltroGradiente(sM, dM, filtro, height,  width);
+}
+
+static void computeGradientY(float** imM, float ** gradientyM)
+{
+	float ** sM = imM;
+	float ** dM = gradientyM;
+	float ** filtro = G_filtroGradienteY;
+	unsigned int height = G_height;
+	unsigned int width = G_width;
+
+	aplicarFiltroGradiente(sM, dM, filtro, height,  width);
 }
 
 #ifdef GRAD_SEPARADAS_OPERACIONES 
@@ -1746,32 +1767,7 @@ static void computeGradient(float ** imM, float ** gradientxM, float ** gradient
 	_computeGradient(sM, xM, yM, xfiltro, yfiltro, height,  width);
 }
 
-
-
-static void computeGradientX(float **imM, float ** gradientxM)
-{
-	float ** sM = imM;
-	float ** dM = gradientxM;
-	float ** filtro = G_filtroGradienteX;
-	unsigned int height = G_height;
-	unsigned int width = G_width;
-	
-	aplicarFiltroGradiente(sM, dM, filtro, height,  width);
-}
-
-static void computeGradientY(float** imM, float ** gradientyM)
-{
-	float ** sM = imM;
-	float ** dM = gradientyM;
-	float ** filtro = G_filtroGradienteY;
-	unsigned int height = G_height;
-	unsigned int width = G_width;
-
-	aplicarFiltroGradiente(sM, dM, filtro, height,  width);
-}
-
-
-#elif NOCACHE
+#elif GRAD_NOCACHE
 static void _computeGradient(float ** sM, float ** xM, float **  yM, float ** xfiltro, float ** yfiltro, float** mgM, uint8_t ** dgdM, unsigned int height, unsigned int width)
 {
 	//cambia
@@ -1804,31 +1800,38 @@ static void _computeGradient(float ** sM, float ** xM, float **  yM, float ** xf
 		mg = mgM[f];
 		dgd = dgdM[f];
 
+		#ifdef NEON
+		int f0=f-1;
+		float * inisptr = sM[f0];
+		float * xptr = xM[f], *yptr = yM[f];
+		#else
+		int f0=f-1, f1=f, f2=f+1;
+		#endif
+
 		for(c=foffset; c < maxWidth; c++)
 		{
 		#ifdef NEON
-			int c0=c-1, c1=c, c2=c+1,
-			f0=f-1, f1=f, f2=f+1;
+			int c0=c-1;
 
 			//gradiente en X
 			float32x4_t nsum, tmp, resf;
 			nsum = vdupq_n_f32(0);
 
 			float * cpixel;
-			float * psM;
-			cpixel = &xM[f][c];
+			float * psM, * colptr = inisptr + c0;
+			cpixel = xptr + c;
 
-			psM = &sM[f0][c0];
+			psM = colptr;
 			tmp = vld1q_f32(psM);
 			resf = vmulq_f32(xff0, tmp);
 			nsum = vaddq_f32(nsum, resf);
 
-			psM = &sM[f1][c0];
+			psM += width;
 			tmp = vld1q_f32(psM);
 			resf = vmulq_f32(xff1, tmp);
 			nsum = vaddq_f32(nsum, resf);
 
-			psM = &sM[f2][c0];
+			psM += width;
 			tmp = vld1q_f32(psM);
 			resf = vmulq_f32(xff2, tmp);
 			nsum = vaddq_f32(nsum, resf);
@@ -1843,19 +1846,19 @@ static void _computeGradient(float ** sM, float ** xM, float **  yM, float ** xf
 			//gradiente en Y
 			nsum = vdupq_n_f32(0);
 
-			cpixel = &yM[f][c];
+			cpixel = yptr + c;
 
-			psM = &sM[f0][c0];
+			psM = colptr;
 			tmp = vld1q_f32(psM);
 			resf = vmulq_f32(yff0, tmp);
 			nsum = vaddq_f32(nsum, resf);
 
-			psM = &sM[f1][c0];
+			psM += width;
 			tmp = vld1q_f32(psM);
 			resf = vmulq_f32(yff1, tmp);
 			nsum = vaddq_f32(nsum, resf);
 
-			psM = &sM[f2][c0];
+			psM += width;
 			tmp = vld1q_f32(psM);
 			resf = vmulq_f32(yff2, tmp);
 			nsum = vaddq_f32(nsum, resf);
@@ -1869,8 +1872,7 @@ static void _computeGradient(float ** sM, float ** xM, float **  yM, float ** xf
 			float y = *cpixel;
 
 		#else
-			int c0=c-1, c1=c, c2=c+1,
-			f0=f-1, f1=f, f2=f+1;
+			int c0=c-1, c1=c, c2=c+1;
 
 			//gradiente en X
 			float * cpixel = &xM[f][c];
@@ -1922,25 +1924,8 @@ static void _computeGradient(float ** sM, float ** xM, float **  yM, float ** xf
 
 }
 
-static void computeGradient(float ** imM, float ** gradientxM, float ** gradientyM, float** mgM, uint8_t ** dgdM)
-{
-	float ** sM = imM;
-	float ** xM = gradientxM;
-	float ** yM = gradientyM;
-	float ** xfiltro = G_filtroGradienteX;
-	float ** yfiltro = G_filtroGradienteY;
-	unsigned int height = G_height;
-	unsigned int width = G_width;
-	
-	_computeGradient(sM, xM, yM, xfiltro, yfiltro, mgM, dgdM, height,  width);
-}
-
-
-
 #else
-
-
-static void _computeGradient(float ** sM, float ** xM, float **  yM, float ** xfiltro, float ** yfiltro, float** mgM, uint8_t ** dgdM, unsigned int height, unsigned int width)
+static void _computeGradient(float ** sM, float ** xM, float **  yM, float ** xfiltro, float ** yfiltro, float** mgM, uint8_t ** dgdM, unsigned int height, unsigned int width, long long* acc)
 {
 	//cambia
 	unsigned int foffset = 1;
@@ -1970,155 +1955,170 @@ static void _computeGradient(float ** sM, float ** xM, float **  yM, float ** xf
 
 	RegionLoc * regions = getRegionsLoc(&nregions, _w, _h, width, height, foffset, &regPerRow);
 
-	RegionLoc * row, *maxRow, *regLoc, *maxRowPtr;
-	maxRow = regions + nregions;
+	RegionLoc *regLoc, *maxRegionPtr;
+//	maxRegionPtr = regions + nregions * sizeof(RegionLoc);
 
 	float * _buffer = malloc(_size*sizeof(float)*nregions);
 
 	float * mg;
 	uint8_t * dgd;
+	
+	int regionIdx;
 
+#ifdef TIMMING
+	struct timeval t0,t1;
+	gettimeofday(&t0, NULL);
+#endif
 	omp_set_num_threads(THREADS);
-	#pragma omp parallel for schedule(runtime) private(_f, _c, regLoc, row, maxRowPtr, mg, dgd)
-	for(row = regions; row < maxRow; row += regPerRow)
+	#pragma omp parallel for schedule(runtime) private(_f, _c, regLoc, mg, dgd)
+	for(regionIdx = 0; regionIdx < nregions; regionIdx++)
 	{
-		maxRowPtr = row + regPerRow;
-		for(regLoc = row; regLoc < maxRowPtr; regLoc++)
+		int regMaxRow, regMaxCol;
+		regLoc = &regions[regionIdx];
+		regMaxRow = regLoc->ffin-regLoc->fini-foffset;
+		regMaxCol = regLoc->cfin-regLoc->cini-foffset;
+
+		float * _region = _buffer + regLoc->idx * _size;
+
+		getRegion(_region, _h, _w, sM, regLoc, 0, 0, 0, 0);
+
+		for(_f=foffset; _f <= regMaxRow; _f++)
 		{
+			int f,c;
 
-			int regMaxRow, regMaxCol;
-			regMaxRow = regLoc->ffin-regLoc->fini-foffset;
-			regMaxCol = regLoc->cfin-regLoc->cini-foffset;
+			f = _f + regLoc->fini;
 
-			float * _region = _buffer + regLoc->idx * _size;
+			mg = mgM[f] + regLoc->cini;
+			dgd = dgdM[f] + regLoc->cini;
 
-			getRegion(_region, _h, _w, sM, regLoc, 0, 0, 0, 0);
-
-			for(_f=foffset; _f <= regMaxRow; _f++)
+#ifdef NEON
+			int f0=_f-1;
+			float * filaSup = _region + _w*f0;
+			float * xptr = xM[f], *yptr = yM[f];
+#else
+			int f0=_f-1, f1=_f, f2=_f+1;
+#endif
+			for(_c=foffset; _c <= regMaxCol; _c++)
 			{
-				int f,c;
-				f = _f + regLoc->fini;
+				c = _c + regLoc->cini;
+#ifdef NEON
+				//gradiente en X
+				float32x4_t nsum, tmp, resf;
+				nsum = vdupq_n_f32(0);
 
-				mg = mgM[f] + regLoc->cini;
-				dgd = dgdM[f] + regLoc->cini;
+				float * cpixel;
+				float * psM;
+				cpixel = xptr + c;
 
-				for(_c=foffset; _c <= regMaxCol; _c++)
-				{
-					c = _c + regLoc->cini;
-				#ifdef NEON
-					int c0=_c-1, c1=_c, c2=_c+1,
-					f0=_f-1, f1=_f, f2=_f+1;
+				int c0 = _c -1;
+				float *pini = filaSup + c0;
 
-					//gradiente en X
-					float32x4_t nsum, tmp, resf;
-					nsum = vdupq_n_f32(0);
+				psM = pini;
+				tmp = vld1q_f32(psM);
+				resf = vmulq_f32(xff0, tmp);
+				nsum = vaddq_f32(nsum, resf);
 
-					float * cpixel;
-					float * psM;
-					cpixel = &xM[f][c];
+				psM += _w;
+				tmp = vld1q_f32(psM);
+				resf = vmulq_f32(xff1, tmp);
+				nsum = vaddq_f32(nsum, resf);
 
-					psM = _region + _w*f0 + c0;
-					tmp = vld1q_f32(psM);
-					resf = vmulq_f32(xff0, tmp);
-					nsum = vaddq_f32(nsum, resf);
+				psM += _w;
+				tmp = vld1q_f32(psM);
+				resf = vmulq_f32(xff2, tmp);
+				nsum = vaddq_f32(nsum, resf);
 
-					psM = _region + _w*f1 + c0;
-					tmp = vld1q_f32(psM);
-					resf = vmulq_f32(xff1, tmp);
-					nsum = vaddq_f32(nsum, resf);
+				float32x2_t nsumlow = vget_low_f32(nsum);
+				float32x2_t nsumhigh = vget_high_f32(nsum);
 
-					psM = _region + _w*f2 + c0;
-					tmp = vld1q_f32(psM);
-					resf = vmulq_f32(xff2, tmp);
-					nsum = vaddq_f32(nsum, resf);
+				*cpixel = vget_lane_f32(nsumlow,0);
+				*cpixel += vget_lane_f32(nsumlow,1);
+				*cpixel += vget_lane_f32(nsumhigh,0);
+				float x = *cpixel;
+				//gradiente en Y
+				nsum = vdupq_n_f32(0);
 
-					float32x2_t nsumlow = vget_low_f32(nsum);
-					float32x2_t nsumhigh = vget_high_f32(nsum);
+				cpixel = yptr + c;
 
-					*cpixel = vget_lane_f32(nsumlow,0);
-					*cpixel += vget_lane_f32(nsumlow,1);
-					*cpixel += vget_lane_f32(nsumhigh,0);
-					float x = *cpixel;
-					//gradiente en Y
-					nsum = vdupq_n_f32(0);
+				psM = pini;
+				tmp = vld1q_f32(psM);
+				resf = vmulq_f32(yff0, tmp);
+				nsum = vaddq_f32(nsum, resf);
 
-					cpixel = &yM[f][c];
+				psM += _w;
+				tmp = vld1q_f32(psM);
+				resf = vmulq_f32(yff1, tmp);
+				nsum = vaddq_f32(nsum, resf);
 
-					psM = _region + _w*f0 + c0;
-					tmp = vld1q_f32(psM);
-					resf = vmulq_f32(yff0, tmp);
-					nsum = vaddq_f32(nsum, resf);
+				psM += _w;
+				tmp = vld1q_f32(psM);
+				resf = vmulq_f32(yff2, tmp);
+				nsum = vaddq_f32(nsum, resf);
 
-					psM = _region + _w*f1 + c0;
-					tmp = vld1q_f32(psM);
-					resf = vmulq_f32(yff1, tmp);
-					nsum = vaddq_f32(nsum, resf);
+				nsumlow = vget_low_f32(nsum);
+				nsumhigh = vget_high_f32(nsum);
 
-					psM = _region + _w*f2 + c0;
-					tmp = vld1q_f32(psM);
-					resf = vmulq_f32(yff2, tmp);
-					nsum = vaddq_f32(nsum, resf);
+				*cpixel = vget_lane_f32(nsumlow,0);
+				*cpixel += vget_lane_f32(nsumlow,1);
+				*cpixel += vget_lane_f32(nsumhigh,0);
+				float y = *cpixel;
 
-					nsumlow = vget_low_f32(nsum);
-					nsumhigh = vget_high_f32(nsum);
+#else
+				int c0=_c-1, c1=_c, c2=_c+1;
 
-					*cpixel = vget_lane_f32(nsumlow,0);
-					*cpixel += vget_lane_f32(nsumlow,1);
-					*cpixel += vget_lane_f32(nsumhigh,0);
-					float y = *cpixel;
+				//gradiente en X
+				float * cpixel = &xM[f][c];
+				*cpixel = 0;
+				*cpixel += *(_region + _w*f0 + c0) * xfiltro[0][0];
+				*cpixel += *(_region + _w*f0 + c1) * xfiltro[0][1];
+				*cpixel += *(_region + _w*f0 + c2) * xfiltro[0][2];
+				*cpixel += *(_region + _w*f1 + c0) * xfiltro[1][0];
+				*cpixel += *(_region + _w*f1 + c1) * xfiltro[1][1];
+				*cpixel += *(_region + _w*f1 + c2) * xfiltro[1][2];
+				*cpixel += *(_region + _w*f2 + c0) * xfiltro[2][0];
+				*cpixel += *(_region + _w*f2 + c1) * xfiltro[2][1];
+				*cpixel += *(_region + _w*f2 + c2) * xfiltro[2][2];
+				float x = *cpixel;
 
-				#else
-					int c0=_c-1, c1=_c, c2=_c+1,
-					f0=_f-1, f1=_f, f2=_f+1;
+				//gradiente en Y
+				cpixel = &yM[f][c];
+				*cpixel = 0;
+				*cpixel += *(_region + _w*f0 + c0) * yfiltro[0][0];
+				*cpixel += *(_region + _w*f0 + c1) * yfiltro[0][1];
+				*cpixel += *(_region + _w*f0 + c2) * yfiltro[0][2];
+				*cpixel += *(_region + _w*f1 + c0) * yfiltro[1][0];
+				*cpixel += *(_region + _w*f1 + c1) * yfiltro[1][1];
+				*cpixel += *(_region + _w*f1 + c2) * yfiltro[1][2];
+				*cpixel += *(_region + _w*f2 + c0) * yfiltro[2][0];
+				*cpixel += *(_region + _w*f2 + c1) * yfiltro[2][1];
+				*cpixel += *(_region + _w*f2 + c2) * yfiltro[2][2];
+				float y = *cpixel;
+#endif
+				//Modulo del gradiente
+				*mg++ = sqrt(x*x+y*y);
+#ifdef NO_DEG_LOOKUPTABLE
+				float deg = atan(y/x);
+				*dgd++ = getDireccion(atan(y/x));
+#else
 
-					//gradiente en X
-					float * cpixel = &xM[f][c];
-					*cpixel = 0;
-					*cpixel += *(_region + _w*f0 + c0) * xfiltro[0][0];
-					*cpixel += *(_region + _w*f0 + c1) * xfiltro[0][1];
-					*cpixel += *(_region + _w*f0 + c2) * xfiltro[0][2];
-					*cpixel += *(_region + _w*f1 + c0) * xfiltro[1][0];
-					*cpixel += *(_region + _w*f1 + c1) * xfiltro[1][1];
-					*cpixel += *(_region + _w*f1 + c2) * xfiltro[1][2];
-					*cpixel += *(_region + _w*f2 + c0) * xfiltro[2][0];
-					*cpixel += *(_region + _w*f2 + c1) * xfiltro[2][1];
-					*cpixel += *(_region + _w*f2 + c2) * xfiltro[2][2];
-					float x = *cpixel;
+				*dgd++ =  LOOKUP_DEG[(int)round(y)+LOOKUPTABLE_DEG_VMAX][(int)round(x)+LOOKUPTABLE_DEG_VMAX];
+#endif
 
-					//gradiente en Y
-					cpixel = &yM[f][c];
-					*cpixel = 0;
-					*cpixel += *(_region + _w*f0 + c0) * yfiltro[0][0];
-					*cpixel += *(_region + _w*f0 + c1) * yfiltro[0][1];
-					*cpixel += *(_region + _w*f0 + c2) * yfiltro[0][2];
-					*cpixel += *(_region + _w*f1 + c0) * yfiltro[1][0];
-					*cpixel += *(_region + _w*f1 + c1) * yfiltro[1][1];
-					*cpixel += *(_region + _w*f1 + c2) * yfiltro[1][2];
-					*cpixel += *(_region + _w*f2 + c0) * yfiltro[2][0];
-					*cpixel += *(_region + _w*f2 + c1) * yfiltro[2][1];
-					*cpixel += *(_region + _w*f2 + c2) * yfiltro[2][2];
-					float y = *cpixel;
-				#endif
-					//Modulo del gradiente
-					*mg++ = sqrt(x*x+y*y);
-				#ifdef NO_DEG_LOOKUPTABLE
-					float deg = atan(y/x);
-					*dgd++ = getDireccion(atan(y/x));
-				#else
-
-					*dgd++ =  LOOKUP_DEG[(int)round(y)+LOOKUPTABLE_DEG_VMAX][(int)round(x)+LOOKUPTABLE_DEG_VMAX];
-				#endif
-
-				}
 			}
 		}
 	}
+
+#ifdef TIMMING
+		gettimeofday(&t1, NULL);
+		mostrarTiempo("02-gradiente en X", &t0,&t1,acc);
+#endif
 
 
 
 }
 
-static void computeGradient(float ** imM, float ** gradientxM, float ** gradientyM, float** mgM, uint8_t ** dgdM)
+#endif
+static void computeGradient(float ** imM, float ** gradientxM, float ** gradientyM, float** mgM, uint8_t ** dgdM, long long * acc)
 {
 	float ** sM = imM;
 	float ** xM = gradientxM;
@@ -2128,11 +2128,11 @@ static void computeGradient(float ** imM, float ** gradientxM, float ** gradient
 	unsigned int height = G_height;
 	unsigned int width = G_width;
 
-	_computeGradient(sM, xM, yM, xfiltro, yfiltro, mgM, dgdM, height,  width);
+	_computeGradient(sM, xM, yM, xfiltro, yfiltro, mgM, dgdM, height,  width, acc);
 }
 
 
-#endif
+
 
 static void dibujarRectas(unsigned int ** accM, unsigned int nangulos, unsigned int ndistancias, unsigned int rhoOffset, uint8_t ** rectasM, float * sinTable, float * cosTable, unsigned int width, unsigned int height)
 {
@@ -2372,13 +2372,15 @@ int main(int argc, char ** argv)
 
 		#endif
 	#else
-		computeGradient(gsFiltradoM, xgradienteM, ygradienteM, mgradienteM, dgdiscretaM);
+		computeGradient(gsFiltradoM, xgradienteM, ygradienteM, mgradienteM, dgdiscretaM, &tacc);
 		
 	#endif
 
 #ifdef TIMMING
+		#ifdef GRAD_NOCACHE
 		gettimeofday(&t1, NULL);
 		mostrarTiempo("02-Gradiente en X", &t0,&t1,&tacc);
+		#endif
 #endif
 
 #ifdef TIMMING
