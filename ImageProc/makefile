@@ -1,9 +1,13 @@
 
-ARGS=
 
-exec=pruebas join pruebas-pg
+exec=join
 
-CFLAGS=$(ARGS) -fopenmp -O3
+REG_W=64
+REG_H=16
+
+ARGS=-DFS_5 -DTIMMING -DTHREADS=2 -DSAVE_STEPS -DFILTRO_NOCACHE -DGRAD_NOCACHE -DNO_DEG_LOOKUPTABLE
+
+CFLAGS= $(ARGS) -fopenmp -O3
 CC=gcc
 all: $(exec) install
 
@@ -13,22 +17,12 @@ install:
 	mv $(exec) bin	
 
 	
-pruebas: pruebas.o
-	gcc $< $(ARGS) $(CFLAGS) -lm -o $@
 join: join.o
-	gcc $< $(ARGS) $(CFLAGS) -lm -o $@
-	mv $< bin
-	mv $@ bin
-
-pruebas-pg: pruebas-pg.o
-	gcc $< $(ARGS) -fopenmp -lm -o $@ -pg
+	gcc $< $(CFLAGS) -lm -o $@
 
 
 clean:
 	rm -f *.o $(exec)
 	rm -f ./bin/*
 
-pruebas.o: pruebas.c
 join.o: join.c
-pruebas-pg.o: pruebas.c
-	gcc -c $< $(ARGS) -fopenmp -lm -o $@ -pg

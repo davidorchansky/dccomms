@@ -2642,8 +2642,8 @@ int main(int argc, char ** argv)
 
 		close(fhoughSpAcc);
 		free(houghSpAccEscalado);
-		if(re)
-			saveImage(1, pgm, pgmhl, houghSpAccEscalado, houghSpLength);
+		//if(re)
+		//	saveImage(1, pgm, pgmhl, houghSpAccEscalado, houghSpLength);
 
 		uint8_t * rectas = (uint8_t*) malloc(pixelLength);
 		uint8_t ** rectasM = (uint8_t**) malloc(height*sizeof(uint8_t*));
@@ -2659,6 +2659,10 @@ int main(int argc, char ** argv)
 		if (frectas < 0) showError();
 
 		saveImage(frectas, pgm, pgmhl, rectas, pixelLength);
+		if(re)
+			saveImage(1, pgm, pgmhl, rectas, pixelLength);
+
+
 #endif
 
 
