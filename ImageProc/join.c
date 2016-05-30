@@ -1343,7 +1343,12 @@ static void aplicarFiltro_size5(float ** gsFiltradoM)
 	float * _buffer = malloc(_size*sizeof(float)*nregions);
 
 	int regionIdx;
+#ifdef NEON_VF
+	float32_t auxVector[4];
+	#pragma omp parallel for schedule(runtime) private(f, c, regLoc, auxVector)
+#else
 	#pragma omp parallel for schedule(runtime) private(f, c, regLoc)
+#endif
 	for(regionIdx = 0; regionIdx < nregions; regionIdx++)
 	{
 		int regMaxRow, regMaxCol;
@@ -1399,8 +1404,39 @@ static void aplicarFiltro_size5(float ** gsFiltradoM)
 		regMaxCol = regLoc->cfin - foffset;
 		for(f=regLoc->fini+foffset; f <= regMaxRow; f++)
 		{
+
+			#ifdef NEON_VF
+			float * iniaptr0 = auxM[f-2],
+			*iniaptr1 = auxM[f-1],
+			*iniaptr2 = auxM[f],
+			*iniaptr3 = auxM[f+1],
+			*iniaptr4 = auxM[f+2];
+			#endif
+
 			for(c=regLoc->cini+foffset; c <= regMaxCol; c++)
 			{
+			#ifdef NEON_VF
+				auxVector[0] = *(iniaptr0 + c);
+				auxVector[1] = *(iniaptr1 + c);
+				auxVector[2] = *(iniaptr2 + c);
+				auxVector[3] = *(iniaptr3 + c);
+
+				float32x4_t tmp;
+				tmp = vld1q_f32(auxVector);
+				tmp = vmulq_f32(tmp, nvfiltro);
+
+				float32x2_t low = vget_low_f32(tmp);
+				float32x2_t high = vget_high_f32(tmp);
+
+				low = vadd_f32(low, high);
+
+				float * dptr = &gsFiltradoM[f][c];
+				*dptr = vget_lane_f32(low,0);
+				*dptr += vget_lane_f32(low,1);
+
+				*dptr += *(iniaptr4+c)**fpv4;
+			#else
+
 				float * dptr = &gsFiltradoM[f][c];
 				*dptr = 0;
 				*dptr += auxM[f-2][c]**fpv0;
@@ -1408,6 +1444,7 @@ static void aplicarFiltro_size5(float ** gsFiltradoM)
 				*dptr += auxM[f][c]**fpv2;
 				*dptr += auxM[f+1][c]**fpv3;
 				*dptr += auxM[f+2][c]**fpv4;
+			#endif
 			}
 		}
 
@@ -1925,7 +1962,7 @@ static void _computeGradient(float ** sM, float ** xM, float **  yM, float ** xf
 }
 
 #else
-static void _computeGradient(float ** sM, float ** xM, float **  yM, float ** xfiltro, float ** yfiltro, float** mgM, uint8_t ** dgdM, unsigned int height, unsigned int width, long long* acc)
+static void _computeGradient(float ** sM, float ** xM, float **  yM, float ** xfiltro, float ** yfiltro, float** mgM, uint8_t ** dgdM, unsigned int height, unsigned int width)
 {
 	//cambia
 	unsigned int foffset = 1;
@@ -1965,10 +2002,6 @@ static void _computeGradient(float ** sM, float ** xM, float **  yM, float ** xf
 	
 	int regionIdx;
 
-#ifdef TIMMING
-	struct timeval t0,t1;
-	gettimeofday(&t0, NULL);
-#endif
 	omp_set_num_threads(THREADS);
 	#pragma omp parallel for schedule(runtime) private(_f, _c, regLoc, mg, dgd)
 	for(regionIdx = 0; regionIdx < nregions; regionIdx++)
@@ -2108,17 +2141,13 @@ static void _computeGradient(float ** sM, float ** xM, float **  yM, float ** xf
 		}
 	}
 
-#ifdef TIMMING
-		gettimeofday(&t1, NULL);
-		mostrarTiempo("02-gradiente en X", &t0,&t1,acc);
-#endif
-
-
-
 }
 
 #endif
-static void computeGradient(float ** imM, float ** gradientxM, float ** gradientyM, float** mgM, uint8_t ** dgdM, long long * acc)
+
+
+#ifndef GRAD_SEPARADAS_OPERACIONES
+static void computeGradient(float ** imM, float ** gradientxM, float ** gradientyM, float** mgM, uint8_t ** dgdM)
 {
 	float ** sM = imM;
 	float ** xM = gradientxM;
@@ -2128,8 +2157,9 @@ static void computeGradient(float ** imM, float ** gradientxM, float ** gradient
 	unsigned int height = G_height;
 	unsigned int width = G_width;
 
-	_computeGradient(sM, xM, yM, xfiltro, yfiltro, mgM, dgdM, height,  width, acc);
+	_computeGradient(sM, xM, yM, xfiltro, yfiltro, mgM, dgdM, height,  width);
 }
+#endif
 
 
 
@@ -2372,15 +2402,13 @@ int main(int argc, char ** argv)
 
 		#endif
 	#else
-		computeGradient(gsFiltradoM, xgradienteM, ygradienteM, mgradienteM, dgdiscretaM, &tacc);
+		computeGradient(gsFiltradoM, xgradienteM, ygradienteM, mgradienteM, dgdiscretaM);
 		
 	#endif
 
 #ifdef TIMMING
-		#ifdef GRAD_NOCACHE
 		gettimeofday(&t1, NULL);
 		mostrarTiempo("02-Gradiente en X", &t0,&t1,&tacc);
-		#endif
 #endif
 
 #ifdef TIMMING
