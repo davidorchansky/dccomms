@@ -30,9 +30,11 @@
 
 static float * G_copiaImagen;
 static float * G_bufferDeTrabajo;
+static float * G_bufferDeTrabajo2;
 static float * G_filtroRuido1D;
 static float ** G_copiaImagenM;
 static float ** G_bufferDeTrabajoM;
+static float ** G_bufferDeTrabajo2M;
 static float ** G_filtroRuido2D; 
 static float ** G_filtroGradienteX;
 static float ** G_filtroGradienteY;
@@ -552,6 +554,7 @@ static void init(uint8_t * img, unsigned int width, unsigned int height, float s
 	G_width = width;
 	G_copiaImagen = (float * ) malloc(size * sizeof(float));
 	G_bufferDeTrabajo = (float * ) malloc(size * sizeof(float));
+	G_bufferDeTrabajo2 = (float * ) malloc(size * sizeof(float));
 	G_tamFiltro = tamFiltro;
 	int f;
 
@@ -603,6 +606,7 @@ static void init(uint8_t * img, unsigned int width, unsigned int height, float s
 
 	G_copiaImagenM = getMatrixFromArray_Float(G_copiaImagen, width, height, size);
 	G_bufferDeTrabajoM = getMatrixFromArray_Float(G_bufferDeTrabajo, width, height, size);
+	G_bufferDeTrabajo2M = getMatrixFromArray_Float(G_bufferDeTrabajo2, width, height, size);
 
 }
 static void showError()
@@ -1363,14 +1367,16 @@ static void aplicarFiltro_size5(float ** gsFiltradoM)
 		for(f=0; f <= regMaxRow; f++)
 		{
 			float * _rfila = _region + _w * f;
-			for(c=foffset; c <= regMaxCol; c++)
+			int c0 = 0;
+			for(c=foffset; c <= regMaxCol; c++, c0+=1)
 			{
 				int _f,_c;
 				_f = f + regLoc->fini;
 				_c = c + regLoc->cini;
 
 #ifdef NEON
-				float * sptr = &oM[_f][_c-2];
+				float * sptr = _rfila + c0;
+				//float * sptr = &oM[_f][_c-2];
 				float32x4_t tmp;
 				tmp = vld1q_f32(sptr);
 				tmp = vmulq_f32(tmp, nhfiltro);
@@ -1807,6 +1813,192 @@ static void computeGradient(float ** imM, float ** gradientxM, float ** gradient
 #elif GRAD_NOCACHE
 static void _computeGradient(float ** sM, float ** xM, float **  yM, float ** xfiltro, float ** yfiltro, float** mgM, uint8_t ** dgdM, unsigned int height, unsigned int width)
 {
+
+#ifdef GRAD_SEPARABLE
+	unsigned int foffset = 1;
+
+	unsigned int maxHeight = height-foffset;
+	unsigned int maxWidth = width-foffset;
+	int f, c;
+
+	float * mg;
+	uint8_t * dgd;
+
+	float xfiltro1[3] = {1,0,-1};
+	float xfiltro2[3] = {1,2,1};
+	float yfiltro1[3] = {1,2,1};
+	float yfiltro2[3] = {1,0,-1};
+
+	#ifdef NEON
+	float32x4_t xff0, xff1, yff0, yff1;
+	xff0 = vld1q_f32(xfiltro1);
+	xff1 = vld1q_f32(xfiltro2);
+	yff0 = vld1q_f32(yfiltro1);
+	yff1 = vld1q_f32(yfiltro2);
+
+	#endif
+
+	float ** auxMx = G_bufferDeTrabajoM;
+	float ** auxMy = G_bufferDeTrabajo2M;
+	
+	omp_set_num_threads(THREADS);
+	#pragma omp parallel for schedule(runtime) private(c)
+	for(f=0; f < height; f++)
+	{
+		#ifdef NEON
+		float * inisptr = sM[f];
+		float * xptr = auxMx[f];
+		float * yptr = auxMy[f];
+		#endif
+		for(c=foffset; c < maxWidth; c++)
+		{
+		#ifdef NEON
+			int c0 = c-1;
+			float32x4_t tmp;
+
+			//Gradiente en X primera pasada
+
+			float * cpixel;
+			float * colptr = inisptr + c0;
+			cpixel = xptr + c;
+	
+			tmp = vld1q_f32(colptr);
+			tmp = vmulq_f32(xff0, tmp);
+
+			float32x2_t nsumlow = vget_low_f32(tmp);
+			float32x2_t nsumhigh = vget_high_f32(tmp);
+
+			*cpixel = vget_lane_f32(nsumlow,0);
+			*cpixel += vget_lane_f32(nsumlow,1);	
+			*cpixel += vget_lane_f32(nsumhigh,0);
+
+			//Gradiente en Y primera pasada
+
+			cpixel = yptr + c;
+	
+			tmp = vld1q_f32(colptr);
+			tmp = vmulq_f32(yff0, tmp);
+
+			nsumlow = vget_low_f32(tmp);
+			nsumhigh = vget_high_f32(tmp);
+
+			*cpixel = vget_lane_f32(nsumlow,0);
+			*cpixel += vget_lane_f32(nsumlow,1);	
+			*cpixel += vget_lane_f32(nsumhigh,0);
+
+
+		#else
+			int c0=c-1, c1=c, c2=c+1;
+
+			//gradiente en X
+			float * cpixel = &auxMx[f][c];
+			*cpixel = xfiltro1[0] * sM[f][c0];
+			*cpixel += xfiltro1[1] * sM[f][c1];
+			*cpixel += xfiltro1[2] * sM[f][c2];
+
+			//gradiente en Y
+			cpixel = &auxMy[f][c];
+			*cpixel = yfiltro1[0] * sM[f][c0];
+			*cpixel += yfiltro1[1] * sM[f][c1];
+			*cpixel += yfiltro1[2] * sM[f][c2];
+		#endif
+	
+		}
+	}
+	#ifdef NEON_VF
+	float32_t xauxVector[3];
+	float32_t yauxVector[3];
+	#pragma omp parallel for schedule(runtime) private(xauxVector, yauxVector, mg, dgd, c)
+	#else
+	#pragma omp parallel for schedule(runtime) private(mg, dgd, c)
+	#endif
+	for(f=foffset; f < maxHeight; f++)
+	{
+		mg = mgM[f];
+		dgd = dgdM[f];
+
+		int f0 = f-1,f1 = f,f2 =f+1;
+
+		#ifdef NEON_VF
+		float * xptr = xM[f],
+		      * yptr = yM[f];
+		float * xiniaptr0 = auxMx[f0],
+		*xiniaptr1 = auxMx[f1],
+		*xiniaptr2 = auxMx[f2];
+
+		float * yiniaptr0 = auxMy[f0],
+		*yiniaptr1 = auxMy[f1],
+		*yiniaptr2 = auxMy[f2];
+		#endif
+
+		for(c=foffset; c < maxWidth; c++)
+		{
+		#ifdef NEON_VF
+			//Gradiente en X segunda pasada
+			xauxVector[0] = *(xiniaptr0 + c);
+			xauxVector[1] = *(xiniaptr1 + c);
+			xauxVector[2] = *(xiniaptr2 + c);
+	
+			float32x4_t tmp;
+			float * cpixel = xptr + c;
+
+			tmp = vld1q_f32(xauxVector);
+			tmp = vmulq_f32(tmp, xff1);
+
+			float32x2_t nsumlow = vget_low_f32(tmp);
+			float32x2_t nsumhigh = vget_high_f32(tmp);
+
+			*cpixel = vget_lane_f32(nsumlow,0);
+			*cpixel += vget_lane_f32(nsumlow,1);	
+			*cpixel += vget_lane_f32(nsumhigh,0);
+
+			float x = *cpixel;
+			//Gradiente en Y segunda pasada
+			yauxVector[0] = *(yiniaptr0 + c);
+			yauxVector[1] = *(yiniaptr1 + c);
+			yauxVector[2] = *(yiniaptr2 + c);
+	
+			cpixel = yptr + c;
+
+			tmp = vld1q_f32(yauxVector);
+			tmp = vmulq_f32(tmp, yff1);
+
+			nsumlow = vget_low_f32(tmp);
+			nsumhigh = vget_high_f32(tmp);
+
+			*cpixel = vget_lane_f32(nsumlow,0);
+			*cpixel += vget_lane_f32(nsumlow,1);	
+			*cpixel += vget_lane_f32(nsumhigh,0);
+			float y = *cpixel;
+		#else
+			//gradiente en X segunda pasada
+			float * cpixel = &xM[f][c];
+			*cpixel = xfiltro2[0] * auxMx[f0][c];
+			*cpixel += xfiltro2[1] * auxMx[f1][c];
+			*cpixel += xfiltro2[2] * auxMx[f2][c];
+			float x = *cpixel;
+			//gradiente en Y segunda pasada
+			cpixel = &yM[f][c];
+			*cpixel = yfiltro2[0] * auxMy[f0][c];
+			*cpixel += yfiltro2[1] * auxMy[f1][c];
+			*cpixel += yfiltro2[2] * auxMy[f2][c];
+			float y = *cpixel;
+		#endif
+			//Modulo del gradiente
+			*mg++ = sqrt(x*x+y*y);
+			//Direccion del gradiente
+		#ifdef NO_DEG_LOOKUPTABLE
+			*dgd++ = getDireccion(atan(y/x));
+		#else
+			*dgd++ =  LOOKUP_DEG[(int)round(y)+LOOKUPTABLE_DEG_VMAX][(int)round(x)+LOOKUPTABLE_DEG_VMAX];
+		#endif
+
+		}
+	}
+
+
+
+#else //NO SEPARABLE
 	//cambia
 	unsigned int foffset = 1;
 	//fin-cambia
@@ -1815,7 +2007,7 @@ static void _computeGradient(float ** sM, float ** xM, float **  yM, float ** xf
 	unsigned int maxWidth = width-foffset;
 	int f;
 
-#ifdef NEON
+	#ifdef NEON
 	float32x4_t xff0,xff1,xff2, yff0, yff1, yff2;
 	xff0 = vld1q_f32(xfiltro[0]);
 	xff1 = vld1q_f32(xfiltro[1]);
@@ -1824,7 +2016,7 @@ static void _computeGradient(float ** sM, float ** xM, float **  yM, float ** xf
 	yff1 = vld1q_f32(yfiltro[1]);
 	yff2 = vld1q_f32(yfiltro[2]);
 
-#endif
+	#endif
 	float * mg;
 	uint8_t * dgd;
 
@@ -1958,12 +2150,13 @@ static void _computeGradient(float ** sM, float ** xM, float **  yM, float ** xf
 		}
 	}
 
-
+#endif //SEPARABLE - NO SEPARABLE
 }
 
-#else
+#else //APROVECHAR CACHE
 static void _computeGradient(float ** sM, float ** xM, float **  yM, float ** xfiltro, float ** yfiltro, float** mgM, uint8_t ** dgdM, unsigned int height, unsigned int width)
 {
+
 	//cambia
 	unsigned int foffset = 1;
 	//fin-cambia
@@ -2142,7 +2335,6 @@ static void _computeGradient(float ** sM, float ** xM, float **  yM, float ** xf
 	}
 
 }
-
 #endif
 
 
@@ -2353,6 +2545,7 @@ int main(int argc, char ** argv)
 
 		copiarArray_Uint8_Float(G_copiaImagen, gs, size);
 		memcpy(G_bufferDeTrabajo, G_copiaImagen, size*sizeof(float));
+		memcpy(G_bufferDeTrabajo2, G_copiaImagen, size*sizeof(float));
 		memcpy(gsFiltrado, G_copiaImagen, size*sizeof(float));
 
 #ifdef TIMMING
@@ -2403,7 +2596,6 @@ int main(int argc, char ** argv)
 		#endif
 	#else
 		computeGradient(gsFiltradoM, xgradienteM, ygradienteM, mgradienteM, dgdiscretaM);
-		
 	#endif
 
 #ifdef TIMMING
@@ -2642,8 +2834,8 @@ int main(int argc, char ** argv)
 
 		close(fhoughSpAcc);
 		free(houghSpAccEscalado);
-		if(re)
-			saveImage(1, pgm, pgmhl, houghSpAccEscalado, houghSpLength);
+		//if(re)
+		//	saveImage(1, pgm, pgmhl, houghSpAccEscalado, houghSpLength);
 
 		uint8_t * rectas = (uint8_t*) malloc(pixelLength);
 		uint8_t ** rectasM = (uint8_t**) malloc(height*sizeof(uint8_t*));
@@ -2659,6 +2851,10 @@ int main(int argc, char ** argv)
 		if (frectas < 0) showError();
 
 		saveImage(frectas, pgm, pgmhl, rectas, pixelLength);
+		if(re)
+			saveImage(1, pgm, pgmhl, rectas, pixelLength);
+
+
 #endif
 
 
