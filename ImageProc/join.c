@@ -239,7 +239,7 @@ int *nangulos, char ** outdir)
 		fprintf(stderr, "El filtro no es correcto\n");
 		usage(pgmName(argv[0]));
 	}
-	if(*lth > 255 || *uth > 255 || *lth < 0 || *uth < 0)
+	if(*lth > 99999 || *uth > 99999 || *lth < 0 || *uth < 0)
 	{
 		fprintf(stderr, "El umbral no es correcto\n");
 		usage(pgmName(argv[0]));
@@ -710,7 +710,11 @@ static void nonMaximum(float ** mgM, uint8_t ** dgM, float ** mgtM, unsigned int
 
 }
 
+//#ifndef HYST_SCALED
+//static void hysteresis(float ** srcM, uint8_t ** dstM, uint8_t alto, uint8_t bajo, unsigned int width, unsigned int height)
+//#else
 static void hysteresis(uint8_t ** srcM, uint8_t ** dstM, uint8_t alto, uint8_t bajo, unsigned int width, unsigned int height)
+//#endif
 {
 
 	unsigned int size = width * height;
@@ -751,6 +755,7 @@ static void hysteresis(uint8_t ** srcM, uint8_t ** dstM, uint8_t alto, uint8_t b
 	}
 	
 }
+
 
 static void saveImage(int fd, uint8_t * header, unsigned int hlength, uint8_t * content, unsigned int clength)
 {
@@ -2046,9 +2051,11 @@ static void _computeGradient(float ** sM, float ** xM, float **  yM, float ** xf
 			float32x4_t nsum, tmp, resf;
 			nsum = vdupq_n_f32(0);
 
-			float * cpixel;
 			float * psM, * colptr = inisptr + c0;
+			#ifdef SAVE_GRAD
+			float * cpixel;
 			cpixel = xptr + c;
+			#endif
 
 			psM = colptr;
 			tmp = vld1q_f32(psM);
@@ -2068,14 +2075,23 @@ static void _computeGradient(float ** sM, float ** xM, float **  yM, float ** xf
 			float32x2_t nsumlow = vget_low_f32(nsum);
 			float32x2_t nsumhigh = vget_high_f32(nsum);
 
+			#ifdef SAVE_GRAD
 			*cpixel = vget_lane_f32(nsumlow,0);
 			*cpixel += vget_lane_f32(nsumlow,1);	
 			*cpixel += vget_lane_f32(nsumhigh,0);
 			float x = *cpixel;
+			#else
+			float x;
+			x = vget_lane_f32(nsumlow,0);
+			x += vget_lane_f32(nsumlow,1);	
+			x += vget_lane_f32(nsumhigh,0);
+			#endif
 			//gradiente en Y
 			nsum = vdupq_n_f32(0);
 
+			#ifdef SAVE_GRAD
 			cpixel = yptr + c;
+			#endif
 
 			psM = colptr;
 			tmp = vld1q_f32(psM);
@@ -2095,10 +2111,17 @@ static void _computeGradient(float ** sM, float ** xM, float **  yM, float ** xf
 			nsumlow = vget_low_f32(nsum);
 			nsumhigh = vget_high_f32(nsum);
 
+			#ifdef SAVE_GRAD
 			*cpixel = vget_lane_f32(nsumlow,0);
 			*cpixel += vget_lane_f32(nsumlow,1);	
-			*cpixel += vget_lane_f32(nsumhigh,0);	
+			*cpixel += vget_lane_f32(nsumhigh,0);
 			float y = *cpixel;
+			#else
+			float y;
+			y = vget_lane_f32(nsumlow,0);
+			y += vget_lane_f32(nsumlow,1);	
+			y += vget_lane_f32(nsumhigh,0);
+			#endif
 
 		#else
 			int c0=c-1, c1=c, c2=c+1;
@@ -2136,7 +2159,7 @@ static void _computeGradient(float ** sM, float ** xM, float **  yM, float ** xf
 		#endif
 			//Modulo del gradiente
 			//mgM[f][c]=sqrt(x*x+y*y);
-			*mg++ = sqrt(x*x+y*y);
+			*mg++ = x*x+y*y;
 			//Direccion del gradiente
 		#ifdef NO_DEG_LOOKUPTABLE
 			//dgdM[f][c] = getDireccion(deg);
@@ -2696,7 +2719,11 @@ int main(int argc, char ** argv)
 #endif
 
 		//Paso final de Canny: Umbralizacion
+		//#ifndef HYST_SCALED
+		//hysteresis(mgthinM, bordesM, uth, lth, width, height);
+		//#else
 		hysteresis(mgthinescaladoM, bordesM, uth, lth, width, height);
+		//#endif
 #ifdef TIMMING
 		gettimeofday(&t1, NULL);
 		mostrarTiempo("08-Umbralizacion", &t0,&t1,&tacc);
