@@ -2048,7 +2048,7 @@ static void _computeGradient(float ** sM, float ** xM, float **  yM, float ** xf
 			int c0=c-1;
 
 			//gradiente en X
-			float32x4_t nsum, tmp, resf;
+			float32x4_t nsum, tmp0,tmp1,tmp2, resf;
 			nsum = vdupq_n_f32(0);
 
 			float * psM, * colptr = inisptr + c0;
@@ -2058,18 +2058,19 @@ static void _computeGradient(float ** sM, float ** xM, float **  yM, float ** xf
 			#endif
 
 			psM = colptr;
-			tmp = vld1q_f32(psM);
-			resf = vmulq_f32(xff0, tmp);
+			tmp0 = vld1q_f32(psM);
+			psM += width;
+			tmp1 = vld1q_f32(psM);
+			psM += width;
+			tmp2 = vld1q_f32(psM);
+
+			resf = vmulq_f32(xff0, tmp0);
 			nsum = vaddq_f32(nsum, resf);
 
-			psM += width;
-			tmp = vld1q_f32(psM);
-			resf = vmulq_f32(xff1, tmp);
+			resf = vmulq_f32(xff1, tmp1);
 			nsum = vaddq_f32(nsum, resf);
 
-			psM += width;
-			tmp = vld1q_f32(psM);
-			resf = vmulq_f32(xff2, tmp);
+			resf = vmulq_f32(xff2, tmp2);
 			nsum = vaddq_f32(nsum, resf);
 
 			float32x2_t nsumlow = vget_low_f32(nsum);
@@ -2093,19 +2094,13 @@ static void _computeGradient(float ** sM, float ** xM, float **  yM, float ** xf
 			cpixel = yptr + c;
 			#endif
 
-			psM = colptr;
-			tmp = vld1q_f32(psM);
-			resf = vmulq_f32(yff0, tmp);
+			resf = vmulq_f32(yff0, tmp0);
 			nsum = vaddq_f32(nsum, resf);
 
-			psM += width;
-			tmp = vld1q_f32(psM);
-			resf = vmulq_f32(yff1, tmp);
+			resf = vmulq_f32(yff1, tmp1);
 			nsum = vaddq_f32(nsum, resf);
 
-			psM += width;
-			tmp = vld1q_f32(psM);
-			resf = vmulq_f32(yff2, tmp);
+			resf = vmulq_f32(yff2, tmp2);
 			nsum = vaddq_f32(nsum, resf);
 
 			nsumlow = vget_low_f32(nsum);
