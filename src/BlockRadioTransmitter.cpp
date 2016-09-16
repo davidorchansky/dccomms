@@ -27,6 +27,10 @@ BlockRadioTransmitter::~BlockRadioTransmitter() {
 
 }
 
+bool BlockRadioTransmitter::BusyTransmitting()
+{
+	return radio.BusyTransmitting();
+}
 
 void BlockRadioTransmitter::Send(const char* identifier, void * buf, uint32_t size, uint8_t dest, uint32_t ps, unsigned long ms)
 {

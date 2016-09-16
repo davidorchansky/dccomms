@@ -10,6 +10,8 @@
 
 
 #include <Stream.h>
+#include <IPhyLayer.h>
+#include <DataLinkFrame.h>
 
 #include <stdio.h>   /* Standard input/output definitions */
 
@@ -24,7 +26,7 @@
 
 namespace radiotransmission {
 
-class SerialPortInterface : public Stream {
+class SerialPortInterface : public Stream, public IPhyLayer {
 public:
 
     enum BaudRate {
@@ -106,6 +108,9 @@ public:
 	void FlushInput();
 	void FlushOutput();
 	void FlushIO();
+	virtual bool BusyTransmitting();
+	virtual IPhyLayer & operator << (const DataLinkFrame &);
+	virtual IPhyLayer & operator >> (DataLinkFrame &);
 
 	void SetTimeout(unsigned long ms);
 

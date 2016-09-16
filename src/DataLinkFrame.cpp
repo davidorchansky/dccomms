@@ -263,6 +263,8 @@ Stream& operator << (Stream & i, const DataLinkFrame & dlf)
 	//i.Write(dlf._noCarrier, NO_CARRIER_SIZE);
 	//i.FlushOutput();
 
+	i.FlushIO();//Lo ideal seria FlushOutput, pero en algun lado hay algo que hace que se llene el buffer de entrada
+	   	   	   	   	  //y al final llega a bloquearse la comunicación... (TODO: comprobar qué es lo que hace que se llene el buffer de entrada)
 	return i;
 }
 

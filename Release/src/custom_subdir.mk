@@ -9,9 +9,11 @@ CPP_SRCS += \
 ../src/Checksum.cpp \
 ../src/DataLinkFrame.cpp \
 ../src/DataLinkStream.cpp \
+../src/IPhyLayer.cpp \
 ../src/Radio.cpp \
 ../src/RadioException.cpp \
 ../src/SerialPortInterface.cpp \
+../src/SerialTransmissionChannel.cpp \
 ../src/Stream.cpp \
 ../src/Utils.cpp 
 
@@ -21,9 +23,11 @@ OBJS += \
 ./src/Checksum.o \
 ./src/DataLinkFrame.o \
 ./src/DataLinkStream.o \
+./src/IPhyLayer.o \
 ./src/Radio.o \
 ./src/RadioException.o \
 ./src/SerialPortInterface.o \
+./src/SerialTransmissionChannel.o \
 ./src/Stream.o \
 ./src/Utils.o 
 
@@ -33,9 +37,11 @@ CPP_DEPS += \
 ./src/Checksum.d \
 ./src/DataLinkFrame.d \
 ./src/DataLinkStream.d \
+./src/IPhyLayer.d \
 ./src/Radio.d \
 ./src/RadioException.d \
 ./src/SerialPortInterface.d \
+./src/SerialTransmissionChannel.d \
 ./src/Stream.d \
 ./src/Utils.d 
 

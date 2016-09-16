@@ -8,8 +8,8 @@
 #ifndef RADIO_H_
 #define RADIO_H_
 
-#include <Stream.h>
 #include <DataLinkFrame.h>
+#include <IPhyLayer.h>
 
 namespace radiotransmission
 {
@@ -24,10 +24,11 @@ namespace radiotransmission
 		};
 
 		~Radio();
-		Radio(unsigned char dir, Stream &, fcsType fcst = fcsType::crc32, uint32_t maxRxBufferSize = 5000);
+		Radio(unsigned char dir, IPhyLayer &, fcsType fcst = fcsType::crc32, uint32_t maxRxBufferSize = 5000);
 		void SendBytes(const void *, uint32_t size, uint8_t dirTo = 255, uint32_t packetSize=1000, unsigned long ms=0);
 		void ReceiveBytes(void *, uint32_t size, uint8_t dirFrom = 255, unsigned long ms=10000);
-		
+		bool BusyTransmitting();
+
 		int TotalErrors = 0;
 
 	private:
@@ -37,7 +38,7 @@ namespace radiotransmission
 		uint32_t _rxBufferLastPos;
 		uint32_t _bytesInBuffer = 0;
 		unsigned char dir;
-		Stream & serial;
+		IPhyLayer & serial;
 		DataLinkFrame::fcsType FCSType;
 
 		void _DecreaseBytesInBuffer();
