@@ -10,7 +10,7 @@
 
 #include <exception>
 #include <cstdio>
-
+#include <string>
 
 
 using namespace std;
@@ -24,15 +24,15 @@ namespace radiotransmission {
 
 class RadioException: public exception{
 public:
-	RadioException(const char* msg, int cod);
+	RadioException(std::string msg, int cod);
 	virtual ~RadioException();
 	virtual const char* what() const throw()
 	{
-		return message;
+		return message.c_str();
 	}
 	int code;
 private:
-	char * message = NULL;
+	std::string message;
 
 
 };
