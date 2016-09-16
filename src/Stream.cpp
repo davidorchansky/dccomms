@@ -18,16 +18,6 @@ Stream::~Stream() {
 	// TODO Auto-generated destructor stub
 }
 
-unsigned long Stream::GetTimeout()
-{
-	return _timeout;
-}
-
-void Stream::SetTimeout(unsigned long ms)
-{
-	_timeout = ms;
-}
-
 void Stream::WaitFor(const uint8_t * expected, uint32_t size)
 {
 	const uint8_t * ptr = expected;

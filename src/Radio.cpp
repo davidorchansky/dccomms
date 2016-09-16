@@ -13,9 +13,11 @@
 #include <chrono>
 #include <iostream>
 #include <RadioException.h>
+#include <IPhyLayer.h>
+
 using namespace radiotransmission;
 
-Radio::Radio(unsigned char d, Stream & s, Radio::fcsType fcst, uint32_t maxRxBufferSize):serial(s),dir(d)
+Radio::Radio(unsigned char d, IPhyLayer & s, Radio::fcsType fcst, uint32_t maxRxBufferSize):serial(s),dir(d)
 {
 	_maxRxBufferSize = maxRxBufferSize;
 	_rxBuffer = new uint8_t[_maxRxBufferSize];
@@ -54,6 +56,10 @@ Radio::~Radio()
 	if(_rxBuffer != NULL)
 		delete _rxBuffer;
 }
+bool Radio::BusyTransmitting()
+{
+	return serial.BusyTransmitting();
+}
 
 void Radio::SendBytes(const void * buf, uint32_t size, uint8_t dirTo, uint32_t packetSize, unsigned long ms)
 {
@@ -62,15 +68,13 @@ void Radio::SendBytes(const void * buf, uint32_t size, uint8_t dirTo, uint32_t p
 	uint32_t np;
 	for(np = 1 ; np < numPackets; np++)
 	{
-		DataLinkFrame dlf(dirTo, dir, packetSize, buffer, FCSType);
+		DataLinkFrame dlf(dirTo, dir, packetSize, buffer, FCSType); //TODO: Deberiamos reservar memoria solo 1 vez para guardar una trama
 #ifdef DEBUG
 		std::cerr << "Enviando paquete..." << std::endl;
 		dlf.printFrame(std::cerr);
 #endif
 		serial << dlf;
 		buffer += packetSize;
-		serial.FlushIO(); //Lo ideal seria FlushOutput, pero en algun lado hay algo que hace que se llene el buffer de entrada
-						   //y al final llega a bloquearse la comunicación... (TODO: comprobar qué es lo que hace que se llene el buffer de entrada)
 		std::this_thread::sleep_for(std::chrono::milliseconds(ms));
 
 	}
@@ -84,8 +88,6 @@ void Radio::SendBytes(const void * buf, uint32_t size, uint8_t dirTo, uint32_t p
 #endif
 		serial << dlf;
 		buffer += packetSize;
-		serial.FlushIO(); //Lo ideal seria FlushOutput, pero en algun lado hay algo que hace que se llene el buffer de entrada
-						   //y al final llega a bloquearse la comunicación... (TODO: comprobar qué es lo que hace que se llene el buffer de entrada)
 	}
 
 	uint32_t bytesLeft = size % packetSize;
@@ -99,8 +101,6 @@ void Radio::SendBytes(const void * buf, uint32_t size, uint8_t dirTo, uint32_t p
 		dlf.printFrame(std::cerr);
 #endif
 		serial << dlf;
-		serial.FlushIO();//Lo ideal seria FlushOutput, pero en algun lado hay algo que hace que se llene el buffer de entrada
-		   	   	   	   	  //y al final llega a bloquearse la comunicación... (TODO: comprobar qué es lo que hace que se llene el buffer de entrada)
 		//std::this_thread::sleep_for(std::chrono::milliseconds(ms));
 	}
 

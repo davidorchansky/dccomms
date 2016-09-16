@@ -29,16 +29,15 @@ public:
 
 	virtual bool IsOpen() = 0;
 	//virtual void TimeoutMode(bool) = 0;
-	virtual void SetTimeout(unsigned long);
-	unsigned long GetTimeout();
+
 	void WaitFor(const uint8_t * expected, uint32_t size);
 
 	virtual void FlushInput() = 0;
 	virtual void FlushOutput() = 0;
 	virtual void FlushIO() = 0;
+	virtual bool BusyTransmitting() = 0;
 
-protected:
-	unsigned long _timeout = 0;
+
 };
 
 } /* namespace radiotransmission */

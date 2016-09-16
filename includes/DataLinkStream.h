@@ -10,7 +10,7 @@
 
 
 #include <Stream.h>
-
+#include <IPhyLayer.h>
 #include <stdio.h>   /* Standard input/output definitions */
 
 #include <string>
@@ -28,7 +28,7 @@ namespace radiotransmission {
 #define DLS_INBUFFER_SIZE_FLUSH 200000
 
 
-class DataLinkStream : public Stream {
+class DataLinkStream : public Stream, public IPhyLayer {
 public:
 
 	struct PortSettings
@@ -68,6 +68,9 @@ public:
 	void FlushInput();
 	void FlushOutput();
 	void FlushIO();
+	virtual bool BusyTransmitting();
+	virtual IPhyLayer & operator << (const DataLinkFrame &);
+	virtual IPhyLayer & operator >> (DataLinkFrame &);
 
 	void SetTimeout(unsigned long ms);
 

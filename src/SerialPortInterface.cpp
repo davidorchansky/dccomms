@@ -49,6 +49,23 @@ SerialPortInterface::SerialPortInterface(const char * p, SerialPortInterface::Po
 	strcpy(port, p);
 	portSettings = ps;
 }
+IPhyLayer & SerialPortInterface::operator << (const DataLinkFrame & dlf)
+{
+	Stream & s = *this;
+	s << dlf;
+	return *this;
+}
+IPhyLayer & SerialPortInterface::operator >> (DataLinkFrame & dlf)
+{
+	Stream & s = *this;
+	s >> dlf;
+	return *this;
+}
+
+bool SerialPortInterface::BusyTransmitting()
+{
+	return false;
+}
 
 bool SerialPortInterface::Open(const char * p, SerialPortInterface::BaudRate baud)
 {

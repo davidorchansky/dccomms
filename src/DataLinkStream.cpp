@@ -40,10 +40,27 @@ DataLinkStream::DataLinkStream(DataLinkStream::PortSettings ps)
 	portSettings = ps;
 }
 
+IPhyLayer & DataLinkStream::operator << (const DataLinkFrame & dlf)
+{
+	Stream & s = *this;
+	s << dlf;
+	return *this;
+}
+IPhyLayer & DataLinkStream::operator >> (DataLinkFrame & dlf)
+{
+	Stream & s = *this;
+	s >> dlf;
+	return *this;
+}
+
+bool DataLinkStream::BusyTransmitting()
+{
+	return false;
+}
 
 bool DataLinkStream::Open()
 {
-	struct termios options;
+	//struct termios options;
 
 	fd = open(port, O_RDWR );
 	if (fd != -1)
