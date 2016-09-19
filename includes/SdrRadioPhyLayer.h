@@ -46,7 +46,7 @@ private:
 	struct mq_attr* GetMQAttr(int);
 	mqd_t GetMQId(int);
 
-	std::string txmqname, rxmqname;
+	std::string txmqname, rxmqname, rtsmqname, ctsmqname;
 	mqd_t txmqid, rxmqid, rtsmqid, ctsmqid;
 	struct mq_attr txattr, rxattr, rtsattr, ctsattr;
 	uint8_t * rxbuff;

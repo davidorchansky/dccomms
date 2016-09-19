@@ -20,6 +20,8 @@ void ThrowPhyLayerException(std::string msg)
 SdrRadioPhyLayer::SdrRadioPhyLayer() {
 	txmqname = "/tmp/radio/msg/txsdrvideo";
 	rxmqname = "/tmp/radio/msg/rxsdrvideo";
+	rtsmqname = "/tmp/radio/msg/rtssdrvideo";
+	ctsmqname = "/tmp/radio/msg/ctssdrvideo";
 
 	txmqid = mq_open(txmqname.c_str(), O_CREAT, O_RDWR, NULL);
 	if(txmqid == -1)
@@ -31,15 +33,31 @@ SdrRadioPhyLayer::SdrRadioPhyLayer() {
 	{
 		ThrowPhyLayerException(std::string("Error(")+std::to_string(errno)+std::string("): Error al abrir/crear la cola para recepcion de mensajes"));
 	}
+	rtsmqid = mq_open(rtsmqname.c_str(), O_CREAT, O_RDWR, NULL);
+	if(rtsmqid == -1)
+	{
+		ThrowPhyLayerException(std::string("Error(")+std::to_string(errno)+std::string("): Error al abrir/crear la cola rts"));
+	}
+	ctsmqid = mq_open(ctsmqname.c_str(), O_CREAT, O_RDWR, NULL);
+	if(ctsmqid == -1)
+	{
+		ThrowPhyLayerException(std::string("Error(")+std::to_string(errno)+std::string("): Error al abrir/crear la cola cts"));
+	}
 
 	SetNonblockFlag(false, txmqid);
 	SetNonblockFlag(false, rxmqid);
+	SetNonblockFlag(false, rtsmqid);
+	SetNonblockFlag(false, ctsmqid);
 
 #ifdef DEBUG
 	std::cerr << "TXMQ:" << std::endl;
 	ShowMQAttr(std::cerr, TX_MQ);
 	std::cerr << "RXMQ:" << std::endl;
 	ShowMQAttr(std::cerr, RX_MQ);
+	std::cerr << "RTSMQ:" << std::endl;
+	ShowMQAttr(std::cerr, RTS_MQ);
+	std::cerr << "CTSMQ:" << std::endl;
+	ShowMQAttr(std::cerr, CTS_MQ);
 #endif
 
 	rxbuffsize = GetMaxMsgSize(RX_MQ);
