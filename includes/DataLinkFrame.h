@@ -39,8 +39,8 @@ public:
 	uint8_t getDesDir(){return *ddir;}
 	uint8_t getSrcDir(){return *sdir;}
 	uint16_t getDataSize(){return *dsize;}
-	int getFrameSize(){return frameSize;}
-	uint8_t * getFrameBuffer(){return buffer;}
+	int getFrameSize() const {return frameSize;}
+	uint8_t * getFrameBuffer() const {return buffer;}
 
 	void getInfoFromBuffer(void *);
 

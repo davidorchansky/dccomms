@@ -17,6 +17,13 @@ namespace radiotransmission {
 
 #define TX_MQ 0
 #define RX_MQ 1
+#define RTS_MQ 2
+#define CTS_MQ 3
+
+#define MSG_TYPE_FRAME  0
+#define MSG_TYPE_ISBUSY 1
+#define MSG_TYPE_ISBUSY_REPLY 2
+#define MSG_OVERHEAD 1
 
 class SdrRadioPhyLayer: public IPhyLayer {
 public:
@@ -40,8 +47,10 @@ private:
 	mqd_t GetMQId(int);
 
 	std::string txmqname, rxmqname;
-	mqd_t txmqid, rxmqid;
-	struct mq_attr txattr, rxattr;
+	mqd_t txmqid, rxmqid, rtsmqid, ctsmqid;
+	struct mq_attr txattr, rxattr, rtsattr, ctsattr;
+	uint8_t * rxbuff;
+	unsigned int rxbuffsize;
 };
 
 } /* namespace radiotransmission */

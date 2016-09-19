@@ -22,6 +22,7 @@ namespace radiotransmission {
 #define RADIO_CORRUPTFRAME 3
 #define RADIO_CORRUPTBLOCK 4
 #define RADIO_ERROR 5
+#define RADIO_PHYLAYER_ERROR 5
 
 class RadioException: public exception{
 public:
