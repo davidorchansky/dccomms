@@ -16,11 +16,10 @@
 
 namespace radiotransmission {
 
-#define NO_CARRIER_SIZE 50
-
 #define DLNK_PREAMBLE_SIZE 10
 #define DLNK_DIR_SIZE   1
 #define DLNK_DSIZE_SIZE 2
+#define DLNK_MAX_PAYLOAD_SIZE 8000
 
 class DataLinkFrame {
 public:
@@ -57,11 +56,11 @@ public:
 	void printFrame(std::ostream &);
 	bool checkFrame();
 
-	unsigned char _noCarrier[NO_CARRIER_SIZE];
-
 	static bool IsBigEndian();
 	static const unsigned char * manchesterPre;
 private:
+	void Init(DataLinkFrame::fcsType fcst);
+
 	uint8_t * pre,* ddir,*sdir,* fcs;
 	uint16_t * dsize;
 
@@ -76,15 +75,7 @@ private:
 
 	void _calculateCRC();
 
-	void _deletePayloadBuffer();
 	bool _BigEndian;
-	bool _canDeletePayload  = false;
-
-	void fill_noCarrier()
-	{
-		memset (_noCarrier,0x64,NO_CARRIER_SIZE);
-	}
-
 
 };
 
