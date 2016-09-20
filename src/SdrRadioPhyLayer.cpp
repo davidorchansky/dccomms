@@ -9,45 +9,125 @@
 #include <errno.h>
 #include <RadioException.h>
 #include <iostream>
+#include <fcntl.h> /* Defines O_* constants */
+#include <sys/stat.h> /* Defines mode constants */
+#include <mqueue.h>
 
 namespace radiotransmission {
 
-void ThrowPhyLayerException(std::string msg)
+#define TX_MQ 0
+#define RX_MQ 1
+#define RTS_MQ 2
+#define CTS_MQ 3
+
+#define MSG_TYPE_FRAME  0
+#define MSG_TYPE_ISBUSY 1
+#define MSG_TYPE_ISBUSY_REPLY 2
+#define MSG_OVERHEAD 1
+
+static void ThrowPhyLayerException(std::string msg)
 {
 	throw RadioException("PHYLAYER EXCEPTION: "+msg, RADIO_PHYLAYER_ERROR);
 }
 
-SdrRadioPhyLayer::SdrRadioPhyLayer() {
-	txmqname = "/tmp/radio/msg/txsdrvideo";
-	rxmqname = "/tmp/radio/msg/rxsdrvideo";
-	rtsmqname = "/tmp/radio/msg/rtssdrvideo";
-	ctsmqname = "/tmp/radio/msg/ctssdrvideo";
+std::string GetMQErrorMsg(int e)
+{
+	switch(e)
+	{
+	case EACCES:
+		return "The queue exists, but the caller does not have permission to open it in the specified mode / Name Contained more than one slash";
+	case EEXIST:
+		return "Both O_CREAT and O_EXCL were specified in oflag, but a queue with this name already exists";
+	case EINVAL:
+		return "O_CREAT  was  specified in oflag, and attr was not NULL, but attr->mq_maxmsg or attr->mq_msqsize was invalid.  Both of these\
+fields must be greater than zero.  In a process that is  unprivileged  (does  not  have  the  CAP_SYS_RESOURCE  capability),\
+attr->mq_maxmsg must be less than or equal to the msg_max limit, and attr->mq_msgsize must be less than or equal to the msg‐\
+size_max limit.  In addition, even in a privileged process, attr->mq_maxmsg cannot exceed the HARD_MAX limit.  (See mq_over‐\
+view(7) for details of these limits.)";
+	case EMFILE:
+		return "The process already has the maximum number of files and message queues open.";
+	case ENAMETOOLONG:
+		return "name was too long.";
+	case ENFILE:
+		return "The system limit on the total number of open files and message queues has been reached.";
+	case ENOENT:
+		return "The O_CREAT flag was not specified in oflag, and no queue with this name exists.";
+	case ENOMEM:
+		return "Insufficient memory.";
+	case ENOSPC:
+		return "Insufficient space for the creation of a new message queue.  This probably occurred because the queues_max limit was encoun‐\
+tered; see mq_overview(7).";
+	default:
+		return "Unknown Error";
+	}
+}
+SdrRadioPhyLayer::SdrRadioPhyLayer(int type, int maxframesize) {
+	struct mq_attr attr;
+	attr.mq_maxmsg = 10;
+	attr.mq_msgsize = maxframesize+MSG_OVERHEAD;
+	int perm = 0644;
+	Init(type, attr, perm);
+}
 
-	txmqid = mq_open(txmqname.c_str(), O_CREAT, O_RDWR, NULL);
+void SdrRadioPhyLayer::Init(int type, struct mq_attr attr, int perm)
+{
+	switch(type)
+	{
+	case IPHY_TYPE_DLINK:
+		txmqname = "/txsdrvideo";
+		rxmqname = "/rxsdrvideo";
+		break;
+	case IPHY_TYPE_PHY:
+		rxmqname = "/txsdrvideo";
+		txmqname = "/rxsdrvideo";
+		break;
+	default:
+		ThrowPhyLayerException("Tipo de interfaz con la capa fisica incorrecto");
+	}
+
+	rtsmqname = "/rtssdrvideo";
+	ctsmqname = "/ctssdrvideo";
+
+	int res = mq_unlink(txmqname.c_str());
+	res = mq_unlink(rxmqname.c_str());
+	res = mq_unlink(rtsmqname.c_str());
+	res = mq_unlink(ctsmqname.c_str());
+
+	txattr = attr;
+	rxattr = attr;
+	rtsattr = attr;
+	ctsattr = attr;
+
+	txmqid = mq_open(txmqname.c_str(), O_CREAT | O_WRONLY | O_EXCL, perm, &txattr);
+	std::string emsg;
 	if(txmqid == -1)
 	{
-		ThrowPhyLayerException(std::string("Error(")+std::to_string(errno)+std::string("): Error al abrir/crear la cola para envio de mensajes"));
+		emsg = GetMQErrorMsg(errno);
+		ThrowPhyLayerException(std::string("Error(")+std::to_string(errno)+std::string("): Error al abrir/crear la cola para envio de mensajes: ") + emsg);
 	}
-	rxmqid = mq_open(rxmqname.c_str(), O_CREAT, O_RDWR, NULL);
+	rxmqid = mq_open(rxmqname.c_str(), O_CREAT | O_RDONLY | O_EXCL, perm, &rxattr);
 	if(rxmqid == -1)
 	{
-		ThrowPhyLayerException(std::string("Error(")+std::to_string(errno)+std::string("): Error al abrir/crear la cola para recepcion de mensajes"));
+		emsg = GetMQErrorMsg(errno);
+		ThrowPhyLayerException(std::string("Error(")+std::to_string(errno)+std::string("): Error al abrir/crear la cola para recepcion de mensajes") + emsg);
 	}
-	rtsmqid = mq_open(rtsmqname.c_str(), O_CREAT, O_RDWR, NULL);
+	rtsmqid = mq_open(rtsmqname.c_str(), O_CREAT | O_WRONLY | O_EXCL, perm, &rtsattr);
 	if(rtsmqid == -1)
 	{
-		ThrowPhyLayerException(std::string("Error(")+std::to_string(errno)+std::string("): Error al abrir/crear la cola rts"));
+		emsg = GetMQErrorMsg(errno);
+		ThrowPhyLayerException(std::string("Error(")+std::to_string(errno)+std::string("): Error al abrir/crear la cola rts")+ emsg);
 	}
-	ctsmqid = mq_open(ctsmqname.c_str(), O_CREAT, O_RDWR, NULL);
+	ctsmqid = mq_open(ctsmqname.c_str(),O_CREAT | O_RDONLY | O_EXCL, perm, &ctsattr);
 	if(ctsmqid == -1)
 	{
-		ThrowPhyLayerException(std::string("Error(")+std::to_string(errno)+std::string("): Error al abrir/crear la cola cts"));
+		emsg = GetMQErrorMsg(errno);
+		ThrowPhyLayerException(std::string("Error(")+std::to_string(errno)+std::string("): Error al abrir/crear la cola cts")+ emsg);
 	}
 
-	SetNonblockFlag(false, txmqid);
-	SetNonblockFlag(false, rxmqid);
-	SetNonblockFlag(false, rtsmqid);
-	SetNonblockFlag(false, ctsmqid);
+	SetNonblockFlag(false, TX_MQ);
+	SetNonblockFlag(false, RX_MQ);
+	SetNonblockFlag(false, RTS_MQ);
+	SetNonblockFlag(false, CTS_MQ);
 
 #ifdef DEBUG
 	std::cerr << "TXMQ:" << std::endl;
@@ -66,10 +146,14 @@ SdrRadioPhyLayer::SdrRadioPhyLayer() {
 
 SdrRadioPhyLayer::~SdrRadioPhyLayer() {
 	// TODO Auto-generated destructor stub
-	mq_close(rxmqid);
-	mq_close(txmqid);
-	mq_close(ctsmqid);
-	mq_close(rtsmqid);
+	int res = mq_close(rxmqid);
+	res = mq_close(txmqid);
+	res = mq_close(ctsmqid);
+	res = mq_close(rtsmqid);
+	res = mq_unlink(txmqname.c_str());
+	res = mq_unlink(rxmqname.c_str());
+	res = mq_unlink(rtsmqname.c_str());
+	res = mq_unlink(ctsmqname.c_str());
 	if(rxbuff != NULL)
 		free(rxbuff);
 }
@@ -197,11 +281,12 @@ IPhyLayer & SdrRadioPhyLayer::operator << (const DataLinkFrame & dlf)
 	long maxmsize = GetMaxMsgSize(TX_MQ);
 	if (maxmsize >= msize)
 	{
-		free(mbuf);
 		if(mq_send(txmqid, (char*) mbuf, msize, 0)==-1)
 		{
+			free(mbuf);
 			ThrowPhyLayerException(std::string("Error(")+std::to_string(errno)+std::string("): Error interno: no se ha podido enviar el mensaje"));
 		}
+		free(mbuf);
 		return *this;
 	}
 	else
@@ -216,7 +301,21 @@ IPhyLayer & SdrRadioPhyLayer::operator << (const DataLinkFrame & dlf)
 
 IPhyLayer & SdrRadioPhyLayer::operator >> (DataLinkFrame & dlf)
 {
-	//TODO: falta implementacion. De momento solo utilizaremos esta clase en la parte del transmisor
+
+
+	if(mq_receive(rxmqid, (char*)rxbuff, 2, NULL)==-1)
+	{
+		if(rxbuff[0] = MSG_TYPE_FRAME)
+		{
+			//TODO: falta implementacion.
+			ThrowPhyLayerException("Recepcion de tramas no implementado");
+		}
+		else
+		{
+			ThrowPhyLayerException("Error interno: el mensaje no es del tipo correcto");
+		}
+	}
+
 	return *this;
 }
 
