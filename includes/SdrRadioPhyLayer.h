@@ -15,19 +15,12 @@
 
 namespace radiotransmission {
 
-#define TX_MQ 0
-#define RX_MQ 1
-#define RTS_MQ 2
-#define CTS_MQ 3
-
-#define MSG_TYPE_FRAME  0
-#define MSG_TYPE_ISBUSY 1
-#define MSG_TYPE_ISBUSY_REPLY 2
-#define MSG_OVERHEAD 1
+#define IPHY_TYPE_DLINK 0
+#define IPHY_TYPE_PHY 1
 
 class SdrRadioPhyLayer: public IPhyLayer {
 public:
-	SdrRadioPhyLayer();
+	SdrRadioPhyLayer(int iphytype = IPHY_TYPE_DLINK, int maxframesize = 7000);
 	virtual ~SdrRadioPhyLayer();
 	virtual IPhyLayer & operator << (const DataLinkFrame &);
 	virtual IPhyLayer & operator >> (DataLinkFrame &);
@@ -45,6 +38,7 @@ private:
 
 	struct mq_attr* GetMQAttr(int);
 	mqd_t GetMQId(int);
+	void Init(int type, struct mq_attr attr, int perm);
 
 	std::string txmqname, rxmqname, rtsmqname, ctsmqname;
 	mqd_t txmqid, rxmqid, rtsmqid, ctsmqid;
