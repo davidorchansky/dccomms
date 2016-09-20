@@ -23,6 +23,8 @@ namespace radiotransmission {
 #define MSG_TYPE_FRAME  0
 #define MSG_TYPE_ISBUSY 1
 #define MSG_TYPE_ISBUSY_REPLY 2
+#define PHY_STATE_BUSY 1
+#define PHY_STATE_READY 0
 #define MSG_OVERHEAD 1
 
 static void ThrowPhyLayerException(std::string msg)
@@ -69,24 +71,33 @@ SdrRadioPhyLayer::SdrRadioPhyLayer(int type, int maxframesize) {
 	Init(type, attr, perm);
 }
 
-void SdrRadioPhyLayer::Init(int type, struct mq_attr attr, int perm)
+void SdrRadioPhyLayer::Init(int _type, struct mq_attr attr, int perm)
 {
-	switch(type)
+	type = _type;
+	rtsmqname = "/rtssdrvideo";
+	ctsmqname = "/ctssdrvideo";
+
+	int rtsflags = 0, ctsflags = 0;
+	switch(_type)
 	{
 	case IPHY_TYPE_DLINK:
 		txmqname = "/txsdrvideo";
 		rxmqname = "/rxsdrvideo";
+		rtsflags |= O_WRONLY;
+		ctsflags |= O_RDONLY;
 		break;
 	case IPHY_TYPE_PHY:
 		rxmqname = "/txsdrvideo";
 		txmqname = "/rxsdrvideo";
+		rtsflags |= O_RDONLY;
+		ctsflags |= O_WRONLY;
 		break;
 	default:
 		ThrowPhyLayerException("Tipo de interfaz con la capa fisica incorrecto");
 	}
 
-	rtsmqname = "/rtssdrvideo";
-	ctsmqname = "/ctssdrvideo";
+	rtsflags |= O_CREAT | O_EXCL;
+	ctsflags |= O_CREAT | O_EXCL;
 
 	int res = mq_unlink(txmqname.c_str());
 	res = mq_unlink(rxmqname.c_str());
@@ -111,13 +122,13 @@ void SdrRadioPhyLayer::Init(int type, struct mq_attr attr, int perm)
 		emsg = GetMQErrorMsg(errno);
 		ThrowPhyLayerException(std::string("Error(")+std::to_string(errno)+std::string("): Error al abrir/crear la cola para recepcion de mensajes") + emsg);
 	}
-	rtsmqid = mq_open(rtsmqname.c_str(), O_CREAT | O_WRONLY | O_EXCL, perm, &rtsattr);
+	rtsmqid = mq_open(rtsmqname.c_str(), rtsflags, perm, &rtsattr);
 	if(rtsmqid == -1)
 	{
 		emsg = GetMQErrorMsg(errno);
 		ThrowPhyLayerException(std::string("Error(")+std::to_string(errno)+std::string("): Error al abrir/crear la cola rts")+ emsg);
 	}
-	ctsmqid = mq_open(ctsmqname.c_str(),O_CREAT | O_RDONLY | O_EXCL, perm, &ctsattr);
+	ctsmqid = mq_open(ctsmqname.c_str(), ctsflags, perm, &ctsattr);
 	if(ctsmqid == -1)
 	{
 		emsg = GetMQErrorMsg(errno);
@@ -305,10 +316,9 @@ IPhyLayer & SdrRadioPhyLayer::operator >> (DataLinkFrame & dlf)
 
 	if(mq_receive(rxmqid, (char*)rxbuff, 2, NULL)==-1)
 	{
-		if(rxbuff[0] = MSG_TYPE_FRAME)
+		if(rxbuff[0] == MSG_TYPE_FRAME)
 		{
-			//TODO: falta implementacion.
-			ThrowPhyLayerException("Recepcion de tramas no implementado");
+			dlf.getInfoFromBuffer(rxbuff);
 		}
 		else
 		{
@@ -318,25 +328,87 @@ IPhyLayer & SdrRadioPhyLayer::operator >> (DataLinkFrame & dlf)
 
 	return *this;
 }
-
+//Metodos para IPHY_TYPE_DLINK
 bool SdrRadioPhyLayer::BusyTransmitting()
 {
-	uint8_t msg[2] = { MSG_TYPE_ISBUSY, 0 };
+	SendRTS();
+	return CheckCTS();
+}
 
-	if(mq_send(rtsmqid, (char*) msg, 2, 0)==-1)
+bool SdrRadioPhyLayer::CheckCTS()
+{
+	bool result = false;
+	if(type != IPHY_TYPE_DLINK)
 	{
-		ThrowPhyLayerException(std::string("Error(")+std::to_string(errno)+std::string("): Error interno: error al pedir confirmacion de disponibilidad"));
-	}
-	if(mq_receive(ctsmqid, (char*)msg, 2, NULL)==-1)
-	{
-		ThrowPhyLayerException(std::string("Error(")+std::to_string(errno)+std::string("): Error interno: no se ha recibido una contestacion al mensaje de disponibilidad"));
-	}
-	if(msg[0] != MSG_TYPE_ISBUSY_REPLY)
-	{
-		ThrowPhyLayerException("Error interno: el codigo del mensaje no es correcto (error grave)");
-	}
-	return msg[1] == 1;
+		uint8_t msg[2];
 
+		if(mq_receive(ctsmqid, (char*)msg, 2, NULL)==-1)
+		{
+			ThrowPhyLayerException(std::string("Error(")+std::to_string(errno)+std::string("): Error interno: no se ha recibido una contestacion al mensaje de disponibilidad"));
+		}
+		if(msg[0] != MSG_TYPE_ISBUSY_REPLY)
+		{
+			ThrowPhyLayerException("Error interno: el codigo del mensaje no es correcto (error grave)");
+		}
+		result = msg[1] == PHY_STATE_READY;
+	}
+	else
+	{
+		ThrowPhyLayerException(std::string("No se permite la llamada a ") +  __FUNCTION__);
+	}
+	return result;
+}
+
+void SdrRadioPhyLayer::SendRTS()
+{
+	if(type != IPHY_TYPE_DLINK)
+	{
+		uint8_t msg[2] = { MSG_TYPE_ISBUSY, 0 };
+
+		if(mq_send(rtsmqid, (char*) msg, 2, 0)==-1)
+		{
+			ThrowPhyLayerException(std::string("Error(")+std::to_string(errno)+std::string("): Error interno: error al pedir confirmacion de disponibilidad"));
+		}
+	}
+	else
+	{
+		ThrowPhyLayerException(std::string("No se permite la llamada a ") +  __FUNCTION__);
+	}
+}
+//Metodos para IPHY_TYPE_PHY
+bool SdrRadioPhyLayer::CheckRTS()
+{
+	bool result = false;
+	if(type != IPHY_TYPE_PHY)
+	{
+		uint8_t msg[2];
+
+		if(mq_receive(rtsmqid, (char*)msg, 2, NULL)==-1)
+		{
+			ThrowPhyLayerException(std::string("Error(")+std::to_string(errno)+std::string("): Error interno: no se ha recibido solicitud de disponibilidad"));
+		}
+		if(msg[0] != MSG_TYPE_ISBUSY)
+		{
+			ThrowPhyLayerException("Error interno: el codigo del mensaje no es correcto (error grave)");
+		}
+		result = msg[1] == PHY_STATE_READY;
+	}
+	else
+	{
+		ThrowPhyLayerException(std::string("No se permite la llamada a ") +  __FUNCTION__);
+	}
+	return result;
+}
+
+void SdrRadioPhyLayer::SendCTS()
+{
+	if(type != IPHY_TYPE_PHY)
+	{
+	}
+	else
+	{
+		ThrowPhyLayerException(std::string("No se permite la llamada a ") +  __FUNCTION__);
+	}
 }
 
 } /* namespace radiotransmission */

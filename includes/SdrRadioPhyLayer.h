@@ -24,7 +24,12 @@ public:
 	virtual ~SdrRadioPhyLayer();
 	virtual IPhyLayer & operator << (const DataLinkFrame &);
 	virtual IPhyLayer & operator >> (DataLinkFrame &);
+
 	virtual bool BusyTransmitting();
+	virtual void SendCTS();
+	virtual void SendRTS();
+	virtual bool CheckRTS();
+	virtual bool CheckCTS();
 private:
 	void UpdateMQAttr();
 	void ShowMQAttr(std::ostream &, int);
@@ -45,6 +50,7 @@ private:
 	struct mq_attr txattr, rxattr, rtsattr, ctsattr;
 	uint8_t * rxbuff;
 	unsigned int rxbuffsize;
+	int type;
 };
 
 } /* namespace radiotransmission */
