@@ -6,6 +6,7 @@
  */
 
 #include <DataLinkFrame.h>
+#include <RadioException.h>
 #include <cstdlib>
 #include <cstring>
 #include <Checksum.h>
@@ -17,13 +18,21 @@ static const unsigned char _manchesterPre[DLNK_PREAMBLE_SIZE] = {0x55,0x55,0x55,
 
 const unsigned char* DataLinkFrame::manchesterPre = _manchesterPre;
 
-DataLinkFrame::DataLinkFrame(DataLinkFrame::fcsType fcst)
+static void ThrowDLinkLayerException(std::string msg)
+{
+	throw RadioException("DLINK EXCEPTION: "+msg, RADIO_DLNKLAYER_ERROR);
+}
+
+void DataLinkFrame::Init(DataLinkFrame::fcsType fcst)
 {
 	overheadSize = DLNK_PREAMBLE_SIZE +
 				   DLNK_DIR_SIZE * 2  +
 				   DLNK_DSIZE_SIZE;
 
 	_BigEndian = DataLinkFrame::IsBigEndian();
+
+	payload = (uint8_t*) malloc(DLNK_MAX_PAYLOAD_SIZE);
+
 	fcstype = fcst;
 	switch(fcstype)
 	{
@@ -39,10 +48,8 @@ DataLinkFrame::DataLinkFrame(DataLinkFrame::fcsType fcst)
 		fcsSize = 0;
 		break;
 	}
-
 	overheadSize += fcsSize;
 	buffer = (uint8_t*) malloc(overheadSize);
-
     pre   = buffer;
     ddir  = pre    + DLNK_PREAMBLE_SIZE;
     sdir  = ddir   + DLNK_DIR_SIZE;
@@ -52,7 +59,11 @@ DataLinkFrame::DataLinkFrame(DataLinkFrame::fcsType fcst)
     memcpy(pre, DataLinkFrame::manchesterPre, DLNK_PREAMBLE_SIZE);
     frameSize = overheadSize;
     totalInfoSize = DLNK_DIR_SIZE*2 + DLNK_DSIZE_SIZE;
-    fill_noCarrier();
+}
+
+DataLinkFrame::DataLinkFrame(DataLinkFrame::fcsType fcst)
+{
+	Init(fcst);
 }
 
 DataLinkFrame::DataLinkFrame(
@@ -63,39 +74,10 @@ DataLinkFrame::DataLinkFrame(
 		fcsType fcst
 		)
 {
-	_BigEndian = DataLinkFrame::IsBigEndian();
-
-	overheadSize = DLNK_PREAMBLE_SIZE +
-				   DLNK_DIR_SIZE * 2  +
-				   DLNK_DSIZE_SIZE;
-
-	fcstype = fcst;
-	switch(fcstype)
-	{
-	case crc16:
-		fcsSize = 2;
-		break;
-
-	case crc32:
-		fcsSize = 4;
-		break;
-
-	case nofcs:
-		fcsSize = 0;
-		break;
-	}
-	overheadSize += fcsSize;
-	buffer = (uint8_t*) malloc(overheadSize);
+	Init(fcst);
 
 	dataSize = datasize;
 
-    pre   = buffer;
-    ddir  = pre    + DLNK_PREAMBLE_SIZE;
-    sdir  = ddir   + DLNK_DIR_SIZE;
-    dsize = (uint16_t *) (sdir   + DLNK_DIR_SIZE);
-    fcs   = ((uint8_t *) dsize)  + DLNK_DSIZE_SIZE;
-
-    memcpy(pre, DataLinkFrame::manchesterPre, DLNK_PREAMBLE_SIZE);
     *ddir = desdir;
     *sdir = srcdir;
     if(_BigEndian)
@@ -105,13 +87,15 @@ DataLinkFrame::DataLinkFrame(
     	*(uint8_t*)dsize = (uint8_t)(datasize >> 8);
     	*(((uint8_t*)dsize)+1) = (uint8_t)(datasize & 0xff);
     }
-    payload = data;
+    if(datasize > DLNK_MAX_PAYLOAD_SIZE)
+    {
+    	ThrowDLinkLayerException(std::string("El tamano del payload no puede ser mayor que ")+ std::to_string(DLNK_MAX_PAYLOAD_SIZE));
+    }
+    memcpy(payload, data, datasize);
 
     frameSize = overheadSize + dataSize;
-    totalInfoSize = DLNK_DIR_SIZE*2 + DLNK_DSIZE_SIZE;
 
     _calculateCRC();
-    fill_noCarrier();
 }
 
 static uint8_t * getBits(void * data, int length, void * bits)
@@ -149,8 +133,7 @@ uint8_t* DataLinkFrame::getFrameBits(void * dst)
 DataLinkFrame::~DataLinkFrame() {
 	if(buffer != NULL)
 		delete buffer;
-	if(payload != NULL and _canDeletePayload)
-		delete payload;
+	delete payload;
 }
 
 void DataLinkFrame::_calculateCRC()
@@ -214,19 +197,8 @@ bool DataLinkFrame::checkFrame()
 	return true;
 }
 
-void DataLinkFrame::_deletePayloadBuffer()
-{
-	if (payload != NULL and _canDeletePayload)
-	{
-		delete payload;
-		payload = NULL;
-	}
-}
-
 Stream& operator >> (Stream & i, DataLinkFrame & dlf)
 {
-	dlf._canDeletePayload = true;
-	dlf._deletePayloadBuffer();
 	i.WaitFor((const uint8_t*) dlf.pre, DLNK_PREAMBLE_SIZE);
 
 	i.Read(dlf.ddir, DLNK_DIR_SIZE);
@@ -243,7 +215,11 @@ Stream& operator >> (Stream & i, DataLinkFrame & dlf)
 		dlf.dataSize = ((*dlf.dsize) << 8) | ((*dlf.dsize) >> 8);
 	}
 
-	dlf.payload = (uint8_t*) malloc(dlf.dataSize);
+    if(dlf.dataSize > DLNK_MAX_PAYLOAD_SIZE)
+    {
+    	ThrowDLinkLayerException(std::string("El tamano del payload no puede ser mayor que ")+ std::to_string(DLNK_MAX_PAYLOAD_SIZE));
+    }
+
 	i.Read(dlf.payload, dlf.dataSize);
 
 	i.Read(dlf.fcs, dlf.fcsSize);
@@ -253,15 +229,12 @@ Stream& operator >> (Stream & i, DataLinkFrame & dlf)
 }
 Stream& operator << (Stream & i, const DataLinkFrame & dlf)
 {
-	//i.Write(dlf._noCarrier, NO_CARRIER_SIZE);
 	i.Write(dlf.pre,DLNK_PREAMBLE_SIZE);
 	i.Write(dlf.ddir,DLNK_DIR_SIZE);
 	i.Write(dlf.sdir,DLNK_DIR_SIZE);
 	i.Write(dlf.dsize,DLNK_DSIZE_SIZE);
 	i.Write(dlf.payload,dlf.dataSize);
 	i.Write(dlf.fcs, dlf.fcsSize);
-	//i.Write(dlf._noCarrier, NO_CARRIER_SIZE);
-	//i.FlushOutput();
 
 	i.FlushIO();//Lo ideal seria FlushOutput, pero en algun lado hay algo que hace que se llene el buffer de entrada
 	   	   	   	   	  //y al final llega a bloquearse la comunicación... (TODO: comprobar qué es lo que hace que se llene el buffer de entrada)
@@ -271,8 +244,6 @@ Stream& operator << (Stream & i, const DataLinkFrame & dlf)
 void DataLinkFrame::getInfoFromBuffer(void *o)
 {
 	uint8_t * optr = (uint8_t*)o;
-	this->_canDeletePayload = true;
-	this->_deletePayloadBuffer();
 
 	memcpy(this->ddir, optr, DLNK_DIR_SIZE);
 	optr+=DLNK_DIR_SIZE;
@@ -292,7 +263,10 @@ void DataLinkFrame::getInfoFromBuffer(void *o)
 		this->dataSize = ((*this->dsize) << 8) | ((*this->dsize) >> 8);
 	}
 
-	this->payload = (uint8_t*) malloc(this->dataSize);
+    if(this->dataSize > DLNK_MAX_PAYLOAD_SIZE)
+    {
+    	ThrowDLinkLayerException(std::string("El tamano del payload no puede ser mayor que ")+ std::to_string(DLNK_MAX_PAYLOAD_SIZE));
+    }
 
 	memcpy(this->payload, optr, this->dataSize);
 	optr+=this->dataSize;
