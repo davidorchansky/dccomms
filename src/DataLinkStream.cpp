@@ -40,13 +40,13 @@ DataLinkStream::DataLinkStream(DataLinkStream::PortSettings ps)
 	portSettings = ps;
 }
 
-IPhyLayer & DataLinkStream::operator << (const DataLinkFrame & dlf)
+IPhyLayerService & DataLinkStream::operator << (const DataLinkFrame & dlf)
 {
 	Stream & s = *this;
 	s << dlf;
 	return *this;
 }
-IPhyLayer & DataLinkStream::operator >> (DataLinkFrame & dlf)
+IPhyLayerService & DataLinkStream::operator >> (DataLinkFrame & dlf)
 {
 	Stream & s = *this;
 	s >> dlf;

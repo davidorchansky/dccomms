@@ -31,7 +31,7 @@ void DataLinkFrame::Init(DataLinkFrame::fcsType fcst)
 
 	_BigEndian = DataLinkFrame::IsBigEndian();
 
-	payload = (uint8_t*) malloc(DLNK_MAX_PAYLOAD_SIZE);
+	payload = new uint8_t[DLNK_MAX_PAYLOAD_SIZE];
 
 	fcstype = fcst;
 	switch(fcstype)
@@ -49,7 +49,7 @@ void DataLinkFrame::Init(DataLinkFrame::fcsType fcst)
 		break;
 	}
 	overheadSize += fcsSize;
-	buffer = (uint8_t*) malloc(overheadSize);
+	buffer = new uint8_t[overheadSize];
     pre   = buffer;
     ddir  = pre    + DLNK_PREAMBLE_SIZE;
     sdir  = ddir   + DLNK_DIR_SIZE;

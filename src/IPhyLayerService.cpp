@@ -5,25 +5,25 @@
  *      Author: diego
  */
 
-#include <IPhyLayer.h>
+#include <IPhyLayerService.h>
 
 namespace radiotransmission {
 
-IPhyLayer::IPhyLayer() {
+IPhyLayerService::IPhyLayerService() {
 	// TODO Auto-generated constructor stub
 
 }
 
-IPhyLayer::~IPhyLayer() {
+IPhyLayerService::~IPhyLayerService() {
 	// TODO Auto-generated destructor stub
 }
 
-unsigned long IPhyLayer::GetTimeout()
+unsigned long IPhyLayerService::GetTimeout()
 {
 	return _timeout;
 }
 
-void IPhyLayer::SetTimeout(unsigned long ms)
+void IPhyLayerService::SetTimeout(unsigned long ms)
 {
 	_timeout = ms;
 }
