@@ -26,7 +26,7 @@ public:
 	virtual IPhyLayer & operator >> (DataLinkFrame &);
 
 	virtual bool BusyTransmitting();
-	virtual void SendCTS();
+	virtual void SendCTS(uint8_t);
 	virtual void SendRTS();
 	virtual bool CheckRTS();
 	virtual bool CheckCTS();

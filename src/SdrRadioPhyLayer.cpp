@@ -391,7 +391,7 @@ bool SdrRadioPhyLayer::CheckRTS()
 		{
 			ThrowPhyLayerException("Error interno: el codigo del mensaje no es correcto (error grave)");
 		}
-		result = msg[1] == PHY_STATE_READY;
+		result = true;
 	}
 	else
 	{
@@ -400,10 +400,16 @@ bool SdrRadioPhyLayer::CheckRTS()
 	return result;
 }
 
-void SdrRadioPhyLayer::SendCTS()
+void SdrRadioPhyLayer::SendCTS(uint8_t state)
 {
 	if(type != IPHY_TYPE_PHY)
 	{
+		uint8_t msg[2] = { MSG_TYPE_ISBUSY_REPLY, state };
+
+		if(mq_send(ctsmqid, (char*) msg, 2, 0)==-1)
+		{
+			ThrowPhyLayerException(std::string("Error(")+std::to_string(errno)+std::string("): Error interno: error al enviar el estado"));
+		}
 	}
 	else
 	{
