@@ -9,15 +9,15 @@
 #include <Radio.h>
 #include <Arduino.h>
 #include <DataLinkFrame.h>
+#include <IPhyLayerService.h>
 #include <thread>         // std::this_thread::sleep_for
 #include <chrono>
 #include <iostream>
 #include <RadioException.h>
-#include <IPhyLayer.h>
 
 using namespace radiotransmission;
 
-Radio::Radio(unsigned char d, IPhyLayer & s, Radio::fcsType fcst, uint32_t maxRxBufferSize):serial(s),dir(d)
+Radio::Radio(unsigned char d, IPhyLayerService & s, Radio::fcsType fcst, uint32_t maxRxBufferSize):serial(s),dir(d)
 {
 	_maxRxBufferSize = maxRxBufferSize;
 	_rxBuffer = new uint8_t[_maxRxBufferSize];

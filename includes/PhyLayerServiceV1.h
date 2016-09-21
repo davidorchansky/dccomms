@@ -8,29 +8,31 @@
 #ifndef SRC_SDRRADIOPHYLAYER_H_
 #define SRC_SDRRADIOPHYLAYER_H_
 
-#include <IPhyLayer.h>
 #include <fcntl.h> /* Defines O_* constants */
 #include <sys/stat.h> /* Defines mode constants */
 #include <mqueue.h>
+#include <DataLinkFrame.h>
+#include <IPhyLayerService.h>
+#include <queue>
 
 namespace radiotransmission {
 
 #define IPHY_TYPE_DLINK 0
 #define IPHY_TYPE_PHY 1
 
-class SdrRadioPhyLayer: public IPhyLayer {
+class PhyLayerServiceV1: public IPhyLayerService {
 public:
-	SdrRadioPhyLayer(int iphytype = IPHY_TYPE_DLINK, int maxframesize = 7000);
-	virtual ~SdrRadioPhyLayer();
-	virtual IPhyLayer & operator << (const DataLinkFrame &);
-	virtual IPhyLayer & operator >> (DataLinkFrame &);
+	PhyLayerServiceV1(int iphytype = IPHY_TYPE_DLINK, int maxframesize = 7000);
+	virtual ~PhyLayerServiceV1();
+	virtual IPhyLayerService & operator << (const DataLinkFrame &);
+	virtual IPhyLayerService & operator >> (DataLinkFrame &);
 
 	virtual bool BusyTransmitting();
-	virtual void SendCTS(uint8_t);
-	virtual void SendRTS();
-	virtual bool CheckRTS();
-	virtual bool CheckCTS();
 private:
+	std::queue<DataLinkFrame> rxfifo;
+
+	int GetPhyLayerState();
+	DataLinkFrame & GetNextFrame();
 	void UpdateMQAttr();
 	void ShowMQAttr(std::ostream &, int);
 
@@ -45,9 +47,9 @@ private:
 	mqd_t GetMQId(int);
 	void Init(int type, struct mq_attr attr, int perm);
 
-	std::string txmqname, rxmqname, rtsmqname, ctsmqname;
-	mqd_t txmqid, rxmqid, rtsmqid, ctsmqid;
-	struct mq_attr txattr, rxattr, rtsattr, ctsattr;
+	std::string txmqname, rxmqname;
+	mqd_t txmqid, rxmqid;
+	struct mq_attr txattr, rxattr;
 	uint8_t * rxbuff;
 	unsigned int rxbuffsize;
 	int type;
