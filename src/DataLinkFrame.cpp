@@ -197,44 +197,44 @@ bool DataLinkFrame::checkFrame()
 	return true;
 }
 
-Stream& operator >> (Stream & i, DataLinkFrame & dlf)
+Stream& operator >> (Stream & i, DataLinkFramePtr & dlf)
 {
-	i.WaitFor((const uint8_t*) dlf.pre, DLNK_PREAMBLE_SIZE);
+	i.WaitFor((const uint8_t*) dlf->pre, DLNK_PREAMBLE_SIZE);
 
-	i.Read(dlf.ddir, DLNK_DIR_SIZE);
-	i.Read(dlf.sdir, DLNK_DIR_SIZE);
+	i.Read(dlf->ddir, DLNK_DIR_SIZE);
+	i.Read(dlf->sdir, DLNK_DIR_SIZE);
 
-	i.Read((uint8_t *)dlf.dsize, DLNK_DSIZE_SIZE);
+	i.Read((uint8_t *)dlf->dsize, DLNK_DSIZE_SIZE);
 
-	if(dlf._BigEndian)
+	if(dlf->_BigEndian)
 	{
-		dlf.dataSize  = *dlf.dsize;
+		dlf->dataSize  = *dlf->dsize;
 	}
 	else
 	{
-		dlf.dataSize = ((*dlf.dsize) << 8) | ((*dlf.dsize) >> 8);
+		dlf->dataSize = ((*dlf->dsize) << 8) | ((*dlf->dsize) >> 8);
 	}
 
-    if(dlf.dataSize > DLNK_MAX_PAYLOAD_SIZE)
+    if(dlf->dataSize > DLNK_MAX_PAYLOAD_SIZE)
     {
     	ThrowDLinkLayerException(std::string("El tamano del payload no puede ser mayor que ")+ std::to_string(DLNK_MAX_PAYLOAD_SIZE));
     }
 
-	i.Read(dlf.payload, dlf.dataSize);
+	i.Read(dlf->payload, dlf->dataSize);
 
-	i.Read(dlf.fcs, dlf.fcsSize);
+	i.Read(dlf->fcs, dlf->fcsSize);
 
-	dlf.frameSize = dlf.overheadSize + dlf.dataSize;
+	dlf->frameSize = dlf->overheadSize + dlf->dataSize;
 	return i;
 }
-Stream& operator << (Stream & i, const DataLinkFrame & dlf)
+Stream& operator << (Stream & i, const DataLinkFramePtr & dlf)
 {
-	i.Write(dlf.pre,DLNK_PREAMBLE_SIZE);
-	i.Write(dlf.ddir,DLNK_DIR_SIZE);
-	i.Write(dlf.sdir,DLNK_DIR_SIZE);
-	i.Write(dlf.dsize,DLNK_DSIZE_SIZE);
-	i.Write(dlf.payload,dlf.dataSize);
-	i.Write(dlf.fcs, dlf.fcsSize);
+	i.Write(dlf->pre,DLNK_PREAMBLE_SIZE);
+	i.Write(dlf->ddir,DLNK_DIR_SIZE);
+	i.Write(dlf->sdir,DLNK_DIR_SIZE);
+	i.Write(dlf->dsize,DLNK_DSIZE_SIZE);
+	i.Write(dlf->payload,dlf->dataSize);
+	i.Write(dlf->fcs, dlf->fcsSize);
 
 	i.FlushIO();//Lo ideal seria FlushOutput, pero en algun lado hay algo que hace que se llene el buffer de entrada
 	   	   	   	   	  //y al final llega a bloquearse la comunicación... (TODO: comprobar qué es lo que hace que se llene el buffer de entrada)
@@ -367,6 +367,28 @@ bool DataLinkFrame::IsBigEndian()
 	uint8_t * byte = (uint8_t *)&word;
 	return *byte != 0x1;
 
+}
+
+DataLinkFramePtr DataLinkFrame::BuildDataLinkFrame(fcsType fcst)
+{
+	return DataLinkFramePtr(new DataLinkFrame(fcst));
+}
+
+DataLinkFramePtr DataLinkFrame::BuildDataLinkFrame(
+		uint8_t desdir,
+		uint8_t srcdir,
+		uint16_t datasize,
+		uint8_t * data,
+		fcsType fcst
+		)
+{
+	return DataLinkFramePtr(new DataLinkFrame(
+			desdir,
+			srcdir,
+			datasize,
+			data,
+			fcst
+			));
 }
 
 } /* namespace radiotransmission */

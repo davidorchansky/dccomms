@@ -49,13 +49,13 @@ SerialPortInterface::SerialPortInterface(const char * p, SerialPortInterface::Po
 	strcpy(port, p);
 	portSettings = ps;
 }
-IPhyLayerService & SerialPortInterface::operator << (const DataLinkFrame & dlf)
+IPhyLayerService & SerialPortInterface::operator << (const DataLinkFramePtr & dlf)
 {
 	Stream & s = *this;
 	s << dlf;
 	return *this;
 }
-IPhyLayerService & SerialPortInterface::operator >> (DataLinkFrame & dlf)
+IPhyLayerService & SerialPortInterface::operator >> (DataLinkFramePtr & dlf)
 {
 	Stream & s = *this;
 	s >> dlf;
