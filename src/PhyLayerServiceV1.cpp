@@ -224,11 +224,11 @@ void PhyLayerServiceV1::SetNonblockFlag(bool v, int mq)
 	}
 }
 
-IPhyLayerService & PhyLayerServiceV1::operator << (const DataLinkFrame & dlf)
+IPhyLayerService & PhyLayerServiceV1::operator << (const DataLinkFramePtr & dlf)
 {
-	uint8_t * fbuf = dlf.getFrameBuffer();
+	uint8_t * fbuf = dlf->getFrameBuffer();
 
-	int fsize = dlf.getFrameSize();
+	int fsize = dlf->getFrameSize();
 	int msize = fsize + MSG_OVERHEAD;
 
 	uint8_t * mbuf, *data;
@@ -259,14 +259,22 @@ IPhyLayerService & PhyLayerServiceV1::operator << (const DataLinkFrame & dlf)
 	return *this; //nunca llegara aqui
 
 }
-
-IPhyLayerService & PhyLayerServiceV1::operator >> (DataLinkFrame & dlf)
+DataLinkFramePtr PhyLayerServiceV1::GetNextFrame()
 {
-	if(rxfifo.size()>0)
-	{
-		dlf = rxfifo.front();
-		rxfifo.pop();
-	}
+	rxfifo_mutex.lock();
+
+	DataLinkFramePtr dlf = rxfifo.front();
+	rxfifo.pop();
+
+	rxfifo_mutex.unlock();
+
+	return dlf;
+}
+
+IPhyLayerService & PhyLayerServiceV1::operator >> (DataLinkFramePtr & dlf)
+{
+	DataLinkFramePtr dlfptr = GetNextFrame();
+
 	return *this;
 }
 

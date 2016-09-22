@@ -16,8 +16,8 @@ class IPhyLayerService {
 public:
 	IPhyLayerService();
 	virtual ~IPhyLayerService();
-	virtual IPhyLayerService & operator << (const DataLinkFrame &) = 0;
-	virtual IPhyLayerService & operator >> (DataLinkFrame &) = 0;
+	virtual IPhyLayerService & operator << (const DataLinkFramePtr &) = 0;
+	virtual IPhyLayerService & operator >> (DataLinkFramePtr &) = 0;
 	virtual bool BusyTransmitting() = 0;
 	virtual void SetTimeout(unsigned long);
 	virtual unsigned long GetTimeout();

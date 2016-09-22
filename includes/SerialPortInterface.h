@@ -109,8 +109,8 @@ public:
 	void FlushOutput();
 	void FlushIO();
 	virtual bool BusyTransmitting();
-	virtual IPhyLayerService & operator << (const DataLinkFrame &);
-	virtual IPhyLayerService & operator >> (DataLinkFrame &);
+	virtual IPhyLayerService & operator << (const DataLinkFramePtr &);
+	virtual IPhyLayerService & operator >> (DataLinkFramePtr &);
 
 	void SetTimeout(unsigned long ms);
 

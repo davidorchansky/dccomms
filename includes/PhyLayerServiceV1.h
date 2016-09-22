@@ -14,25 +14,28 @@
 #include <DataLinkFrame.h>
 #include <IPhyLayerService.h>
 #include <queue>
+#include <mutex>
 
 namespace radiotransmission {
 
 #define IPHY_TYPE_DLINK 0
 #define IPHY_TYPE_PHY 1
 
+
 class PhyLayerServiceV1: public IPhyLayerService {
 public:
 	PhyLayerServiceV1(int iphytype = IPHY_TYPE_DLINK, int maxframesize = 7000);
 	virtual ~PhyLayerServiceV1();
-	virtual IPhyLayerService & operator << (const DataLinkFrame &);
-	virtual IPhyLayerService & operator >> (DataLinkFrame &);
+	virtual IPhyLayerService & operator << (const DataLinkFramePtr &);
+	virtual IPhyLayerService & operator >> (DataLinkFramePtr &);
 
 	virtual bool BusyTransmitting();
 private:
-	std::queue<DataLinkFrame> rxfifo;
+	std::queue<DataLinkFramePtr> rxfifo;
+	std::mutex rxfifo_mutex;
 
 	int GetPhyLayerState();
-	DataLinkFrame & GetNextFrame();
+	DataLinkFramePtr GetNextFrame();
 	void UpdateMQAttr();
 	void ShowMQAttr(std::ostream &, int);
 

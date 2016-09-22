@@ -13,6 +13,7 @@
 #include <ostream>
 #include <Stream.h>
 #include <cstring>
+#include <boost/shared_ptr.hpp>
 
 namespace radiotransmission {
 
@@ -21,11 +22,16 @@ namespace radiotransmission {
 #define DLNK_DSIZE_SIZE 2
 #define DLNK_MAX_PAYLOAD_SIZE 8000
 
+class DataLinkFrame;
+
+typedef boost::shared_ptr<DataLinkFrame> DataLinkFramePtr;
+
 class DataLinkFrame {
 public:
 	enum fcsType { crc16, crc32, nofcs };
-	DataLinkFrame(fcsType fcst);
-	DataLinkFrame(
+
+	static DataLinkFramePtr BuildDataLinkFrame(fcsType fcst);
+	static DataLinkFramePtr BuildDataLinkFrame(
 			uint8_t, //destination dir
 			uint8_t, //source dir
 			uint16_t, //data size
@@ -43,8 +49,8 @@ public:
 
 	void getInfoFromBuffer(void *);
 
-	friend Stream& operator >> (Stream & i, DataLinkFrame & dlf);
-	friend Stream& operator << (Stream & i, const DataLinkFrame & dlf);
+	friend Stream& operator >> (Stream & i, DataLinkFramePtr & dlf);
+	friend Stream& operator << (Stream & i, const DataLinkFramePtr & dlf);
 
 	uint8_t* getFrameBits(void *dst);
 
@@ -59,6 +65,15 @@ public:
 	static bool IsBigEndian();
 	static const unsigned char * manchesterPre;
 private:
+	DataLinkFrame(fcsType fcst);
+	DataLinkFrame(
+			uint8_t, //destination dir
+			uint8_t, //source dir
+			uint16_t, //data size
+			uint8_t *, //data
+			fcsType //fcstype
+			);
+
 	void Init(DataLinkFrame::fcsType fcst);
 
 	uint8_t * pre,* ddir,*sdir,* fcs;
@@ -78,6 +93,7 @@ private:
 	bool _BigEndian;
 
 };
+
 
 } /* namespace radiotransmission */
 
