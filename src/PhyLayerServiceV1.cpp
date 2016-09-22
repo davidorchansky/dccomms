@@ -77,12 +77,12 @@ void PhyLayerServiceV1::Init(int _type, struct mq_attr attr, int perm)
 	switch(_type)
 	{
 	case IPHY_TYPE_DLINK:
-		txmqname = "/txsdrvideo";
-		rxmqname = "/rxsdrvideo";
+		txmqname = "/tx_dlnk_phy";
+		rxmqname = "/rx_dlnk_phy";
 		break;
 	case IPHY_TYPE_PHY:
-		rxmqname = "/txsdrvideo";
-		txmqname = "/rxsdrvideo";
+		rxmqname = "/tx_dlnk_phy";
+		txmqname = "/rx_dlnk_phy";
 		break;
 	default:
 		ThrowPhyLayerException("Tipo de interfaz con la capa fisica incorrecto");
@@ -276,6 +276,10 @@ IPhyLayerService & PhyLayerServiceV1::operator >> (DataLinkFramePtr & dlf)
 	DataLinkFramePtr dlfptr = GetNextFrame();
 
 	return *this;
+}
+int PhyLayerServiceV1::GetPhyLayerState()
+{
+	return PHY_STATE_READY;
 }
 
 bool PhyLayerServiceV1::BusyTransmitting()
