@@ -15,6 +15,7 @@
 #include <IPhyLayerService.h>
 #include <queue>
 #include <mutex>
+#include <thread>
 
 namespace radiotransmission {
 
@@ -26,16 +27,30 @@ class PhyLayerServiceV1: public IPhyLayerService {
 public:
 	PhyLayerServiceV1(int iphytype = IPHY_TYPE_DLINK, int maxframesize = 7000);
 	virtual ~PhyLayerServiceV1();
+
 	virtual IPhyLayerService & operator << (const DataLinkFramePtr &);
 	virtual IPhyLayerService & operator >> (DataLinkFramePtr &);
 
+	virtual void Start();
+	virtual void Stop();
+
+	//IPHY_TYPE_DLINK (DlinkLyaer to PhyLayer) exclusive methods:
 	virtual bool BusyTransmitting();
+
+	//IPHY_TYPE_PHY (PhyLayer to DlinkLyaer) exclusive methods:
+	virtual void SendState(int);
 private:
 	std::queue<DataLinkFramePtr> rxfifo;
+
 	std::mutex rxfifo_mutex;
+	std::mutex phyState_mutex;
 
 	int GetPhyLayerState();
+	void SetPhyLayerState(int state);
+
 	DataLinkFramePtr GetNextFrame();
+	void PushNewFrame(DataLinkFramePtr);
+
 	void UpdateMQAttr();
 	void ShowMQAttr(std::ostream &, int);
 
@@ -56,6 +71,22 @@ private:
 	uint8_t * rxbuff;
 	unsigned int rxbuffsize;
 	int type;
+	int phyState;
+
+	class ServiceThread
+	{
+	public:
+		ServiceThread();
+		~ServiceThread();
+		bool IsRunning();
+		void Start();
+		void Stop();
+		void Work();
+	private:
+		std::thread thread;
+		bool running;
+	};
+	ServiceThread service;
 };
 
 } /* namespace radiotransmission */

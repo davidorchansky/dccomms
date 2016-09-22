@@ -63,7 +63,7 @@ tered; see mq_overview(7).";
 		return "Unknown Error";
 	}
 }
-PhyLayerServiceV1::PhyLayerServiceV1(int type, int maxframesize) {
+PhyLayerServiceV1::PhyLayerServiceV1(int type, int maxframesize){
 	struct mq_attr attr;
 	attr.mq_maxmsg = 10;
 	attr.mq_msgsize = maxframesize+MSG_OVERHEAD;
@@ -271,15 +271,38 @@ DataLinkFramePtr PhyLayerServiceV1::GetNextFrame()
 	return dlf;
 }
 
+void PhyLayerServiceV1::PushNewFrame(DataLinkFramePtr dlf)
+{
+	rxfifo_mutex.lock();
+
+	rxfifo.push(dlf);
+
+	rxfifo_mutex.unlock();
+}
+
 IPhyLayerService & PhyLayerServiceV1::operator >> (DataLinkFramePtr & dlf)
 {
 	DataLinkFramePtr dlfptr = GetNextFrame();
 
 	return *this;
 }
+
+void PhyLayerServiceV1::SetPhyLayerState(int state)
+{
+	rxfifo_mutex.lock();
+
+	phyState = state;
+
+	rxfifo_mutex.unlock();
+}
+
 int PhyLayerServiceV1::GetPhyLayerState()
 {
-	return PHY_STATE_READY;
+	rxfifo_mutex.lock();
+
+	return phyState;
+
+	rxfifo_mutex.unlock();
 }
 
 bool PhyLayerServiceV1::BusyTransmitting()
@@ -287,6 +310,31 @@ bool PhyLayerServiceV1::BusyTransmitting()
 	return GetPhyLayerState() == PHY_STATE_BUSY;
 }
 
+
+void PhyLayerServiceV1::Start()
+{
+
+}
+
+void PhyLayerServiceV1::Stop()
+{
+
+}
+
+PhyLayerServiceV1::ServiceThread::ServiceThread()
+{
+	running = false;
+}
+
+void PhyLayerServiceV1::ServiceThread::Start()
+{
+
+}
+
+void PhyLayerServiceV1::ServiceThread::Stop()
+{
+
+}
 
 
 } /* namespace radiotransmission */
