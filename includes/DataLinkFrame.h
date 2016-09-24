@@ -44,10 +44,11 @@ public:
 	uint8_t getDesDir(){return *ddir;}
 	uint8_t getSrcDir(){return *sdir;}
 	uint16_t getDataSize(){return *dsize;}
-	int getFrameSize() const {return frameSize;}
-	uint8_t * getFrameBuffer() const {return buffer;}
+	int GetFrameSize() const {return frameSize;}
+	uint8_t * GetFrameBuffer() const {return buffer;}
 
-	void getInfoFromBuffer(void *);
+	void GetInfoFromBuffer(void *);
+	void GetInfoFromBufferWithPreamble(void *o);
 
 	friend Stream& operator >> (Stream & i, DataLinkFramePtr & dlf);
 	friend Stream& operator << (Stream & i, const DataLinkFramePtr & dlf);
@@ -91,7 +92,7 @@ private:
 	void _calculateCRC();
 
 	bool _BigEndian;
-
+	bool dataIn = false;
 };
 
 
