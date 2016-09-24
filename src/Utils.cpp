@@ -35,4 +35,21 @@ void Utils::IntSwitchEndian(void * b, uint32_t entero)
 	*(buf+3) = (uint8_t)(entero & 0xff);
 }
 
+std::string Utils::BuildString(std::initializer_list<std::string> list )
+{
+	std::string res = "";
+    for( auto elem : list )
+    {
+        res += elem;
+    }
+    return res;
+}
+
+void Utils::Debug(std::ostream & o, std::string & msg)
+{
+#ifdef DEBUG
+	o << msg << std::endl;
+#endif
+}
+
 } /* namespace radiotransmission */

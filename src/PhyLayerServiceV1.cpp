@@ -12,6 +12,8 @@
 #include <sys/stat.h> /* Defines mode constants */
 #include <mqueue.h>
 #include <PhyLayerServiceV1.h>
+#include <chrono>
+#include <Utils.h>
 
 namespace radiotransmission {
 
@@ -25,12 +27,12 @@ namespace radiotransmission {
 #define MSG_TYPE_ISBUSY_REPLY 2
 #define PHY_STATE_BUSY 1
 #define PHY_STATE_READY 0
-#define MSG_OVERHEAD 1
 
 static void ThrowPhyLayerException(std::string msg)
 {
 	throw RadioException("PHYLAYER EXCEPTION: "+msg, RADIO_PHYLAYER_ERROR);
 }
+
 
 std::string GetMQErrorMsg(int e)
 {
@@ -119,8 +121,10 @@ void PhyLayerServiceV1::Init(int _type, struct mq_attr attr, int perm)
 	ShowMQAttr(std::cerr, RX_MQ);
 #endif
 
-	rxbuffsize = GetMaxMsgSize(RX_MQ);
-	rxbuff = (uint8_t*) malloc(rxbuffsize);
+	maxmsgsize = GetMaxMsgSize(RX_MQ);
+
+	rxmsg(maxmsgsize);
+	txmsg(maxmsgsize);
 }
 
 PhyLayerServiceV1::~PhyLayerServiceV1() {
@@ -129,8 +133,6 @@ PhyLayerServiceV1::~PhyLayerServiceV1() {
 	mq_close(txmqid);
 	mq_unlink(txmqname.c_str());
 	mq_unlink(rxmqname.c_str());
-	if(rxbuff != NULL)
-		free(rxbuff);
 }
 
 void PhyLayerServiceV1::UpdateMQAttr ()
@@ -229,7 +231,7 @@ IPhyLayerService & PhyLayerServiceV1::operator << (const DataLinkFramePtr & dlf)
 	uint8_t * fbuf = dlf->getFrameBuffer();
 
 	int fsize = dlf->getFrameSize();
-	int msize = fsize + MSG_OVERHEAD;
+	int msize = fsize + ServiceMessage::MSG_OVERHEAD;
 
 	uint8_t * mbuf, *data;
 	mbuf = (uint8_t*) malloc(fsize + MSG_OVERHEAD);
@@ -305,6 +307,11 @@ int PhyLayerServiceV1::GetPhyLayerState()
 	rxfifo_mutex.unlock();
 }
 
+void PhyLayerServiceV1::SendState(int i)
+{
+
+}
+
 bool PhyLayerServiceV1::BusyTransmitting()
 {
 	return GetPhyLayerState() == PHY_STATE_BUSY;
@@ -313,27 +320,51 @@ bool PhyLayerServiceV1::BusyTransmitting()
 
 void PhyLayerServiceV1::Start()
 {
-
+	service.Start();
 }
 
 void PhyLayerServiceV1::Stop()
 {
-
+	service.Stop();
 }
 
 PhyLayerServiceV1::ServiceThread::ServiceThread()
 {
-	running = false;
+	mcontinue= true;
+	terminated = false;
+	started = false;
+}
+
+PhyLayerServiceV1::ServiceThread::~ServiceThread()
+{
+	this->Stop();
 }
 
 void PhyLayerServiceV1::ServiceThread::Start()
 {
-
+	thread = std::thread(&ServiceThread::Work, this);
+	started = true;
 }
 
 void PhyLayerServiceV1::ServiceThread::Stop()
 {
+	mcontinue = false;
+}
 
+bool PhyLayerServiceV1::ServiceThread::IsRunning()
+{
+	return started && !terminated;
+}
+
+void PhyLayerServiceV1::ServiceThread::Work()
+{
+	while(mcontinue)
+	{
+		LOG_DEBUG("Esperando acciones...");
+		std::this_thread::sleep_for(std::chrono::seconds(2));
+	}
+	LOG_DEBUG("Terminando...");
+	terminated = true;
 }
 
 

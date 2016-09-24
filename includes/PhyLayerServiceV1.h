@@ -40,11 +40,6 @@ public:
 	//IPHY_TYPE_PHY (PhyLayer to DlinkLyaer) exclusive methods:
 	virtual void SendState(int);
 private:
-	std::queue<DataLinkFramePtr> rxfifo;
-
-	std::mutex rxfifo_mutex;
-	std::mutex phyState_mutex;
-
 	int GetPhyLayerState();
 	void SetPhyLayerState(int state);
 
@@ -65,16 +60,25 @@ private:
 	mqd_t GetMQId(int);
 	void Init(int type, struct mq_attr attr, int perm);
 
-	std::string txmqname, rxmqname;
-	mqd_t txmqid, rxmqid;
-	struct mq_attr txattr, rxattr;
-	uint8_t * rxbuff;
-	unsigned int rxbuffsize;
-	int type;
-	int phyState;
+	void ReciveMsg();
+	void SendMsg();
+
+	class ServiceMessage
+	{
+	public:
+		static enum MsgType {FRAME, CMD_STATE, REPLY_STATE};
+		static int MSG_OVERHEAD = 1;
+		ServiceMessage(int maxsize);
+		~ServiceMessage();
+	private:
+		void * buffer;
+		void * payload;
+		uint8_t * type;
+	};
 
 	class ServiceThread
 	{
+		//En C++11 una clase anidada puede acceder a los metodos de la "enclosing" class
 	public:
 		ServiceThread();
 		~ServiceThread();
@@ -84,8 +88,26 @@ private:
 		void Work();
 	private:
 		std::thread thread;
-		bool running;
+		bool mcontinue;
+		bool terminated;
+		bool started;
+
 	};
+
+	std::queue<DataLinkFramePtr> rxfifo;
+
+	std::mutex rxfifo_mutex;
+	std::mutex phyState_mutex;
+
+	std::string txmqname, rxmqname;
+	mqd_t txmqid, rxmqid;
+	struct mq_attr txattr, rxattr;
+
+	unsigned int maxmsgsize;
+	int type;
+	int phyState;
+
+	ServiceMessage rxmsg, txmsg;
 	ServiceThread service;
 };
 
