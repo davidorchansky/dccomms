@@ -31,8 +31,6 @@ void DataLinkFrame::Init(DataLinkFrame::fcsType fcst)
 
 	_BigEndian = DataLinkFrame::IsBigEndian();
 
-	payload = new uint8_t[DLNK_MAX_PAYLOAD_SIZE];
-
 	fcstype = fcst;
 	switch(fcstype)
 	{
@@ -49,16 +47,17 @@ void DataLinkFrame::Init(DataLinkFrame::fcsType fcst)
 		break;
 	}
 	overheadSize += fcsSize;
-	buffer = new uint8_t[overheadSize];
+	buffer = new uint8_t[overheadSize + DLNK_MAX_PAYLOAD_SIZE];
     pre   = buffer;
     ddir  = pre    + DLNK_PREAMBLE_SIZE;
     sdir  = ddir   + DLNK_DIR_SIZE;
     dsize = (uint16_t *) (sdir   + DLNK_DIR_SIZE);
-    fcs   = ((uint8_t *) dsize)  + DLNK_DSIZE_SIZE;
+    payload = ((uint8_t *) dsize)  + DLNK_DSIZE_SIZE;
 
     memcpy(pre, DataLinkFrame::manchesterPre, DLNK_PREAMBLE_SIZE);
     frameSize = overheadSize;
     totalInfoSize = DLNK_DIR_SIZE*2 + DLNK_DSIZE_SIZE;
+    dataIn = false;
 }
 
 DataLinkFrame::DataLinkFrame(DataLinkFrame::fcsType fcst)
@@ -91,11 +90,13 @@ DataLinkFrame::DataLinkFrame(
     {
     	ThrowDLinkLayerException(std::string("El tamano del payload no puede ser mayor que ")+ std::to_string(DLNK_MAX_PAYLOAD_SIZE));
     }
+    fcs = ((uint8_t *) payload) + dataSize;
     memcpy(payload, data, datasize);
 
     frameSize = overheadSize + dataSize;
 
     _calculateCRC();
+    dataIn = true;
 }
 
 static uint8_t * getBits(void * data, int length, void * bits)
@@ -121,19 +122,13 @@ static uint8_t * getBits(void * data, int length, void * bits)
 uint8_t* DataLinkFrame::getFrameBits(void * dst)
 {
 	uint8_t * ptr = (uint8_t*)dst;
-	ptr = getBits(pre, DLNK_PREAMBLE_SIZE, ptr);
-	ptr = getBits(ddir, DLNK_DIR_SIZE, ptr);
-	ptr = getBits(sdir, DLNK_DIR_SIZE, ptr);
-	ptr = getBits(dsize, DLNK_DSIZE_SIZE, ptr);
-	ptr = getBits(payload, dataSize, ptr);
-	ptr = getBits(fcs, fcsSize, ptr);
+	ptr = getBits(pre, frameSize, ptr);
 	return ptr;
 }
 
 DataLinkFrame::~DataLinkFrame() {
 	if(buffer != NULL)
 		delete buffer;
-	delete payload;
 }
 
 void DataLinkFrame::_calculateCRC()
@@ -222,26 +217,36 @@ Stream& operator >> (Stream & i, DataLinkFramePtr & dlf)
 
 	i.Read(dlf->payload, dlf->dataSize);
 
+	dlf->fcs = ((uint8_t *) dlf->payload) + dlf->dataSize;
 	i.Read(dlf->fcs, dlf->fcsSize);
 
 	dlf->frameSize = dlf->overheadSize + dlf->dataSize;
+
+	dlf->dataIn = true;
 	return i;
 }
 Stream& operator << (Stream & i, const DataLinkFramePtr & dlf)
 {
-	i.Write(dlf->pre,DLNK_PREAMBLE_SIZE);
-	i.Write(dlf->ddir,DLNK_DIR_SIZE);
-	i.Write(dlf->sdir,DLNK_DIR_SIZE);
-	i.Write(dlf->dsize,DLNK_DSIZE_SIZE);
-	i.Write(dlf->payload,dlf->dataSize);
-	i.Write(dlf->fcs, dlf->fcsSize);
+	if(dlf->dataIn)
+	{
+		i.Write(dlf->pre,DLNK_PREAMBLE_SIZE);
+		i.Write(dlf->ddir,DLNK_DIR_SIZE);
+		i.Write(dlf->sdir,DLNK_DIR_SIZE);
+		i.Write(dlf->dsize,DLNK_DSIZE_SIZE);
+		i.Write(dlf->payload,dlf->dataSize);
+		i.Write(dlf->fcs, dlf->fcsSize);
 
-	i.FlushIO();//Lo ideal seria FlushOutput, pero en algun lado hay algo que hace que se llene el buffer de entrada
-	   	   	   	   	  //y al final llega a bloquearse la comunicación... (TODO: comprobar qué es lo que hace que se llene el buffer de entrada)
+		i.FlushIO();//Lo ideal seria FlushOutput, pero en algun lado hay algo que hace que se llene el buffer de entrada
+						  //y al final llega a bloquearse la comunicación... (TODO: comprobar qué es lo que hace que se llene el buffer de entrada)
+	}
 	return i;
 }
+void DataLinkFrame::GetInfoFromBufferWithPreamble(void *o)
+{
+	GetInfoFromBuffer(o + DLNK_PREAMBLE_SIZE);
+}
 
-void DataLinkFrame::getInfoFromBuffer(void *o)
+void DataLinkFrame::GetInfoFromBuffer(void *o)
 {
 	uint8_t * optr = (uint8_t*)o;
 
@@ -271,6 +276,7 @@ void DataLinkFrame::getInfoFromBuffer(void *o)
 	memcpy(this->payload, optr, this->dataSize);
 	optr+=this->dataSize;
 
+	fcs = ((uint8_t *) payload) + dataSize;
 	memcpy(this->fcs, optr, this->fcsSize);
 	optr+=this->fcsSize;
 
@@ -313,52 +319,61 @@ void DataLinkFrame::printFrame(std::ostream & o)
 	}
 
 	o << std::endl;
-	o << "Data size: 0x";
-	p = (uint8_t*) dsize;
-	for(int i = 0; i < DLNK_DSIZE_SIZE; i++)
-	{
-		o.width(2);
-		o.fill('0');
-		o << (int)*p;
-		p++;
-	}
 
-	uint16_t psize;
-	if(_BigEndian)
+	if(dataIn)
 	{
-		psize = *dsize;
+		o << "Data size: 0x";
+		p = (uint8_t*) dsize;
+		for(int i = 0; i < DLNK_DSIZE_SIZE; i++)
+		{
+			o.width(2);
+			o.fill('0');
+			o << (int)*p;
+			p++;
+		}
+
+		uint16_t psize;
+		if(_BigEndian)
+		{
+			psize = *dsize;
+		}
+		else
+		{
+			psize = ((*dsize) << 8) | ((*dsize) >> 8);
+		}
+		o << std::endl << std::dec << "Data (";
+		o << psize << " bytes): 0x" << std::hex;
+		p = payload;
+		for(int i = 0; i < psize; i++)
+		{
+			o.width(2);
+			o.fill('0');
+			o << (int)*p;
+			p++;
+		}
+
+		o << std::endl << "FCS: 0x";
+		p = fcs;
+		for(int i = 0; i < fcsSize; i++)
+		{
+			o.width(2);
+			o.fill('0');
+			o << (int)*p;
+			p++;
+		}
+		o << " (0x"; o.width(fcsSize*2);
+		if(fcsSize == 2)
+			o << *(uint16_t*)fcs << ")" <<std::endl;
+		else if(fcsSize == 4)
+			o << *(uint32_t*)fcs << ")" <<std::endl;
+
+		o << std::dec;
 	}
 	else
 	{
-		psize = ((*dsize) << 8) | ((*dsize) >> 8);
-	}
-	o << std::endl << std::dec << "Data (";
-	o << psize << " bytes): 0x" << std::hex;
-	p = payload;
-	for(int i = 0; i < psize; i++)
-	{
-		o.width(2);
-		o.fill('0');
-		o << (int)*p;
-		p++;
+		o << "No data in frame!" << std::endl;
 	}
 
-	o << std::endl << "FCS: 0x";
-	p = fcs;
-	for(int i = 0; i < fcsSize; i++)
-	{
-		o.width(2);
-		o.fill('0');
-		o << (int)*p;
-		p++;
-	}
-	o << " (0x"; o.width(fcsSize*2);
-	if(fcsSize == 2)
-		o << *(uint16_t*)fcs << ")" <<std::endl;
-	else if(fcsSize == 4)
-		o << *(uint32_t*)fcs << ")" <<std::endl;
-
-	o << std::dec;
 }
 
 bool DataLinkFrame::IsBigEndian()

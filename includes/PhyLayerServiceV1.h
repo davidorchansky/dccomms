@@ -22,10 +22,11 @@ namespace radiotransmission {
 #define IPHY_TYPE_DLINK 0
 #define IPHY_TYPE_PHY 1
 
-
 class PhyLayerServiceV1: public IPhyLayerService {
 public:
-	PhyLayerServiceV1(int iphytype = IPHY_TYPE_DLINK, int maxframesize = 7000);
+	enum PhyState {BUSY=0, READY};
+
+	PhyLayerServiceV1(int iphytype = IPHY_TYPE_DLINK, const DataLinkFrame::fcsType & fcs = DataLinkFrame::crc32, int maxframesize = 7000);
 	virtual ~PhyLayerServiceV1();
 
 	virtual IPhyLayerService & operator << (const DataLinkFramePtr &);
@@ -38,10 +39,11 @@ public:
 	virtual bool BusyTransmitting();
 
 	//IPHY_TYPE_PHY (PhyLayer to DlinkLyaer) exclusive methods:
-	virtual void SendState(int);
+	virtual void SendState(const PhyState &);
 private:
+
 	int GetPhyLayerState();
-	void SetPhyLayerState(int state);
+	void SetPhyLayerState(PhyState & state);
 
 	DataLinkFramePtr GetNextFrame();
 	void PushNewFrame(DataLinkFramePtr);
@@ -60,27 +62,44 @@ private:
 	mqd_t GetMQId(int);
 	void Init(int type, struct mq_attr attr, int perm);
 
-	void ReciveMsg();
-	void SendMsg();
-
 	class ServiceMessage
 	{
 	public:
-		static enum MsgType {FRAME, CMD_STATE, REPLY_STATE};
-		static int MSG_OVERHEAD = 1;
-		ServiceMessage(int maxsize);
+		enum MsgType {FRAME=0, REQ_STATE, CMD_STATE, NOTBUILT};
+
+		ServiceMessage();
 		~ServiceMessage();
+
+		void Init(int maxmsgsize);
+
+		MsgType GetMsgType() const {return (MsgType)*type;}
+		PhyState GetPhyState() const {return (PhyState) *payload;}
+		DataLinkFramePtr GetDataLinkFrame(const DataLinkFrame::fcsType &) const;
+		void* GetBuffer() const {return buffer;}
+		unsigned int GetSize() const {return size;}
+		unsigned int GetMaxSize() const {return maxSize;}
+		unsigned int GetMaxPayloadSize() const {return maxPayloadSize;}
+
+		void BuildFrameMsg(const DataLinkFramePtr &);
+		void BuildReqStateMsg();
+		void BuildCmdStateMsg(const PhyState & state);
+
+
+
 	private:
 		void * buffer;
-		void * payload;
+		uint8_t * payload;
 		uint8_t * type;
+		int size;
+		int maxSize, maxPayloadSize;
+
 	};
 
 	class ServiceThread
 	{
 		//En C++11 una clase anidada puede acceder a los metodos de la "enclosing" class
 	public:
-		ServiceThread();
+		ServiceThread(PhyLayerServiceV1 *);
 		~ServiceThread();
 		bool IsRunning();
 		void Start();
@@ -91,8 +110,14 @@ private:
 		bool mcontinue;
 		bool terminated;
 		bool started;
-
+		PhyLayerServiceV1 * physervice;
 	};
+
+	void ReceiveMsg(ServiceMessage &);
+	void SendMsg(const ServiceMessage &);
+
+	void SavePhyStateFromMsg(const ServiceMessage &);
+	void SaveFrameFromMsg(const ServiceMessage &);
 
 	std::queue<DataLinkFramePtr> rxfifo;
 
@@ -105,8 +130,8 @@ private:
 
 	unsigned int maxmsgsize;
 	int type;
-	int phyState;
-
+	PhyState phyState;
+	DataLinkFrame::fcsType fcsType;
 	ServiceMessage rxmsg, txmsg;
 	ServiceThread service;
 };

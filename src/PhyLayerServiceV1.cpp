@@ -22,11 +22,7 @@ namespace radiotransmission {
 #define RTS_MQ 2
 #define CTS_MQ 3
 
-#define MSG_TYPE_FRAME  0
-#define MSG_TYPE_ISBUSY 1
-#define MSG_TYPE_ISBUSY_REPLY 2
-#define PHY_STATE_BUSY 1
-#define PHY_STATE_READY 0
+#define MSG_OVERHEAD_SIZE 1
 
 static void ThrowPhyLayerException(std::string msg)
 {
@@ -65,11 +61,12 @@ tered; see mq_overview(7).";
 		return "Unknown Error";
 	}
 }
-PhyLayerServiceV1::PhyLayerServiceV1(int type, int maxframesize){
+PhyLayerServiceV1::PhyLayerServiceV1(int type, const DataLinkFrame::fcsType & _fcsType, int maxframesize): service(this){
 	struct mq_attr attr;
 	attr.mq_maxmsg = 10;
-	attr.mq_msgsize = maxframesize+MSG_OVERHEAD;
+	attr.mq_msgsize = maxframesize + MSG_OVERHEAD_SIZE;
 	int perm = 0644;
+	fcsType = _fcsType;
 	Init(type, attr, perm);
 }
 
@@ -90,20 +87,19 @@ void PhyLayerServiceV1::Init(int _type, struct mq_attr attr, int perm)
 		ThrowPhyLayerException("Tipo de interfaz con la capa fisica incorrecto");
 	}
 
-	mq_unlink(txmqname.c_str());
-	mq_unlink(rxmqname.c_str());
-
 	txattr = attr;
 	rxattr = attr;
 
-	txmqid = mq_open(txmqname.c_str(), O_CREAT | O_WRONLY | O_EXCL, perm, &txattr);
+	int openops = O_CREAT;
+
+	txmqid = mq_open(txmqname.c_str(), openops | O_WRONLY , perm, &txattr);
 	std::string emsg;
 	if(txmqid == -1)
 	{
 		emsg = GetMQErrorMsg(errno);
 		ThrowPhyLayerException(std::string("Error(")+std::to_string(errno)+std::string("): Error al abrir/crear la cola para envio de mensajes: ") + emsg);
 	}
-	rxmqid = mq_open(rxmqname.c_str(), O_CREAT | O_RDONLY | O_EXCL, perm, &rxattr);
+	rxmqid = mq_open(rxmqname.c_str(), openops | O_RDONLY, perm, &rxattr);
 	if(rxmqid == -1)
 	{
 		emsg = GetMQErrorMsg(errno);
@@ -122,9 +118,8 @@ void PhyLayerServiceV1::Init(int _type, struct mq_attr attr, int perm)
 #endif
 
 	maxmsgsize = GetMaxMsgSize(RX_MQ);
-
-	rxmsg(maxmsgsize);
-	txmsg(maxmsgsize);
+	rxmsg.Init(maxmsgsize);
+	txmsg.Init(maxmsgsize);
 }
 
 PhyLayerServiceV1::~PhyLayerServiceV1() {
@@ -228,46 +223,43 @@ void PhyLayerServiceV1::SetNonblockFlag(bool v, int mq)
 
 IPhyLayerService & PhyLayerServiceV1::operator << (const DataLinkFramePtr & dlf)
 {
-	uint8_t * fbuf = dlf->getFrameBuffer();
-
-	int fsize = dlf->getFrameSize();
-	int msize = fsize + ServiceMessage::MSG_OVERHEAD;
-
-	uint8_t * mbuf, *data;
-	mbuf = (uint8_t*) malloc(fsize + MSG_OVERHEAD);
-    data = mbuf + MSG_OVERHEAD;
-
-    memcpy(data, fbuf, fsize);
-
-    *mbuf = MSG_TYPE_FRAME;
-
-	long maxmsize = GetMaxMsgSize(TX_MQ);
-	if (maxmsize >= msize)
-	{
-		if(mq_send(txmqid, (char*) mbuf, msize, 0)==-1)
-		{
-			free(mbuf);
-			ThrowPhyLayerException(std::string("Error(")+std::to_string(errno)+std::string("): Error interno: no se ha podido enviar el mensaje"));
-		}
-		free(mbuf);
-		return *this;
-	}
-	else
-	{
-		free(mbuf);
-		ThrowPhyLayerException("Error interno: la trama no cabe en el formato de mensaje de la cola");
-	}
+	txmsg.BuildFrameMsg(dlf);
+	SendMsg(txmsg);
 
 	return *this; //nunca llegara aqui
 
 }
+
+
+void PhyLayerServiceV1::SendMsg(const ServiceMessage & msg)
+{
+	if(mq_send(txmqid, (char*)  msg.GetBuffer(), msg.GetSize(), 0)==-1)
+	{
+		ThrowPhyLayerException(std::string("Error(")+std::to_string(errno)+std::string("): Error interno: no se ha podido enviar el mensaje"));
+	}
+}
+
+void PhyLayerServiceV1::ReceiveMsg(ServiceMessage & msg)
+{
+	if(mq_receive(rxmqid, (char*)msg.GetBuffer(), msg.GetMaxSize(), NULL)==-1)
+	{
+		ThrowPhyLayerException(std::string("Error(")+std::to_string(errno)+std::string("): Error interno: fallo al intentar recibir algun mensaje"));
+	}
+}
+
 DataLinkFramePtr PhyLayerServiceV1::GetNextFrame()
 {
-	rxfifo_mutex.lock();
+	bool empty = true;
+	while(empty)
+	{
+		rxfifo_mutex.lock();
+		empty = rxfifo.empty();
+		rxfifo_mutex.unlock();
+	}
 
+	rxfifo_mutex.lock();
 	DataLinkFramePtr dlf = rxfifo.front();
 	rxfifo.pop();
-
 	rxfifo_mutex.unlock();
 
 	return dlf;
@@ -289,7 +281,7 @@ IPhyLayerService & PhyLayerServiceV1::operator >> (DataLinkFramePtr & dlf)
 	return *this;
 }
 
-void PhyLayerServiceV1::SetPhyLayerState(int state)
+void PhyLayerServiceV1::SetPhyLayerState(PhyState & state)
 {
 	rxfifo_mutex.lock();
 
@@ -307,14 +299,15 @@ int PhyLayerServiceV1::GetPhyLayerState()
 	rxfifo_mutex.unlock();
 }
 
-void PhyLayerServiceV1::SendState(int i)
+void PhyLayerServiceV1::SendState(const PhyState & state)
 {
-
+	txmsg.BuildCmdStateMsg(state);
+	SendMsg(txmsg);
 }
 
 bool PhyLayerServiceV1::BusyTransmitting()
 {
-	return GetPhyLayerState() == PHY_STATE_BUSY;
+	return GetPhyLayerState() == PhyState::BUSY;
 }
 
 
@@ -328,11 +321,70 @@ void PhyLayerServiceV1::Stop()
 	service.Stop();
 }
 
-PhyLayerServiceV1::ServiceThread::ServiceThread()
+PhyLayerServiceV1::ServiceMessage::ServiceMessage()
+{
+	buffer = NULL;
+	*type = (uint8_t) NOTBUILT;
+}
+
+PhyLayerServiceV1::ServiceMessage::~ServiceMessage()
+{
+	free(buffer);
+}
+
+void PhyLayerServiceV1::ServiceMessage::Init(int maxs)
+{
+	maxPayloadSize = maxs - MSG_OVERHEAD_SIZE;
+	maxSize = maxs;
+	buffer = malloc(maxs);
+	type = (uint8_t*) buffer;
+	payload = type + 1;
+	size = 0;
+}
+
+void PhyLayerServiceV1::ServiceMessage::BuildFrameMsg(const DataLinkFramePtr & dlf)
+{
+	int frsize = dlf->GetFrameSize();
+	if(frsize <= maxPayloadSize)
+	{
+
+		memcpy(payload, dlf->GetFrameBuffer(), frsize);
+		*type = (uint8_t) MsgType::FRAME;
+		size = frsize + MSG_OVERHEAD_SIZE;
+	}
+	else
+	{
+		*type = (uint8_t) MsgType::NOTBUILT;
+		ThrowPhyLayerException("Error interno: la trama no cabe en el formato de mensaje de la cola");
+	}
+}
+
+void PhyLayerServiceV1::ServiceMessage::BuildReqStateMsg()
+{
+	*type = (uint8_t) MsgType::REQ_STATE;
+	size = MSG_OVERHEAD_SIZE;
+}
+
+void PhyLayerServiceV1::ServiceMessage::BuildCmdStateMsg(const PhyState & state)
+{
+	*type = (uint8_t) MsgType::CMD_STATE;
+	*payload = (uint8_t) state;
+	size = MSG_OVERHEAD_SIZE + 1;
+}
+
+DataLinkFramePtr PhyLayerServiceV1::ServiceMessage::GetDataLinkFrame(const DataLinkFrame::fcsType & _fcsType) const
+{
+	auto dlf = DataLinkFrame::BuildDataLinkFrame(_fcsType);
+	dlf->GetInfoFromBufferWithPreamble(payload);
+	return dlf;
+}
+
+PhyLayerServiceV1::ServiceThread::ServiceThread(PhyLayerServiceV1 * parent)
 {
 	mcontinue= true;
 	terminated = false;
 	started = false;
+	physervice = parent;
 }
 
 PhyLayerServiceV1::ServiceThread::~ServiceThread()
@@ -356,12 +408,36 @@ bool PhyLayerServiceV1::ServiceThread::IsRunning()
 	return started && !terminated;
 }
 
+void PhyLayerServiceV1::SaveFrameFromMsg(const ServiceMessage & msg)
+{
+	PushNewFrame(msg.GetDataLinkFrame(fcsType));
+}
+
+void PhyLayerServiceV1::SavePhyStateFromMsg(const ServiceMessage & msg)
+{
+	phyState = msg.GetPhyState();
+}
+
 void PhyLayerServiceV1::ServiceThread::Work()
 {
 	while(mcontinue)
 	{
-		LOG_DEBUG("Esperando acciones...");
-		std::this_thread::sleep_for(std::chrono::seconds(2));
+		LOG_DEBUG("Esperando mensaje...");
+		physervice->ReceiveMsg(physervice->rxmsg);
+		switch(physervice->rxmsg.GetMsgType())
+		{
+		case ServiceMessage::FRAME:
+			LOG_DEBUG("Recibida trama desde la capa fisica");
+			physervice->SaveFrameFromMsg(physervice->rxmsg);
+			break;
+		case ServiceMessage::CMD_STATE:
+			LOG_DEBUG("Recibido mensaje de estado de la capa fisica");
+			physervice->SavePhyStateFromMsg(physervice->rxmsg);
+			break;
+		default:
+			break;
+		}
+		//std::this_thread::sleep_for(std::chrono::seconds(2));
 	}
 	LOG_DEBUG("Terminando...");
 	terminated = true;
