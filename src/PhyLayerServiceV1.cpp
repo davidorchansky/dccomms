@@ -276,27 +276,30 @@ void PhyLayerServiceV1::PushNewFrame(DataLinkFramePtr dlf)
 
 IPhyLayerService & PhyLayerServiceV1::operator >> (DataLinkFramePtr & dlf)
 {
-	DataLinkFramePtr dlfptr = GetNextFrame();
+	dlf = GetNextFrame();
 
 	return *this;
 }
 
-void PhyLayerServiceV1::SetPhyLayerState(PhyState & state)
+void PhyLayerServiceV1::SetPhyLayerState(const PhyState & state)
 {
-	rxfifo_mutex.lock();
+	phyState_mutex.lock();
 
 	phyState = state;
 
-	rxfifo_mutex.unlock();
+	phyState_mutex.unlock();
 }
 
 int PhyLayerServiceV1::GetPhyLayerState()
 {
-	rxfifo_mutex.lock();
+	PhyState state;
+	phyState_mutex.lock();
 
-	return phyState;
+	state = phyState;
 
-	rxfifo_mutex.unlock();
+	phyState_mutex.unlock();
+
+	return state;
 }
 
 void PhyLayerServiceV1::SendState(const PhyState & state)
@@ -310,6 +313,14 @@ bool PhyLayerServiceV1::BusyTransmitting()
 	return GetPhyLayerState() == PhyState::BUSY;
 }
 
+unsigned int PhyLayerServiceV1::GetRxFifoSize()
+{
+	unsigned int size;
+	rxfifo_mutex.lock();
+	size = rxfifo.size();
+	rxfifo_mutex.unlock();
+	return size;
+}
 
 void PhyLayerServiceV1::Start()
 {
@@ -415,7 +426,7 @@ void PhyLayerServiceV1::SaveFrameFromMsg(const ServiceMessage & msg)
 
 void PhyLayerServiceV1::SavePhyStateFromMsg(const ServiceMessage & msg)
 {
-	phyState = msg.GetPhyState();
+	SetPhyLayerState(msg.GetPhyState());
 }
 
 void PhyLayerServiceV1::ServiceThread::Work()

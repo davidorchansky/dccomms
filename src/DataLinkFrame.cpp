@@ -282,6 +282,7 @@ void DataLinkFrame::GetInfoFromBuffer(void *o)
 
 
 	this->frameSize = this->overheadSize + this->dataSize;
+	dataIn = true;
 }
 
 void DataLinkFrame::printFrame(std::ostream & o)
