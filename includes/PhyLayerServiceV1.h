@@ -35,15 +35,14 @@ public:
 	virtual void Start();
 	virtual void Stop();
 
-	//IPHY_TYPE_DLINK (DlinkLyaer to PhyLayer) exclusive methods:
 	virtual bool BusyTransmitting();
 
-	//IPHY_TYPE_PHY (PhyLayer to DlinkLyaer) exclusive methods:
 	virtual void SendState(const PhyState &);
+	virtual unsigned int GetRxFifoSize();
 private:
 
 	int GetPhyLayerState();
-	void SetPhyLayerState(PhyState & state);
+	void SetPhyLayerState(const PhyState & state);
 
 	DataLinkFramePtr GetNextFrame();
 	void PushNewFrame(DataLinkFramePtr);
