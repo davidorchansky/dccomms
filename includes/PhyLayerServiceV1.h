@@ -35,14 +35,20 @@ public:
 	virtual void Start();
 	virtual void Stop();
 
+	virtual unsigned int GetRxFifoSize();
+
+	//Methods only for type IPHY_TYPE_DLINK
 	virtual bool BusyTransmitting();
 
-	virtual void SendState(const PhyState &);
-	virtual unsigned int GetRxFifoSize();
+	//Methods only for type IPHY_TYPE_PHY
+	virtual void SetPhyLayerState(const PhyState &);
+	//SetPhyLayerState cambia el estado de la capa fisica y se lo hace saber a la capa de arriba
 private:
+	//Pide a la capa fisica su estado (solo para IPHY_TYPE_PHY)
+	void ReqPhyLayerState();
+	PhyState _GetPhyLayerState();
 
-	int GetPhyLayerState();
-	void SetPhyLayerState(const PhyState & state);
+	void _SetPhyLayerState(const PhyState & state);
 
 	DataLinkFramePtr GetNextFrame();
 	void PushNewFrame(DataLinkFramePtr);
@@ -56,6 +62,9 @@ private:
 	bool GetNonblockFlag(int);
 
 	void SetNonblockFlag(bool, int);
+
+	void SendPhyLayerState();
+	void SendPhyLayerState(const PhyState &);
 
 	struct mq_attr* GetMQAttr(int);
 	mqd_t GetMQId(int);
@@ -131,7 +140,10 @@ private:
 	int type;
 	PhyState phyState;
 	DataLinkFrame::fcsType fcsType;
-	ServiceMessage rxmsg, txmsg;
+
+	//rxmsg y replymsg se tratan en un thread diferente a txmsg.
+	//Concretamente, rxmsg y replymsg se tratan en un ServiceThread, y txmsg en el main thread
+	ServiceMessage rxmsg, txmsg, replymsg;
 	ServiceThread service;
 };
 

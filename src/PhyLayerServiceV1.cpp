@@ -78,10 +78,12 @@ void PhyLayerServiceV1::Init(int _type, struct mq_attr attr, int perm)
 	case IPHY_TYPE_DLINK:
 		txmqname = "/tx_dlnk_phy";
 		rxmqname = "/rx_dlnk_phy";
+		_SetPhyLayerState(PhyState::BUSY);
 		break;
 	case IPHY_TYPE_PHY:
 		rxmqname = "/tx_dlnk_phy";
 		txmqname = "/rx_dlnk_phy";
+		_SetPhyLayerState(PhyState::READY);
 		break;
 	default:
 		ThrowPhyLayerException("Tipo de interfaz con la capa fisica incorrecto");
@@ -120,6 +122,7 @@ void PhyLayerServiceV1::Init(int _type, struct mq_attr attr, int perm)
 	maxmsgsize = GetMaxMsgSize(RX_MQ);
 	rxmsg.Init(maxmsgsize);
 	txmsg.Init(maxmsgsize);
+	replymsg.Init(maxmsgsize);
 }
 
 PhyLayerServiceV1::~PhyLayerServiceV1() {
@@ -281,7 +284,7 @@ IPhyLayerService & PhyLayerServiceV1::operator >> (DataLinkFramePtr & dlf)
 	return *this;
 }
 
-void PhyLayerServiceV1::SetPhyLayerState(const PhyState & state)
+void PhyLayerServiceV1::_SetPhyLayerState(const PhyState & state)
 {
 	phyState_mutex.lock();
 
@@ -290,7 +293,7 @@ void PhyLayerServiceV1::SetPhyLayerState(const PhyState & state)
 	phyState_mutex.unlock();
 }
 
-int PhyLayerServiceV1::GetPhyLayerState()
+PhyLayerServiceV1::PhyState PhyLayerServiceV1::_GetPhyLayerState()
 {
 	PhyState state;
 	phyState_mutex.lock();
@@ -302,15 +305,33 @@ int PhyLayerServiceV1::GetPhyLayerState()
 	return state;
 }
 
-void PhyLayerServiceV1::SendState(const PhyState & state)
+void PhyLayerServiceV1::SendPhyLayerState(const PhyState & state)
 {
-	txmsg.BuildCmdStateMsg(state);
-	SendMsg(txmsg);
+	replymsg.BuildCmdStateMsg(state);
+	SendMsg(replymsg);
 }
 
 bool PhyLayerServiceV1::BusyTransmitting()
 {
-	return GetPhyLayerState() == PhyState::BUSY;
+	if(type != IPHY_TYPE_DLINK)
+		ThrowPhyLayerException("Method call not allowed");
+	return _GetPhyLayerState() == PhyState::BUSY;
+}
+
+void PhyLayerServiceV1::ReqPhyLayerState()
+{
+	if(type != IPHY_TYPE_DLINK)
+		ThrowPhyLayerException("Method call not allowed");
+	txmsg.BuildReqStateMsg();
+	SendMsg(txmsg);
+}
+
+void PhyLayerServiceV1::SetPhyLayerState(const PhyState & state)
+{
+	if(type != IPHY_TYPE_PHY)
+		ThrowPhyLayerException("Method call not allowed");
+	_SetPhyLayerState(state);
+	SendPhyLayerState();
 }
 
 unsigned int PhyLayerServiceV1::GetRxFifoSize()
@@ -325,6 +346,15 @@ unsigned int PhyLayerServiceV1::GetRxFifoSize()
 void PhyLayerServiceV1::Start()
 {
 	service.Start();
+	if(type == IPHY_TYPE_PHY)
+	{
+		//Enviamos el estado actual a la capa de arriba
+		SendPhyLayerState();
+	}
+	else
+	{
+		ReqPhyLayerState();
+	}
 }
 
 void PhyLayerServiceV1::Stop()
@@ -335,7 +365,6 @@ void PhyLayerServiceV1::Stop()
 PhyLayerServiceV1::ServiceMessage::ServiceMessage()
 {
 	buffer = NULL;
-	*type = (uint8_t) NOTBUILT;
 }
 
 PhyLayerServiceV1::ServiceMessage::~ServiceMessage()
@@ -349,6 +378,7 @@ void PhyLayerServiceV1::ServiceMessage::Init(int maxs)
 	maxSize = maxs;
 	buffer = malloc(maxs);
 	type = (uint8_t*) buffer;
+	*type = (uint8_t) NOTBUILT;
 	payload = type + 1;
 	size = 0;
 }
@@ -426,7 +456,12 @@ void PhyLayerServiceV1::SaveFrameFromMsg(const ServiceMessage & msg)
 
 void PhyLayerServiceV1::SavePhyStateFromMsg(const ServiceMessage & msg)
 {
-	SetPhyLayerState(msg.GetPhyState());
+	_SetPhyLayerState(msg.GetPhyState());
+}
+
+void PhyLayerServiceV1::SendPhyLayerState()
+{
+	SendPhyLayerState(_GetPhyLayerState());
 }
 
 void PhyLayerServiceV1::ServiceThread::Work()
@@ -444,6 +479,10 @@ void PhyLayerServiceV1::ServiceThread::Work()
 		case ServiceMessage::CMD_STATE:
 			LOG_DEBUG("Recibido mensaje de estado de la capa fisica");
 			physervice->SavePhyStateFromMsg(physervice->rxmsg);
+			break;
+		case ServiceMessage::REQ_STATE:
+			LOG_DEBUG("Recibida peticion de estado de la capa fisica");
+			physervice->SendPhyLayerState();
 			break;
 		default:
 			break;
