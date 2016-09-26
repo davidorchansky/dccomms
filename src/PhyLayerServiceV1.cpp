@@ -65,7 +65,7 @@ PhyLayerServiceV1::PhyLayerServiceV1(int type, const DataLinkFrame::fcsType & _f
 	struct mq_attr attr;
 	attr.mq_maxmsg = 10;
 	attr.mq_msgsize = maxframesize + MSG_OVERHEAD_SIZE;
-	int perm = 0644;
+	int perm = 0666;
 	fcsType = _fcsType;
 	Init(type, attr, perm);
 }
