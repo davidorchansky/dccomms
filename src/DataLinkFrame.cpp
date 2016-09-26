@@ -119,7 +119,7 @@ static uint8_t * getBits(void * data, int length, void * bits)
 
 }
 
-uint8_t* DataLinkFrame::getFrameBits(void * dst)
+uint8_t* DataLinkFrame::GetFrameBits(void * dst)
 {
 	uint8_t * ptr = (uint8_t*)dst;
 	ptr = getBits(pre, frameSize, ptr);
