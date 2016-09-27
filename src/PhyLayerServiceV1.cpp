@@ -65,7 +65,7 @@ PhyLayerServiceV1::PhyLayerServiceV1(int type, const DataLinkFrame::fcsType & _f
 	struct mq_attr attr;
 	attr.mq_maxmsg = 10;
 	attr.mq_msgsize = maxframesize + MSG_OVERHEAD_SIZE;
-	int perm = 0666;
+	int perm = 0777;
 	fcsType = _fcsType;
 	Init(type, attr, perm);
 }
@@ -94,6 +94,8 @@ void PhyLayerServiceV1::Init(int _type, struct mq_attr attr, int perm)
 
 	int openops = O_CREAT;
 
+	mode_t omask;
+	omask = umask(0); //http://stackoverflow.com/questions/22780277/mq-open-eacces-permission-denied
 	txmqid = mq_open(txmqname.c_str(), openops | O_WRONLY , perm, &txattr);
 	std::string emsg;
 	if(txmqid == -1)
@@ -107,7 +109,7 @@ void PhyLayerServiceV1::Init(int _type, struct mq_attr attr, int perm)
 		emsg = GetMQErrorMsg(errno);
 		ThrowPhyLayerException(std::string("Error(")+std::to_string(errno)+std::string("): Error al abrir/crear la cola para recepcion de mensajes") + emsg);
 	}
-
+	umask(omask);
 
 	SetNonblockFlag(false, TX_MQ);
 	SetNonblockFlag(false, RX_MQ);
