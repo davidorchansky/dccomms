@@ -11,6 +11,7 @@
 #include <initializer_list>
 #include <string>
 #include <iostream>
+#include <chrono>
 
 namespace radiotransmission {
 
@@ -25,6 +26,22 @@ public:
 	static void IntSwitchEndian(void * b, uint32_t entero);
 	static std::string BuildString(std::initializer_list<std::string> list );
 	static void Debug(std::ostream &, std::string &);
+
+};
+
+class Timer
+{
+public:
+    Timer() : beg_(clock_::now()) {}
+    void Reset() { beg_ = clock_::now(); }
+    double Elapsed() const {
+        return std::chrono::duration_cast<milis_>
+            (clock_::now() - beg_).count(); }
+
+private:
+    typedef std::chrono::high_resolution_clock clock_;
+    typedef std::chrono::duration<double, std::milli > milis_;
+    std::chrono::time_point<clock_> beg_;
 };
 
 } /* namespace radiotransmission */
