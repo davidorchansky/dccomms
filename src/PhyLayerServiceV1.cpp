@@ -291,6 +291,17 @@ void PhyLayerServiceV1::_SetPhyLayerState(const PhyState & state)
 	phyState_mutex.lock();
 
 	phyState = state;
+#ifdef DEBUG
+	switch(state)
+	{
+	case PhyState::BUSY:
+		LOG_DEBUG("Estado OCUPADO");
+		break;
+	case PhyState::READY:
+		LOG_DEBUG("Estado LISTO");
+		break;
+	}
+#endif
 
 	phyState_mutex.unlock();
 }
