@@ -229,6 +229,8 @@ void PhyLayerServiceV1::SetNonblockFlag(bool v, int mq)
 IPhyLayerService & PhyLayerServiceV1::operator << (const DataLinkFramePtr & dlf)
 {
 	txmsg.BuildFrameMsg(dlf);
+	LOG_DEBUG("Seteando manualmente el estado de 'OCUPADO'");
+	_SetPhyLayerState(BUSY);
 	SendMsg(txmsg);
 
 	return *this; //nunca llegara aqui
@@ -300,6 +302,8 @@ void PhyLayerServiceV1::_SetPhyLayerState(const PhyState & state)
 	case PhyState::READY:
 		LOG_DEBUG("Estado LISTO");
 		break;
+	default:
+		LOG_DEBUG("ERROR GRAVE: ESTADO IMPOSIBLE!!");
 	}
 #endif
 
@@ -322,6 +326,17 @@ void PhyLayerServiceV1::SendPhyLayerState(const PhyState & state)
 {
 	replymsg.BuildCmdStateMsg(state);
 	SendMsg(replymsg);
+	switch(state)
+	{
+	case PhyState::BUSY:
+		LOG_DEBUG("Enviado estado OCUPADO");
+		break;
+	case PhyState::READY:
+		LOG_DEBUG("Enviado estado LISTO");
+		break;
+	default:
+		LOG_DEBUG("ERROR GRAVE: ENVIADO ESTADO IMPOSIBLE!!");
+	}
 }
 
 bool PhyLayerServiceV1::BusyTransmitting()
