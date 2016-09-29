@@ -61,28 +61,30 @@ tered; see mq_overview(7).";
 		return "Unknown Error";
 	}
 }
-PhyLayerServiceV1::PhyLayerServiceV1(int type, const DataLinkFrame::fcsType & _fcsType, int maxframesize): service(this){
-	struct mq_attr attr;
-	attr.mq_maxmsg = 10;
-	attr.mq_msgsize = maxframesize + MSG_OVERHEAD_SIZE;
-	int perm = 0777;
+PhyLayerServiceV1::PhyLayerServiceV1(int _type, const DataLinkFrame::fcsType & _fcsType, int maxframesize): service(this){
+	comattr.mq_maxmsg = 10;
+	comattr.mq_msgsize = maxframesize + MSG_OVERHEAD_SIZE;
+	comperm = 0777;
 	fcsType = _fcsType;
-	Init(type, attr, perm);
+	qprefix = "";
+	type = _type;
 }
 
 void PhyLayerServiceV1::Init(int _type, struct mq_attr attr, int perm)
 {
 	type = _type;
-	switch(_type)
+	txmqname = "/"+qprefix;
+	rxmqname = "/"+qprefix;
+	switch(type)
 	{
 	case IPHY_TYPE_DLINK:
-		txmqname = "/tx_dlnk_phy";
-		rxmqname = "/rx_dlnk_phy";
+		txmqname += "_tx_dlnk_phy";
+		rxmqname += "_rx_dlnk_phy";
 		_SetPhyLayerState(PhyState::BUSY);
 		break;
 	case IPHY_TYPE_PHY:
-		rxmqname = "/tx_dlnk_phy";
-		txmqname = "/rx_dlnk_phy";
+		rxmqname += "_tx_dlnk_phy";
+		txmqname += "_rx_dlnk_phy";
 		_SetPhyLayerState(PhyState::READY);
 		break;
 	default:
@@ -373,6 +375,8 @@ unsigned int PhyLayerServiceV1::GetRxFifoSize()
 
 void PhyLayerServiceV1::Start()
 {
+
+	Init(type, comattr, comperm);
 	service.Start();
 	if(type == IPHY_TYPE_PHY)
 	{
