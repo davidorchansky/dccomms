@@ -11,7 +11,7 @@
 #include <cstdio>
 #include <cstdint>
 
-namespace radiotransmission {
+namespace dccomms {
 
 class Checksum {
 public:

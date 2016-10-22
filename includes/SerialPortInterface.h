@@ -24,7 +24,7 @@
 #include <sys/time.h> /*para timeout*/
 #include <sys/ioctl.h>
 
-namespace radiotransmission {
+namespace dccomms {
 
 class SerialPortInterface : public Stream, public IPhyLayerService {
 public:

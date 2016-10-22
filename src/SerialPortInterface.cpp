@@ -23,7 +23,7 @@
 
 #include <iostream>
 
-namespace radiotransmission {
+namespace dccomms {
 
 SerialPortInterface::SerialPortInterface(){}
 SerialPortInterface::SerialPortInterface(const char * p)

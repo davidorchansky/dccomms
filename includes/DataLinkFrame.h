@@ -15,7 +15,7 @@
 #include <cstring>
 #include <boost/shared_ptr.hpp>
 
-namespace radiotransmission {
+namespace dccomms {
 
 #define DLNK_PREAMBLE_SIZE 10
 #define DLNK_DIR_SIZE   1

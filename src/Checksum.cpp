@@ -7,7 +7,7 @@
 
 #include <Checksum.h>
 #include <customtypes.h>
-namespace radiotransmission {
+namespace dccomms {
 
 Checksum::Checksum() {
 	// TODO Auto-generated constructor stub

@@ -23,7 +23,7 @@
 
 #include <iostream>
 
-namespace radiotransmission {
+namespace dccomms {
 
 DataLinkStream::DataLinkStream(){}
 DataLinkStream::DataLinkStream(const char * p)

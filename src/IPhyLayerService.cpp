@@ -7,7 +7,7 @@
 
 #include <IPhyLayerService.h>
 
-namespace radiotransmission {
+namespace dccomms {
 
 IPhyLayerService::IPhyLayerService() {
 	// TODO Auto-generated constructor stub

@@ -22,7 +22,7 @@
 #include <sys/time.h> /*para timeout*/
 #include <sys/ioctl.h>
 
-namespace radiotransmission {
+namespace dccomms {
 
 #define DLS_INBUFFER_SIZE 10000
 #define DLS_INBUFFER_SIZE_FLUSH 200000

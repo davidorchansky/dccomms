@@ -12,7 +12,7 @@
 #include <Checksum.h>
 #include <Stream.h>
 
-namespace radiotransmission {
+namespace dccomms {
 
 static const unsigned char _manchesterPre[DLNK_PREAMBLE_SIZE] = {0x55,0x55,0x55,0x55,0x55,0x55,0x55,0x55,0x55,0x55};
 

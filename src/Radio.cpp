@@ -15,7 +15,7 @@
 #include <iostream>
 #include <RadioException.h>
 
-using namespace radiotransmission;
+using namespace dccomms;
 
 Radio::Radio(unsigned char d, IPhyLayerService & s, Radio::fcsType fcst, uint32_t maxRxBufferSize):serial(s),dir(d)
 {
