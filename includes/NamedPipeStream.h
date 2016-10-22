@@ -28,7 +28,7 @@ namespace dccomms {
 #define DLS_INBUFFER_SIZE_FLUSH 200000
 
 
-class DataLinkStream : public Stream, public IPhyLayerService {
+class NamedPipeStream : public Stream, public IPhyLayerService {
 public:
 
 	struct PortSettings
@@ -46,9 +46,9 @@ public:
 		}
 	};
 
-	DataLinkStream();
-	DataLinkStream(const char *);
-	DataLinkStream(DataLinkStream::PortSettings);
+	NamedPipeStream();
+	NamedPipeStream(const char *);
+	NamedPipeStream(NamedPipeStream::PortSettings);
 	bool Open();
 	void Close();
 
