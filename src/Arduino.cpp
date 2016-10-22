@@ -6,6 +6,7 @@
  */
 
 #include <Arduino.h>
+#include <CommsException.h>
 #include <Stream.h>
 #include <cstring>
 #include <chrono>
@@ -13,7 +14,6 @@
 #include <exception>
 #include <iostream>
 #include <cstring>
-#include <RadioException.h>
 #include <SerialPortStream.h>
 
 namespace dccomms {
@@ -117,7 +117,7 @@ bool Arduino::TryReconnect()
 				Close();
 			}
 		}
-		catch(RadioException e)
+		catch(CommsException e)
 		{
 			std::cerr << "Excepción de radio" <<std::endl;
 		}

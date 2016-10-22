@@ -8,12 +8,12 @@
 
 #include <Radio.h>
 #include <Arduino.h>
+#include <CommsException.h>
 #include <DataLinkFrame.h>
 #include <IPhyLayerService.h>
 #include <thread>         // std::this_thread::sleep_for
 #include <chrono>
 #include <iostream>
-#include <RadioException.h>
 
 using namespace dccomms;
 
@@ -200,7 +200,7 @@ void Radio::ReceiveBytes(void * buf, uint32_t size, uint8_t dirFrom, unsigned lo
 
 		serial.SetTimeout(currentTimeout);
 	}
-	catch(RadioException &e)
+	catch(CommsException &e)
 	{
 		_rxBufferLastPos = 0;
 		_rxBufferFirstPos = 0;

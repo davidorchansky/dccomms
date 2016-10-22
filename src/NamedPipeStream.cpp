@@ -5,6 +5,7 @@
  *      Author: diego
  */
 
+#include <CommsException.h>
 #include <string>
 
 #include <stdio.h>   /* Standard input/output definitions */
@@ -17,8 +18,6 @@
 
 #include <sys/time.h> /*para timeout*/
 #include <sys/ioctl.h>
-#include <RadioException.h>
-
 #include <iostream>
 
 namespace dccomms {
@@ -127,7 +126,7 @@ int NamedPipeStream::Read(void * buf, uint32_t size, unsigned long ms)
 				if(res < 0)
 				{
 					close(fd);
-					throw RadioException("Fallo de comunicacion al leer", RADIO_RXLINEDOWN);
+					throw CommsException("Fallo de comunicacion al leer", RXLINEDOWN);
 				}
 			}
 #endif
@@ -162,10 +161,10 @@ int NamedPipeStream::Read(void * buf, uint32_t size, unsigned long ms)
 	if(res < 0)
 	{
 		close(fd);
-		throw RadioException("Fallo de comunicacion al leer", RADIO_RXLINEDOWN);
+		throw CommsException("Fallo de comunicacion al leer", RXLINEDOWN);
 	}
 
-	throw RadioException("Read Timeout", RADIO_TIMEOUT);
+	throw CommsException("Read Timeout", TIMEOUT);
 
 }
 
@@ -229,7 +228,7 @@ int NamedPipeStream::Write(const void * buf, uint32_t size, uint32_t to)
 	if(w < 0)
 	{
 		close(fd);
-		throw RadioException("Fallo de comunicacion al escribir", RADIO_TXLINEDOWN);
+		throw CommsException("Fallo de comunicacion al escribir", TXLINEDOWN);
 	}
 
 	return w;

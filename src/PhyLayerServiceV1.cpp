@@ -5,8 +5,8 @@
  *      Author: diego
  */
 
+#include <CommsException.h>
 #include <errno.h>
-#include <RadioException.h>
 #include <iostream>
 #include <fcntl.h> /* Defines O_* constants */
 #include <sys/stat.h> /* Defines mode constants */
@@ -26,7 +26,7 @@ namespace dccomms {
 
 static void ThrowPhyLayerException(std::string msg)
 {
-	throw RadioException("PHYLAYER EXCEPTION: "+msg, RADIO_PHYLAYER_ERROR);
+	throw CommsException("PHYLAYER EXCEPTION: "+msg, PHYLAYER_ERROR);
 }
 
 
