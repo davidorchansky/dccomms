@@ -5,9 +5,6 @@
  *      Author: diego
  */
 
-#include <SerialPortInterface.h>
-
-
 #include <string>
 
 #include <stdio.h>   /* Standard input/output definitions */
@@ -20,20 +17,21 @@
 #include <sys/time.h> /*para timeout*/
 #include <sys/ioctl.h>
 #include <RadioException.h>
+#include <SerialPortStream.h>
 
 #include <iostream>
 
 namespace dccomms {
 
-SerialPortInterface::SerialPortInterface(){}
-SerialPortInterface::SerialPortInterface(const char * p)
+SerialPortStream::SerialPortStream(){}
+SerialPortStream::SerialPortStream(const char * p)
 {
 	int s = strlen(p);
 	port = new char[s+1];
 	strcpy(port, p);
 }
 
-SerialPortInterface::SerialPortInterface(const char * p, SerialPortInterface::BaudRate baud)
+SerialPortStream::SerialPortStream(const char * p, SerialPortStream::BaudRate baud)
 {
 	int s = strlen(p);
 	port = new char[s+1];
@@ -42,32 +40,32 @@ SerialPortInterface::SerialPortInterface(const char * p, SerialPortInterface::Ba
 
 }
 
-SerialPortInterface::SerialPortInterface(const char * p, SerialPortInterface::PortSettings ps)
+SerialPortStream::SerialPortStream(const char * p, SerialPortStream::PortSettings ps)
 {
 	int s = strlen(p);
 	port = new char[s+1];
 	strcpy(port, p);
 	portSettings = ps;
 }
-IPhyLayerService & SerialPortInterface::operator << (const DataLinkFramePtr & dlf)
+IPhyLayerService & SerialPortStream::operator << (const DataLinkFramePtr & dlf)
 {
 	Stream & s = *this;
 	s << dlf;
 	return *this;
 }
-IPhyLayerService & SerialPortInterface::operator >> (DataLinkFramePtr & dlf)
+IPhyLayerService & SerialPortStream::operator >> (DataLinkFramePtr & dlf)
 {
 	Stream & s = *this;
 	s >> dlf;
 	return *this;
 }
 
-bool SerialPortInterface::BusyTransmitting()
+bool SerialPortStream::BusyTransmitting()
 {
 	return false;
 }
 
-bool SerialPortInterface::Open(const char * p, SerialPortInterface::BaudRate baud)
+bool SerialPortStream::Open(const char * p, SerialPortStream::BaudRate baud)
 {
 	int s = strlen(p);
 	port = new char[s+1];
@@ -77,7 +75,7 @@ bool SerialPortInterface::Open(const char * p, SerialPortInterface::BaudRate bau
 }
 
 
-bool SerialPortInterface::Open(const char * p, SerialPortInterface::PortSettings ps)
+bool SerialPortStream::Open(const char * p, SerialPortStream::PortSettings ps)
 {
 	int s = strlen(p);
 	port = new char[s+1];
@@ -86,7 +84,7 @@ bool SerialPortInterface::Open(const char * p, SerialPortInterface::PortSettings
 	return Open();
 }
 
-bool SerialPortInterface::Open()
+bool SerialPortStream::Open()
 {
 	struct termios options;
 
@@ -163,7 +161,7 @@ bool SerialPortInterface::Open()
 
 }
 
-void SerialPortInterface::Close()
+void SerialPortStream::Close()
 {
 
 	close(fd);
@@ -172,7 +170,7 @@ void SerialPortInterface::Close()
 
 
 
-int SerialPortInterface::Read(void * buf, uint32_t size, unsigned long ms)
+int SerialPortStream::Read(void * buf, uint32_t size, unsigned long ms)
 {
 	struct timeval time0, time1;
 	gettimeofday(&time0, NULL);
@@ -270,7 +268,7 @@ int SerialPortInterface::Read(void * buf, uint32_t size, unsigned long ms)
 
 }
 
-void SerialPortInterface::SetTimeout(unsigned long ms)
+void SerialPortStream::SetTimeout(unsigned long ms)
 {
 
 	_timeout = ms >= 0 ? ms : 0;
@@ -281,21 +279,21 @@ void SerialPortInterface::SetTimeout(unsigned long ms)
 }
 
 
-void SerialPortInterface::FlushInput()
+void SerialPortStream::FlushInput()
 {
 	tcflush(fd, TCIFLUSH);
 }
 
-void SerialPortInterface::FlushIO()
+void SerialPortStream::FlushIO()
 {
 	tcflush(fd, TCIOFLUSH);
 }
 
-void SerialPortInterface::FlushOutput()
+void SerialPortStream::FlushOutput()
 {
 	tcflush(fd, TCOFLUSH);
 }
-int SerialPortInterface::Write(const void * buf, uint32_t size, uint32_t to)
+int SerialPortStream::Write(const void * buf, uint32_t size, uint32_t to)
 {
 
 #ifdef BADWRITE
@@ -370,7 +368,7 @@ int SerialPortInterface::Write(const void * buf, uint32_t size, uint32_t to)
 
 }
 
-int SerialPortInterface::Available()
+int SerialPortStream::Available()
 {
 	int n;
 	if(ioctl(fd, FIONREAD, &n)<0)
@@ -378,12 +376,12 @@ int SerialPortInterface::Available()
 	return n;
 }
 
-bool SerialPortInterface::IsOpen()
+bool SerialPortStream::IsOpen()
 {
 	return _open;
 }
 
-Stream & SerialPortInterface::operator >> (uint8_t & byte )
+Stream & SerialPortStream::operator >> (uint8_t & byte )
 {
 	fcntl(fd, F_SETFL, 0);
 	read(fd, &byte, sizeof(uint8_t));
@@ -391,7 +389,7 @@ Stream & SerialPortInterface::operator >> (uint8_t & byte )
 	return *this;
 }
 
-Stream & SerialPortInterface::operator >> (char & byte )
+Stream & SerialPortStream::operator >> (char & byte )
 {
 	fcntl(fd, F_SETFL, 0);
 	read(fd, &byte, sizeof(uint8_t));
@@ -399,7 +397,7 @@ Stream & SerialPortInterface::operator >> (char & byte )
 	return *this;
 }
 
-Stream & SerialPortInterface::operator >> (uint16_t & data16 )
+Stream & SerialPortStream::operator >> (uint16_t & data16 )
 {
 	fcntl(fd, F_SETFL, 0);
 	read(fd, &data16, sizeof(uint16_t));
@@ -407,7 +405,7 @@ Stream & SerialPortInterface::operator >> (uint16_t & data16 )
 	return *this;
 }
 
-Stream & SerialPortInterface::operator >> (uint32_t & data32 )
+Stream & SerialPortStream::operator >> (uint32_t & data32 )
 {
 	fcntl(fd, F_SETFL, 0);
 	read(fd, &data32, sizeof(uint32_t));
@@ -415,13 +413,13 @@ Stream & SerialPortInterface::operator >> (uint32_t & data32 )
 	return *this;
 }
 
-Stream & SerialPortInterface::operator << (uint8_t byte)
+Stream & SerialPortStream::operator << (uint8_t byte)
 {
 	write(fd, &byte, sizeof(uint8_t));
 	return *this;
 }
 
-Stream & SerialPortInterface::operator << (const char * str)
+Stream & SerialPortStream::operator << (const char * str)
 {
 	int n = sizeof(str);
 	write(fd, str, n);

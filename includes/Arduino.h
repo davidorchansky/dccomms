@@ -8,37 +8,37 @@
 #ifndef ARDUINO_H_
 #define ARDUINO_H_
 
-#include <SerialPortInterface.h>
+#include <SerialPortStream.h>
 #include <Stream.h>
 
 namespace dccomms {
 
-class Arduino : public SerialPortInterface {
+class Arduino : public SerialPortStream {
 public:
 	   enum BaudRate {
-	        BAUD_50      = SerialPortInterface::BAUD_50,
-	        BAUD_75      = SerialPortInterface::BAUD_75,
-	        BAUD_110     = SerialPortInterface::BAUD_110,
-	        BAUD_134     = SerialPortInterface::BAUD_134,
-	        BAUD_150     = SerialPortInterface::BAUD_150,
-	        BAUD_200     = SerialPortInterface::BAUD_200,
-	        BAUD_300     = SerialPortInterface::BAUD_300,
-	        BAUD_600     = SerialPortInterface::BAUD_600,
-	        BAUD_1200    = SerialPortInterface::BAUD_1200,
-	        BAUD_1800    = SerialPortInterface::BAUD_1800,
-	        BAUD_2400    = SerialPortInterface::BAUD_2400,
-	        BAUD_4800    = SerialPortInterface::BAUD_4800,
-	        BAUD_9600    = SerialPortInterface::BAUD_9600,
-	        BAUD_19200   = SerialPortInterface::BAUD_19200,
-	        BAUD_38400   = SerialPortInterface::BAUD_38400,
-	        BAUD_57600   = SerialPortInterface::BAUD_57600,
-	        BAUD_115200  = SerialPortInterface::BAUD_115200
+	        BAUD_50      = SerialPortStream::BAUD_50,
+	        BAUD_75      = SerialPortStream::BAUD_75,
+	        BAUD_110     = SerialPortStream::BAUD_110,
+	        BAUD_134     = SerialPortStream::BAUD_134,
+	        BAUD_150     = SerialPortStream::BAUD_150,
+	        BAUD_200     = SerialPortStream::BAUD_200,
+	        BAUD_300     = SerialPortStream::BAUD_300,
+	        BAUD_600     = SerialPortStream::BAUD_600,
+	        BAUD_1200    = SerialPortStream::BAUD_1200,
+	        BAUD_1800    = SerialPortStream::BAUD_1800,
+	        BAUD_2400    = SerialPortStream::BAUD_2400,
+	        BAUD_4800    = SerialPortStream::BAUD_4800,
+	        BAUD_9600    = SerialPortStream::BAUD_9600,
+	        BAUD_19200   = SerialPortStream::BAUD_19200,
+	        BAUD_38400   = SerialPortStream::BAUD_38400,
+	        BAUD_57600   = SerialPortStream::BAUD_57600,
+	        BAUD_115200  = SerialPortStream::BAUD_115200
 	    };
 
 	Arduino();
-	Arduino(const char * p, SerialPortInterface::BaudRate baud);
-	Arduino(SerialPortInterface s);
-	Arduino(SerialPortInterface, const char* port, Arduino::BaudRate, const char * hello, const char * validReply);
+	Arduino(const char * p, SerialPortStream::BaudRate baud);
+	Arduino(SerialPortStream s);
+	Arduino(SerialPortStream, const char* port, Arduino::BaudRate, const char * hello, const char * validReply);
 	bool TryReconnect();
 	virtual ~Arduino();
 

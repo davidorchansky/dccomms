@@ -26,7 +26,7 @@
 
 namespace dccomms {
 
-class SerialPortInterface : public Stream, public IPhyLayerService {
+class SerialPortStream : public Stream, public IPhyLayerService {
 public:
 
     enum BaudRate {
@@ -76,20 +76,20 @@ public:
 		PortSettings()
 		{
 			//Arduino default configuration
-            baudrate = SerialPortInterface::BAUD_9600;
-            parity   = SerialPortInterface::NOPARITY;
-            stopBits = SerialPortInterface::SB1;
-            dataBits = SerialPortInterface::CHAR8;
+            baudrate = SerialPortStream::BAUD_9600;
+            parity   = SerialPortStream::NOPARITY;
+            stopBits = SerialPortStream::SB1;
+            dataBits = SerialPortStream::CHAR8;
 		}
 	};
 
-	SerialPortInterface();
-	SerialPortInterface(const char *);
-	SerialPortInterface(const char *, SerialPortInterface::BaudRate);
-	SerialPortInterface(const char *, SerialPortInterface::PortSettings);
+	SerialPortStream();
+	SerialPortStream(const char *);
+	SerialPortStream(const char *, SerialPortStream::BaudRate);
+	SerialPortStream(const char *, SerialPortStream::PortSettings);
 	bool Open();
-	bool Open(const char *, SerialPortInterface::BaudRate);
-	bool Open(const char *, SerialPortInterface::PortSettings);
+	bool Open(const char *, SerialPortStream::BaudRate);
+	bool Open(const char *, SerialPortStream::PortSettings);
 	void Close();
 
 	int Read(void *, uint32_t, unsigned long msTimeout=0);
