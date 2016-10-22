@@ -10,7 +10,7 @@
 
 #include <DataLinkFrame.h>
 
-namespace radiotransmission {
+namespace dccomms {
 
 class IPhyLayerService {
 public:

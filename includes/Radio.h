@@ -11,7 +11,7 @@
 #include <DataLinkFrame.h>
 #include <IPhyLayerService.h>
 
-namespace radiotransmission
+namespace dccomms
 {
 	class Radio
 	{

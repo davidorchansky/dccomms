@@ -16,7 +16,7 @@
 #include <cstring>
 #include <RadioException.h>
 
-namespace radiotransmission {
+namespace dccomms {
 
 
 Arduino::Arduino(){}

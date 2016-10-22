@@ -7,7 +7,7 @@
 
 #include <Stream.h>
 #include <iostream>
-namespace radiotransmission {
+namespace dccomms {
 
 Stream::Stream() {
 	// TODO Auto-generated constructor stub

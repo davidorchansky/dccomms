@@ -9,7 +9,7 @@
 #include <cstring>
 #include <string>
 
-namespace radiotransmission {
+namespace dccomms {
 
 RadioException::RadioException(std::string msg, int cod) {
 	message = msg;

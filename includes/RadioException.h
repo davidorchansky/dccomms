@@ -14,7 +14,7 @@
 
 
 using namespace std;
-namespace radiotransmission {
+namespace dccomms {
 
 #define RADIO_RXLINEDOWN   0
 #define RADIO_TXLINEDOWN   1

@@ -9,7 +9,7 @@
 #define STREAM_H_
 
 #include <cstdint>
-namespace radiotransmission {
+namespace dccomms {
 
 class Stream {
 public:

@@ -15,7 +15,7 @@
 #include <chrono>
 #include <Utils.h>
 
-namespace radiotransmission {
+namespace dccomms {
 
 #define TX_MQ 0
 #define RX_MQ 1

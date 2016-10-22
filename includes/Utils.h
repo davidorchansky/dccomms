@@ -13,7 +13,7 @@
 #include <iostream>
 #include <chrono>
 
-namespace radiotransmission {
+namespace dccomms {
 
 
 #define LOG_DEBUG(msg) std::cerr << "DEBUG("+std::string(typeid(*this).name())+":"+std::string(__func__)+"): " + std::string(msg) << std::endl; std::cerr << std::flush;
@@ -26,6 +26,7 @@ public:
 	static void IntSwitchEndian(void * b, uint32_t entero);
 	static std::string BuildString(std::initializer_list<std::string> list );
 	static void Debug(std::ostream &, std::string &);
+	static void Sleep(int millis);
 
 };
 

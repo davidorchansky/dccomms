@@ -17,7 +17,7 @@
 #include <mutex>
 #include <thread>
 
-namespace radiotransmission {
+namespace dccomms {
 
 #define IPHY_TYPE_DLINK 0
 #define IPHY_TYPE_PHY 1

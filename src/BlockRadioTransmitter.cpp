@@ -16,7 +16,7 @@
 #include <RadioException.h>
 #include <sys/time.h> /*para timeout*/
 #include <iostream>
-using namespace radiotransmission;
+using namespace dccomms;
 
 BlockRadioTransmitter::BlockRadioTransmitter(Radio & rad):radio(rad) {
 	_bigEndian = Utils::IsBigEndian();

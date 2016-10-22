@@ -11,7 +11,7 @@
 #include <SerialPortInterface.h>
 #include <Stream.h>
 
-namespace radiotransmission {
+namespace dccomms {
 
 class Arduino : public SerialPortInterface {
 public:
