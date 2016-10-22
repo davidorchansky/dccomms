@@ -5,18 +5,18 @@
  *      Author: diego
  */
 
-#include <RadioException.h>
+#include <CommsException.h>
 #include <cstring>
 #include <string>
 
 namespace dccomms {
 
-RadioException::RadioException(std::string msg, int cod) {
+CommsException::CommsException(std::string msg, int cod) {
 	message = msg;
 	code = cod;
 }
 
-RadioException::~RadioException() {
+CommsException::~CommsException() {
 }
 
 } /* namespace radiotransmission */

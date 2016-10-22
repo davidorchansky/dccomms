@@ -6,10 +6,10 @@
  */
 
 #include <DataLinkFrame.h>
-#include <RadioException.h>
 #include <cstdlib>
 #include <cstring>
 #include <Checksum.h>
+#include <CommsException.h>
 #include <Stream.h>
 
 namespace dccomms {
@@ -20,7 +20,7 @@ const unsigned char* DataLinkFrame::manchesterPre = _manchesterPre;
 
 static void ThrowDLinkLayerException(std::string msg)
 {
-	throw RadioException("DLINK EXCEPTION: "+msg, RADIO_DLNKLAYER_ERROR);
+	throw CommsException("DLINK EXCEPTION: "+msg, DLNKLAYER_ERROR);
 }
 
 void DataLinkFrame::Init(DataLinkFrame::fcsType fcst)
