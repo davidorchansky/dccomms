@@ -47,18 +47,6 @@ SerialPortStream::SerialPortStream(const char * p, SerialPortStream::PortSetting
 	strcpy(port, p);
 	portSettings = ps;
 }
-ICommsLink & SerialPortStream::operator << (const DataLinkFramePtr & dlf)
-{
-	IStream & s = *this;
-	s << dlf;
-	return *this;
-}
-ICommsLink & SerialPortStream::operator >> (DataLinkFramePtr & dlf)
-{
-	IStream & s = *this;
-	s >> dlf;
-	return *this;
-}
 
 bool SerialPortStream::BusyTransmitting()
 {

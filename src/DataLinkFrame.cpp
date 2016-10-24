@@ -9,8 +9,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <Checksum.h>
-#include <CommsException.h>
-#include <IStream.h>
 
 namespace dccomms {
 
@@ -192,55 +190,6 @@ bool DataLinkFrame::checkFrame()
 	return true;
 }
 
-IStream& operator >> (IStream & i, DataLinkFramePtr & dlf)
-{
-	i.WaitFor((const uint8_t*) dlf->pre, DLNK_PREAMBLE_SIZE);
-
-	i.Read(dlf->ddir, DLNK_DIR_SIZE);
-	i.Read(dlf->sdir, DLNK_DIR_SIZE);
-
-	i.Read((uint8_t *)dlf->dsize, DLNK_DSIZE_SIZE);
-
-	if(dlf->_BigEndian)
-	{
-		dlf->dataSize  = *dlf->dsize;
-	}
-	else
-	{
-		dlf->dataSize = ((*dlf->dsize) << 8) | ((*dlf->dsize) >> 8);
-	}
-
-    if(dlf->dataSize > DLNK_MAX_PAYLOAD_SIZE)
-    {
-    	ThrowDLinkLayerException(std::string("El tamano del payload no puede ser mayor que ")+ std::to_string(DLNK_MAX_PAYLOAD_SIZE));
-    }
-
-	i.Read(dlf->payload, dlf->dataSize);
-
-	dlf->fcs = ((uint8_t *) dlf->payload) + dlf->dataSize;
-	i.Read(dlf->fcs, dlf->fcsSize);
-
-	dlf->frameSize = dlf->overheadSize + dlf->dataSize;
-
-	dlf->dataIn = true;
-	return i;
-}
-IStream& operator << (IStream & i, const DataLinkFramePtr & dlf)
-{
-	if(dlf->dataIn)
-	{
-		i.Write(dlf->pre,DLNK_PREAMBLE_SIZE);
-		i.Write(dlf->ddir,DLNK_DIR_SIZE);
-		i.Write(dlf->sdir,DLNK_DIR_SIZE);
-		i.Write(dlf->dsize,DLNK_DSIZE_SIZE);
-		i.Write(dlf->payload,dlf->dataSize);
-		i.Write(dlf->fcs, dlf->fcsSize);
-
-		i.FlushIO();//Lo ideal seria FlushOutput, pero en algun lado hay algo que hace que se llene el buffer de entrada
-						  //y al final llega a bloquearse la comunicación... (TODO: comprobar qué es lo que hace que se llene el buffer de entrada)
-	}
-	return i;
-}
 void DataLinkFrame::GetInfoFromBufferWithPreamble(void *o)
 {
 	GetInfoFromBuffer(o + DLNK_PREAMBLE_SIZE);

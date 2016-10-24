@@ -37,19 +37,6 @@ NamedPipeStream::NamedPipeStream(NamedPipeStream::PortSettings ps)
 	portSettings = ps;
 }
 
-ICommsLink & NamedPipeStream::operator << (const DataLinkFramePtr & dlf)
-{
-	IStream & s = *this;
-	s << dlf;
-	return *this;
-}
-ICommsLink & NamedPipeStream::operator >> (DataLinkFramePtr & dlf)
-{
-	IStream & s = *this;
-	s >> dlf;
-	return *this;
-}
-
 bool NamedPipeStream::BusyTransmitting()
 {
 	return false;
