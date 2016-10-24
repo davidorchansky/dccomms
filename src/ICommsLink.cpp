@@ -5,27 +5,32 @@
  *      Author: diego
  */
 
-#include <IPhyLayerService.h>
+#include <ICommsLink.h>
 
 namespace dccomms {
 
-IPhyLayerService::IPhyLayerService() {
+ICommsLink::ICommsLink() {
 	// TODO Auto-generated constructor stub
 
 }
 
-IPhyLayerService::~IPhyLayerService() {
+ICommsLink::~ICommsLink() {
 	// TODO Auto-generated destructor stub
 }
 
-unsigned long IPhyLayerService::GetTimeout()
+unsigned long ICommsLink::GetTimeout()
 {
 	return _timeout;
 }
 
-void IPhyLayerService::SetTimeout(unsigned long ms)
+void ICommsLink::SetTimeout(unsigned long ms)
 {
 	_timeout = ms;
+}
+
+bool ICommsLink::BusyTransmitting()
+{
+	return false;
 }
 
 } /* namespace radiotransmission */

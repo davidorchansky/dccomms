@@ -24,6 +24,7 @@ namespace dccomms {
 #define UNKNOWN_ERROR 5
 #define PHYLAYER_ERROR 6
 #define DLNKLAYER_ERROR 7
+#define NOTIMPLEMENTED 8
 
 class CommsException: public exception{
 public:

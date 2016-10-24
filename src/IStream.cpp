@@ -5,20 +5,20 @@
  *      Author: diego
  */
 
-#include <Stream.h>
+#include <IStream.h>
 #include <iostream>
 namespace dccomms {
 
-Stream::Stream() {
+IStream::IStream() {
 	// TODO Auto-generated constructor stub
 
 }
 
-Stream::~Stream() {
+IStream::~IStream() {
 	// TODO Auto-generated destructor stub
 }
 
-void Stream::WaitFor(const uint8_t * expected, uint32_t size)
+void IStream::WaitFor(const uint8_t * expected, uint32_t size)
 {
 	const uint8_t * ptr = expected;
 	const uint8_t * max = expected + size;
@@ -49,18 +49,24 @@ int Stream::Available()
 {
 
 }
+
+
 Stream & Stream::operator >> (uint8_t &byte)
 {
 
 }
-
-Stream & Stream::operator << (uint8_t byte)
-{
-
-}
-Stream & Stream::operator << (const char * stt)
-{
-
-}
 */
+IStream & IStream::operator << (uint8_t byte)
+{
+	Write(&byte, sizeof(uint8_t));
+	return *this;
+}
+
+IStream & IStream::operator << (const char * str)
+{
+	int n = sizeof(str);
+	Write(str, n);
+	return *this;
+}
+
 } /* namespace radiotransmission */

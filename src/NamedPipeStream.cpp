@@ -37,15 +37,15 @@ NamedPipeStream::NamedPipeStream(NamedPipeStream::PortSettings ps)
 	portSettings = ps;
 }
 
-IPhyLayerService & NamedPipeStream::operator << (const DataLinkFramePtr & dlf)
+ICommsLink & NamedPipeStream::operator << (const DataLinkFramePtr & dlf)
 {
-	Stream & s = *this;
+	IStream & s = *this;
 	s << dlf;
 	return *this;
 }
-IPhyLayerService & NamedPipeStream::operator >> (DataLinkFramePtr & dlf)
+ICommsLink & NamedPipeStream::operator >> (DataLinkFramePtr & dlf)
 {
-	Stream & s = *this;
+	IStream & s = *this;
 	s >> dlf;
 	return *this;
 }
@@ -248,40 +248,27 @@ bool NamedPipeStream::IsOpen()
 	return _open;
 }
 
-Stream & NamedPipeStream::operator >> (uint8_t & byte )
+IStream & NamedPipeStream::operator >> (uint8_t & byte )
 {
 	read(fd, &byte, sizeof(uint8_t));
 	return *this;
 }
 
-Stream & NamedPipeStream::operator >> (char & byte )
+IStream & NamedPipeStream::operator >> (char & byte )
 {
 	read(fd, &byte, sizeof(uint8_t));
 	return *this;
 }
 
-Stream & NamedPipeStream::operator >> (uint16_t & data16 )
+IStream & NamedPipeStream::operator >> (uint16_t & data16 )
 {
 	read(fd, &data16, sizeof(uint16_t));
 	return *this;
 }
 
-Stream & NamedPipeStream::operator >> (uint32_t & data32 )
+IStream & NamedPipeStream::operator >> (uint32_t & data32 )
 {
 	read(fd, &data32, sizeof(uint32_t));
-	return *this;
-}
-
-Stream & NamedPipeStream::operator << (uint8_t byte)
-{
-	write(fd, &byte, sizeof(uint8_t));
-	return *this;
-}
-
-Stream & NamedPipeStream::operator << (const char * str)
-{
-	int n = strlen(str);
-	write(fd, str, n);
 	return *this;
 }
 } /* namespace radiotransmission */
