@@ -11,7 +11,7 @@
 
 #include <DataLinkFrame.h>
 #include <ostream>
-#include <Stream.h>
+#include <IStream.h>
 #include <cstring>
 #include <boost/shared_ptr.hpp>
 
@@ -50,8 +50,8 @@ public:
 	void GetInfoFromBuffer(void *);
 	void GetInfoFromBufferWithPreamble(void *o);
 
-	friend Stream& operator >> (Stream & i, DataLinkFramePtr & dlf);
-	friend Stream& operator << (Stream & i, const DataLinkFramePtr & dlf);
+	friend IStream& operator >> (IStream & i, DataLinkFramePtr & dlf);
+	friend IStream& operator << (IStream & i, const DataLinkFramePtr & dlf);
 
 	uint8_t* GetFrameBits(void *dst);
 

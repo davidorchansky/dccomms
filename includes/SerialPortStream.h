@@ -9,16 +9,15 @@
 #define SERIALPORTINTERFACE_H_
 
 
-#include <Stream.h>
+#include <IStream.h>
 #include <DataLinkFrame.h>
-
 #include <stdio.h>   /* Standard input/output definitions */
 
 #include <string>
 
 #include <fcntl.h>   /* File control definitions */
 #include <errno.h>   /* Error number definitions */
-#include <IPhyLayerService.h>
+#include <ICommsLink.h>
 #include <termios.h> /* POSIX terminal control definitions */
 
 #include <sys/time.h> /*para timeout*/
@@ -26,7 +25,7 @@
 
 namespace dccomms {
 
-class SerialPortStream : public Stream, public IPhyLayerService {
+class SerialPortStream : public IStream, public ICommsLink {
 public:
 
     enum BaudRate {
@@ -95,12 +94,12 @@ public:
 	int Read(void *, uint32_t, unsigned long msTimeout=0);
 	int Write(const void *, uint32_t, uint32_t msTimeout=0);
 
-	Stream & operator >> (uint8_t &);
-	Stream & operator >> (char &);
-	Stream & operator >> (uint16_t &);
-	Stream & operator >> (uint32_t &) ;
-	Stream & operator << (uint8_t);
-	Stream & operator << (const char * str);
+	IStream & operator >> (uint8_t &);
+	IStream & operator >> (char &);
+	IStream & operator >> (uint16_t &);
+	IStream & operator >> (uint32_t &) ;
+	//Stream & operator << (uint8_t);
+	//Stream & operator << (const char * str);
 	int Available();
 
 	bool IsOpen();
@@ -109,8 +108,8 @@ public:
 	void FlushOutput();
 	void FlushIO();
 	virtual bool BusyTransmitting();
-	virtual IPhyLayerService & operator << (const DataLinkFramePtr &);
-	virtual IPhyLayerService & operator >> (DataLinkFramePtr &);
+	virtual ICommsLink & operator << (const DataLinkFramePtr &);
+	virtual ICommsLink & operator >> (DataLinkFramePtr &);
 
 	void SetTimeout(unsigned long ms);
 

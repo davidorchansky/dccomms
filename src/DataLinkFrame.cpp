@@ -10,7 +10,7 @@
 #include <cstring>
 #include <Checksum.h>
 #include <CommsException.h>
-#include <Stream.h>
+#include <IStream.h>
 
 namespace dccomms {
 
@@ -192,7 +192,7 @@ bool DataLinkFrame::checkFrame()
 	return true;
 }
 
-Stream& operator >> (Stream & i, DataLinkFramePtr & dlf)
+IStream& operator >> (IStream & i, DataLinkFramePtr & dlf)
 {
 	i.WaitFor((const uint8_t*) dlf->pre, DLNK_PREAMBLE_SIZE);
 
@@ -225,7 +225,7 @@ Stream& operator >> (Stream & i, DataLinkFramePtr & dlf)
 	dlf->dataIn = true;
 	return i;
 }
-Stream& operator << (Stream & i, const DataLinkFramePtr & dlf)
+IStream& operator << (IStream & i, const DataLinkFramePtr & dlf)
 {
 	if(dlf->dataIn)
 	{

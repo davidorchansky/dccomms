@@ -5,13 +5,13 @@
  *      Author: diego
  */
 
+#include <CommsDeviceService.h>
 #include <CommsException.h>
 #include <errno.h>
 #include <iostream>
 #include <fcntl.h> /* Defines O_* constants */
 #include <sys/stat.h> /* Defines mode constants */
 #include <mqueue.h>
-#include <PhyLayerServiceV1.h>
 #include <chrono>
 #include <Utils.h>
 
@@ -61,7 +61,7 @@ tered; see mq_overview(7).";
 		return "Unknown Error";
 	}
 }
-PhyLayerServiceV1::PhyLayerServiceV1(int _type, const DataLinkFrame::fcsType & _fcsType, int maxframesize): service(this){
+CommsDeviceService::CommsDeviceService(int _type, const DataLinkFrame::fcsType & _fcsType, int maxframesize): service(this){
 	comattr.mq_maxmsg = 10;
 	comattr.mq_msgsize = maxframesize + MSG_OVERHEAD_SIZE;
 	comperm = 0777;
@@ -70,7 +70,7 @@ PhyLayerServiceV1::PhyLayerServiceV1(int _type, const DataLinkFrame::fcsType & _
 	type = _type;
 }
 
-void PhyLayerServiceV1::Init(int _type, struct mq_attr attr, int perm)
+void CommsDeviceService::Init(int _type, struct mq_attr attr, int perm)
 {
 	type = _type;
 	txmqname = "/"+qprefix;
@@ -129,7 +129,7 @@ void PhyLayerServiceV1::Init(int _type, struct mq_attr attr, int perm)
 	replymsg.Init(maxmsgsize);
 }
 
-PhyLayerServiceV1::~PhyLayerServiceV1() {
+CommsDeviceService::~CommsDeviceService() {
 	// TODO Auto-generated destructor stub
 	mq_close(rxmqid);
 	mq_close(txmqid);
@@ -137,7 +137,7 @@ PhyLayerServiceV1::~PhyLayerServiceV1() {
 	mq_unlink(rxmqname.c_str());
 }
 
-void PhyLayerServiceV1::UpdateMQAttr ()
+void CommsDeviceService::UpdateMQAttr ()
 {
 	if(mq_getattr(txmqid, &txattr)==-1)
 		ThrowPhyLayerException(std::string("Error(")+std::to_string(errno)+std::string("): Error interno: no ha sido posible obtener los atributos de la cola de mensajes tx"));
@@ -145,7 +145,7 @@ void PhyLayerServiceV1::UpdateMQAttr ()
 		ThrowPhyLayerException(std::string("Error(")+std::to_string(errno)+std::string("): Error interno: no ha sido posible obtener los atributos de la cola de mensajes rx"));
 }
 
-struct mq_attr* PhyLayerServiceV1::GetMQAttr(int mq)
+struct mq_attr* CommsDeviceService::GetMQAttr(int mq)
 {
 	UpdateMQAttr();
 
@@ -165,7 +165,7 @@ struct mq_attr* PhyLayerServiceV1::GetMQAttr(int mq)
 	return attr;
 }
 
-mqd_t PhyLayerServiceV1::GetMQId(int mq)
+mqd_t CommsDeviceService::GetMQId(int mq)
 {
 	switch(mq)
 	{
@@ -179,7 +179,7 @@ mqd_t PhyLayerServiceV1::GetMQId(int mq)
 	return 0; //nunca llegara aqui
 }
 
-void PhyLayerServiceV1::ShowMQAttr(std::ostream & o, int mq)
+void CommsDeviceService::ShowMQAttr(std::ostream & o, int mq)
 {
 	struct mq_attr * attr = GetMQAttr(mq);
 
@@ -189,31 +189,31 @@ void PhyLayerServiceV1::ShowMQAttr(std::ostream & o, int mq)
 	o << " - O_NONBLOCK:\t" << (attr->mq_flags & O_NONBLOCK ? "activado" : "desactivado") << std::endl;
 }
 
-long PhyLayerServiceV1::GetMaxMsgOnQueue(int mq)
+long CommsDeviceService::GetMaxMsgOnQueue(int mq)
 {
 	struct mq_attr * attr = GetMQAttr(mq);
 	return attr->mq_maxmsg;
 }
 
-long PhyLayerServiceV1::GetMaxMsgSize(int mq)
+long CommsDeviceService::GetMaxMsgSize(int mq)
 {
 	struct mq_attr * attr = GetMQAttr(mq);
 	return attr->mq_msgsize;
 }
 
-long PhyLayerServiceV1::GetNumMsgOnQueue(int mq)
+long CommsDeviceService::GetNumMsgOnQueue(int mq)
 {
 	struct mq_attr * attr = GetMQAttr(mq);
 	return attr->mq_curmsgs;
 }
 
-bool PhyLayerServiceV1::GetNonblockFlag(int mq)
+bool CommsDeviceService::GetNonblockFlag(int mq)
 {
 	struct mq_attr * attr = GetMQAttr(mq);
 	return attr->mq_flags & O_NONBLOCK;
 }
 
-void PhyLayerServiceV1::SetNonblockFlag(bool v, int mq)
+void CommsDeviceService::SetNonblockFlag(bool v, int mq)
 {
 	struct mq_attr * attr = GetMQAttr(mq);
 	mqd_t id = GetMQId(mq);
@@ -228,7 +228,7 @@ void PhyLayerServiceV1::SetNonblockFlag(bool v, int mq)
 	}
 }
 
-IPhyLayerService & PhyLayerServiceV1::operator << (const DataLinkFramePtr & dlf)
+ICommsLink & CommsDeviceService::operator << (const DataLinkFramePtr & dlf)
 {
 	txmsg.BuildFrameMsg(dlf);
 	LOG_DEBUG("Seteando manualmente el estado de 'OCUPADO'");
@@ -240,7 +240,7 @@ IPhyLayerService & PhyLayerServiceV1::operator << (const DataLinkFramePtr & dlf)
 }
 
 
-void PhyLayerServiceV1::SendMsg(const ServiceMessage & msg)
+void CommsDeviceService::SendMsg(const ServiceMessage & msg)
 {
 	if(mq_send(txmqid, (char*)  msg.GetBuffer(), msg.GetSize(), 0)==-1)
 	{
@@ -248,7 +248,7 @@ void PhyLayerServiceV1::SendMsg(const ServiceMessage & msg)
 	}
 }
 
-void PhyLayerServiceV1::ReceiveMsg(ServiceMessage & msg)
+void CommsDeviceService::ReceiveMsg(ServiceMessage & msg)
 {
 	if(mq_receive(rxmqid, (char*)msg.GetBuffer(), msg.GetMaxSize(), NULL)==-1)
 	{
@@ -256,7 +256,7 @@ void PhyLayerServiceV1::ReceiveMsg(ServiceMessage & msg)
 	}
 }
 
-DataLinkFramePtr PhyLayerServiceV1::GetNextFrame()
+DataLinkFramePtr CommsDeviceService::GetNextFrame()
 {
 	bool empty = true;
 	while(empty)
@@ -274,7 +274,7 @@ DataLinkFramePtr PhyLayerServiceV1::GetNextFrame()
 	return dlf;
 }
 
-void PhyLayerServiceV1::PushNewFrame(DataLinkFramePtr dlf)
+void CommsDeviceService::PushNewFrame(DataLinkFramePtr dlf)
 {
 	rxfifo_mutex.lock();
 
@@ -283,14 +283,14 @@ void PhyLayerServiceV1::PushNewFrame(DataLinkFramePtr dlf)
 	rxfifo_mutex.unlock();
 }
 
-IPhyLayerService & PhyLayerServiceV1::operator >> (DataLinkFramePtr & dlf)
+ICommsLink & CommsDeviceService::operator >> (DataLinkFramePtr & dlf)
 {
 	dlf = GetNextFrame();
 
 	return *this;
 }
 
-void PhyLayerServiceV1::_SetPhyLayerState(const PhyState & state)
+void CommsDeviceService::_SetPhyLayerState(const PhyState & state)
 {
 	phyState_mutex.lock();
 
@@ -312,7 +312,7 @@ void PhyLayerServiceV1::_SetPhyLayerState(const PhyState & state)
 	phyState_mutex.unlock();
 }
 
-PhyLayerServiceV1::PhyState PhyLayerServiceV1::_GetPhyLayerState()
+CommsDeviceService::PhyState CommsDeviceService::_GetPhyLayerState()
 {
 	PhyState state;
 	phyState_mutex.lock();
@@ -324,7 +324,7 @@ PhyLayerServiceV1::PhyState PhyLayerServiceV1::_GetPhyLayerState()
 	return state;
 }
 
-void PhyLayerServiceV1::SendPhyLayerState(const PhyState & state)
+void CommsDeviceService::SendPhyLayerState(const PhyState & state)
 {
 	replymsg.BuildCmdStateMsg(state);
 	SendMsg(replymsg);
@@ -341,14 +341,14 @@ void PhyLayerServiceV1::SendPhyLayerState(const PhyState & state)
 	}
 }
 
-bool PhyLayerServiceV1::BusyTransmitting()
+bool CommsDeviceService::BusyTransmitting()
 {
 	if(type != IPHY_TYPE_DLINK)
 		ThrowPhyLayerException("Method call not allowed");
 	return _GetPhyLayerState() == PhyState::BUSY;
 }
 
-void PhyLayerServiceV1::ReqPhyLayerState()
+void CommsDeviceService::ReqPhyLayerState()
 {
 	if(type != IPHY_TYPE_DLINK)
 		ThrowPhyLayerException("Method call not allowed");
@@ -356,7 +356,7 @@ void PhyLayerServiceV1::ReqPhyLayerState()
 	SendMsg(txmsg);
 }
 
-void PhyLayerServiceV1::SetPhyLayerState(const PhyState & state)
+void CommsDeviceService::SetPhyLayerState(const PhyState & state)
 {
 	if(type != IPHY_TYPE_PHY)
 		ThrowPhyLayerException("Method call not allowed");
@@ -364,7 +364,7 @@ void PhyLayerServiceV1::SetPhyLayerState(const PhyState & state)
 	SendPhyLayerState();
 }
 
-unsigned int PhyLayerServiceV1::GetRxFifoSize()
+unsigned int CommsDeviceService::GetRxFifoSize()
 {
 	unsigned int size;
 	rxfifo_mutex.lock();
@@ -373,7 +373,7 @@ unsigned int PhyLayerServiceV1::GetRxFifoSize()
 	return size;
 }
 
-void PhyLayerServiceV1::Start()
+void CommsDeviceService::Start()
 {
 
 	Init(type, comattr, comperm);
@@ -389,22 +389,22 @@ void PhyLayerServiceV1::Start()
 	}
 }
 
-void PhyLayerServiceV1::Stop()
+void CommsDeviceService::Stop()
 {
 	service.Stop();
 }
 
-PhyLayerServiceV1::ServiceMessage::ServiceMessage()
+CommsDeviceService::ServiceMessage::ServiceMessage()
 {
 	buffer = NULL;
 }
 
-PhyLayerServiceV1::ServiceMessage::~ServiceMessage()
+CommsDeviceService::ServiceMessage::~ServiceMessage()
 {
 	free(buffer);
 }
 
-void PhyLayerServiceV1::ServiceMessage::Init(int maxs)
+void CommsDeviceService::ServiceMessage::Init(int maxs)
 {
 	maxPayloadSize = maxs - MSG_OVERHEAD_SIZE;
 	maxSize = maxs;
@@ -415,7 +415,7 @@ void PhyLayerServiceV1::ServiceMessage::Init(int maxs)
 	size = 0;
 }
 
-void PhyLayerServiceV1::ServiceMessage::BuildFrameMsg(const DataLinkFramePtr & dlf)
+void CommsDeviceService::ServiceMessage::BuildFrameMsg(const DataLinkFramePtr & dlf)
 {
 	int frsize = dlf->GetFrameSize();
 	if(frsize <= maxPayloadSize)
@@ -432,27 +432,27 @@ void PhyLayerServiceV1::ServiceMessage::BuildFrameMsg(const DataLinkFramePtr & d
 	}
 }
 
-void PhyLayerServiceV1::ServiceMessage::BuildReqStateMsg()
+void CommsDeviceService::ServiceMessage::BuildReqStateMsg()
 {
 	*type = (uint8_t) MsgType::REQ_STATE;
 	size = MSG_OVERHEAD_SIZE;
 }
 
-void PhyLayerServiceV1::ServiceMessage::BuildCmdStateMsg(const PhyState & state)
+void CommsDeviceService::ServiceMessage::BuildCmdStateMsg(const PhyState & state)
 {
 	*type = (uint8_t) MsgType::CMD_STATE;
 	*payload = (uint8_t) state;
 	size = MSG_OVERHEAD_SIZE + 1;
 }
 
-DataLinkFramePtr PhyLayerServiceV1::ServiceMessage::GetDataLinkFrame(const DataLinkFrame::fcsType & _fcsType) const
+DataLinkFramePtr CommsDeviceService::ServiceMessage::GetDataLinkFrame(const DataLinkFrame::fcsType & _fcsType) const
 {
 	auto dlf = DataLinkFrame::BuildDataLinkFrame(_fcsType);
 	dlf->GetInfoFromBufferWithPreamble(payload);
 	return dlf;
 }
 
-PhyLayerServiceV1::ServiceThread::ServiceThread(PhyLayerServiceV1 * parent)
+CommsDeviceService::ServiceThread::ServiceThread(CommsDeviceService * parent)
 {
 	mcontinue= true;
 	terminated = false;
@@ -460,43 +460,43 @@ PhyLayerServiceV1::ServiceThread::ServiceThread(PhyLayerServiceV1 * parent)
 	physervice = parent;
 }
 
-PhyLayerServiceV1::ServiceThread::~ServiceThread()
+CommsDeviceService::ServiceThread::~ServiceThread()
 {
 	this->Stop();
 }
 
-void PhyLayerServiceV1::ServiceThread::Start()
+void CommsDeviceService::ServiceThread::Start()
 {
 	thread = std::thread(&ServiceThread::Work, this);
 	started = true;
 }
 
-void PhyLayerServiceV1::ServiceThread::Stop()
+void CommsDeviceService::ServiceThread::Stop()
 {
 	mcontinue = false;
 }
 
-bool PhyLayerServiceV1::ServiceThread::IsRunning()
+bool CommsDeviceService::ServiceThread::IsRunning()
 {
 	return started && !terminated;
 }
 
-void PhyLayerServiceV1::SaveFrameFromMsg(const ServiceMessage & msg)
+void CommsDeviceService::SaveFrameFromMsg(const ServiceMessage & msg)
 {
 	PushNewFrame(msg.GetDataLinkFrame(fcsType));
 }
 
-void PhyLayerServiceV1::SavePhyStateFromMsg(const ServiceMessage & msg)
+void CommsDeviceService::SavePhyStateFromMsg(const ServiceMessage & msg)
 {
 	_SetPhyLayerState(msg.GetPhyState());
 }
 
-void PhyLayerServiceV1::SendPhyLayerState()
+void CommsDeviceService::SendPhyLayerState()
 {
 	SendPhyLayerState(_GetPhyLayerState());
 }
 
-void PhyLayerServiceV1::ServiceThread::Work()
+void CommsDeviceService::ServiceThread::Work()
 {
 	while(mcontinue)
 	{

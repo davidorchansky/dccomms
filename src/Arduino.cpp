@@ -7,7 +7,7 @@
 
 #include <Arduino.h>
 #include <CommsException.h>
-#include <Stream.h>
+#include <IStream.h>
 #include <cstring>
 #include <chrono>
 #include <thread>
@@ -129,7 +129,7 @@ bool Arduino::TryReconnect()
 	return false;
 }
 
-bool Arduino::_checkDevice(Stream *s, const char* h, const char* r, unsigned long long m)
+bool Arduino::_checkDevice(IStream *s, const char* h, const char* r, unsigned long long m)
 {
 	unsigned int replySize = strlen(r);
 	//char* buffer = malloc(replySize);

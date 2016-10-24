@@ -47,15 +47,15 @@ SerialPortStream::SerialPortStream(const char * p, SerialPortStream::PortSetting
 	strcpy(port, p);
 	portSettings = ps;
 }
-IPhyLayerService & SerialPortStream::operator << (const DataLinkFramePtr & dlf)
+ICommsLink & SerialPortStream::operator << (const DataLinkFramePtr & dlf)
 {
-	Stream & s = *this;
+	IStream & s = *this;
 	s << dlf;
 	return *this;
 }
-IPhyLayerService & SerialPortStream::operator >> (DataLinkFramePtr & dlf)
+ICommsLink & SerialPortStream::operator >> (DataLinkFramePtr & dlf)
 {
-	Stream & s = *this;
+	IStream & s = *this;
 	s >> dlf;
 	return *this;
 }
@@ -381,7 +381,7 @@ bool SerialPortStream::IsOpen()
 	return _open;
 }
 
-Stream & SerialPortStream::operator >> (uint8_t & byte )
+IStream & SerialPortStream::operator >> (uint8_t & byte )
 {
 	fcntl(fd, F_SETFL, 0);
 	read(fd, &byte, sizeof(uint8_t));
@@ -389,7 +389,7 @@ Stream & SerialPortStream::operator >> (uint8_t & byte )
 	return *this;
 }
 
-Stream & SerialPortStream::operator >> (char & byte )
+IStream & SerialPortStream::operator >> (char & byte )
 {
 	fcntl(fd, F_SETFL, 0);
 	read(fd, &byte, sizeof(uint8_t));
@@ -397,7 +397,7 @@ Stream & SerialPortStream::operator >> (char & byte )
 	return *this;
 }
 
-Stream & SerialPortStream::operator >> (uint16_t & data16 )
+IStream & SerialPortStream::operator >> (uint16_t & data16 )
 {
 	fcntl(fd, F_SETFL, 0);
 	read(fd, &data16, sizeof(uint16_t));
@@ -405,7 +405,7 @@ Stream & SerialPortStream::operator >> (uint16_t & data16 )
 	return *this;
 }
 
-Stream & SerialPortStream::operator >> (uint32_t & data32 )
+IStream & SerialPortStream::operator >> (uint32_t & data32 )
 {
 	fcntl(fd, F_SETFL, 0);
 	read(fd, &data32, sizeof(uint32_t));
@@ -413,16 +413,4 @@ Stream & SerialPortStream::operator >> (uint32_t & data32 )
 	return *this;
 }
 
-Stream & SerialPortStream::operator << (uint8_t byte)
-{
-	write(fd, &byte, sizeof(uint8_t));
-	return *this;
-}
-
-Stream & SerialPortStream::operator << (const char * str)
-{
-	int n = sizeof(str);
-	write(fd, str, n);
-	return *this;
-}
 } /* namespace radiotransmission */
