@@ -6,7 +6,6 @@
  */
 
 #include <Checksum.h>
-#include <customtypes.h>
 namespace dccomms {
 
 Checksum::Checksum() {
