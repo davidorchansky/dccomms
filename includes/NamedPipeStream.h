@@ -8,15 +8,13 @@
 #ifndef DATALINKSTREAM_H_
 #define DATALINKSTREAM_H_
 
-
-#include <IStream.h>
 #include <stdio.h>   /* Standard input/output definitions */
 
 #include <string>
 
 #include <fcntl.h>   /* File control definitions */
 #include <errno.h>   /* Error number definitions */
-#include <ICommsLink.h>
+#include <ICommsDevice.h>
 #include <termios.h> /* POSIX terminal control definitions */
 
 #include <sys/time.h> /*para timeout*/
@@ -28,7 +26,7 @@ namespace dccomms {
 #define DLS_INBUFFER_SIZE_FLUSH 200000
 
 
-class NamedPipeStream : public IStream, public ICommsLink {
+class NamedPipeStream : public ICommsDevice {
 public:
 
 	struct PortSettings
@@ -69,8 +67,6 @@ public:
 	void FlushOutput();
 	void FlushIO();
 	virtual bool BusyTransmitting();
-	virtual ICommsLink & operator << (const DataLinkFramePtr &);
-	virtual ICommsLink & operator >> (DataLinkFramePtr &);
 
 	void SetTimeout(unsigned long ms);
 

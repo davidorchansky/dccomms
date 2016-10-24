@@ -9,7 +9,7 @@
 #define ARDUINO_H_
 
 #include <SerialPortStream.h>
-#include <IStream.h>
+
 
 namespace dccomms {
 

@@ -9,15 +9,13 @@
 #define SERIALPORTINTERFACE_H_
 
 
-#include <IStream.h>
-#include <DataLinkFrame.h>
+#include <ICommsDevice.h>
 #include <stdio.h>   /* Standard input/output definitions */
 
 #include <string>
 
 #include <fcntl.h>   /* File control definitions */
 #include <errno.h>   /* Error number definitions */
-#include <ICommsLink.h>
 #include <termios.h> /* POSIX terminal control definitions */
 
 #include <sys/time.h> /*para timeout*/
@@ -25,7 +23,7 @@
 
 namespace dccomms {
 
-class SerialPortStream : public IStream, public ICommsLink {
+class SerialPortStream : public ICommsDevice{
 public:
 
     enum BaudRate {
@@ -108,8 +106,7 @@ public:
 	void FlushOutput();
 	void FlushIO();
 	virtual bool BusyTransmitting();
-	virtual ICommsLink & operator << (const DataLinkFramePtr &);
-	virtual ICommsLink & operator >> (DataLinkFramePtr &);
+
 
 	void SetTimeout(unsigned long ms);
 
