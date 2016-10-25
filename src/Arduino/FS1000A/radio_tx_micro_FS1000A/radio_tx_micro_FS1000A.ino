@@ -1,6 +1,6 @@
 #define FCS_SIZE 4 
 #define INFO_SIZE 4
-#define PREAMBLE_SIZE 7
+#define PREAMBLE_SIZE 10
 
 #define AREYOU_SIZE 18
 #define IMFROM_SIZE 11
@@ -21,7 +21,9 @@ char buf[BUFFER_SIZE];
 //#define PAYLOAD_SIZE 1008
 bool BigEndian;
 
-char preamble[] = "juanito";
+char preamble[] = {0x55,0x55,0x55,0x55,0x55,0x55,
+0x55,0x55,0x55,0x55};
+
 unsigned char * MaxPrePos; //preamble + PREAMBLE_SIZE
 
 char areyou[] = "Hello, are you TX?"; //18
