@@ -8,16 +8,16 @@
 
 #include <Radio.h>
 #include <Arduino.h>
+#include <CommsException.h>
 #include <DataLinkFrame.h>
-#include <IPhyLayerService.h>
+#include <ICommsLink.h>
 #include <thread>         // std::this_thread::sleep_for
 #include <chrono>
 #include <iostream>
-#include <RadioException.h>
 
-using namespace radiotransmission;
+using namespace dccomms;
 
-Radio::Radio(unsigned char d, IPhyLayerService & s, Radio::fcsType fcst, uint32_t maxRxBufferSize):serial(s),dir(d)
+Radio::Radio(unsigned char d, ICommsLink & s, Radio::fcsType fcst, uint32_t maxRxBufferSize):serial(s),dir(d)
 {
 	_maxRxBufferSize = maxRxBufferSize;
 	_rxBuffer = new uint8_t[_maxRxBufferSize];
@@ -200,7 +200,7 @@ void Radio::ReceiveBytes(void * buf, uint32_t size, uint8_t dirFrom, unsigned lo
 
 		serial.SetTimeout(currentTimeout);
 	}
-	catch(RadioException &e)
+	catch(CommsException &e)
 	{
 		_rxBufferLastPos = 0;
 		_rxBufferFirstPos = 0;

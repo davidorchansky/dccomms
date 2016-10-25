@@ -12,25 +12,25 @@
 #include <sys/stat.h> /* Defines mode constants */
 #include <mqueue.h>
 #include <DataLinkFrame.h>
-#include <IPhyLayerService.h>
+#include <ICommsLink.h>
 #include <queue>
 #include <mutex>
 #include <thread>
 
-namespace radiotransmission {
+namespace dccomms {
 
 #define IPHY_TYPE_DLINK 0
 #define IPHY_TYPE_PHY 1
 
-class PhyLayerServiceV1: public IPhyLayerService {
+class CommsDeviceService: public ICommsLink {
 public:
 	enum PhyState {BUSY=0, READY};
 
-	PhyLayerServiceV1(int iphytype = IPHY_TYPE_DLINK, const DataLinkFrame::fcsType & fcs = DataLinkFrame::crc32, int maxframesize = 7000);
-	virtual ~PhyLayerServiceV1();
+	CommsDeviceService(int iphytype = IPHY_TYPE_DLINK, const DataLinkFrame::fcsType & fcs = DataLinkFrame::crc32, int maxframesize = 7000);
+	virtual ~CommsDeviceService();
 
-	virtual IPhyLayerService & operator << (const DataLinkFramePtr &);
-	virtual IPhyLayerService & operator >> (DataLinkFramePtr &);
+	virtual ICommsLink & operator << (const DataLinkFramePtr &);
+	virtual ICommsLink & operator >> (DataLinkFramePtr &);
 
 	virtual void Start();
 	virtual void Stop();
@@ -114,7 +114,7 @@ private:
 	{
 		//En C++11 una clase anidada puede acceder a los metodos de la "enclosing" class
 	public:
-		ServiceThread(PhyLayerServiceV1 *);
+		ServiceThread(CommsDeviceService *);
 		~ServiceThread();
 		bool IsRunning();
 		void Start();
@@ -125,7 +125,7 @@ private:
 		bool mcontinue;
 		bool terminated;
 		bool started;
-		PhyLayerServiceV1 * physervice;
+		CommsDeviceService * physervice;
 	};
 
 	void ReceiveMsg(ServiceMessage &);

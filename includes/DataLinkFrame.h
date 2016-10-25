@@ -11,22 +11,25 @@
 
 #include <DataLinkFrame.h>
 #include <ostream>
-#include <Stream.h>
 #include <cstring>
 #include <boost/shared_ptr.hpp>
+#include <CommsException.h>
 
-namespace radiotransmission {
+namespace dccomms {
 
 #define DLNK_PREAMBLE_SIZE 10
 #define DLNK_DIR_SIZE   1
 #define DLNK_DSIZE_SIZE 2
 #define DLNK_MAX_PAYLOAD_SIZE 8000
 
+
+
 class DataLinkFrame;
 
 typedef boost::shared_ptr<DataLinkFrame> DataLinkFramePtr;
 
 class DataLinkFrame {
+	friend class ICommsDevice;
 public:
 	enum fcsType { crc16, crc32, nofcs };
 
@@ -49,9 +52,6 @@ public:
 
 	void GetInfoFromBuffer(void *);
 	void GetInfoFromBufferWithPreamble(void *o);
-
-	friend Stream& operator >> (Stream & i, DataLinkFramePtr & dlf);
-	friend Stream& operator << (Stream & i, const DataLinkFramePtr & dlf);
 
 	uint8_t* GetFrameBits(void *dst);
 

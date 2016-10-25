@@ -14,21 +14,22 @@
 
 
 using namespace std;
-namespace radiotransmission {
+namespace dccomms {
 
-#define RADIO_RXLINEDOWN   0
-#define RADIO_TXLINEDOWN   1
-#define RADIO_TIMEOUT      2
-#define RADIO_CORRUPTFRAME 3
-#define RADIO_CORRUPTBLOCK 4
-#define RADIO_ERROR 5
-#define RADIO_PHYLAYER_ERROR 6
-#define RADIO_DLNKLAYER_ERROR 7
+#define RXLINEDOWN   0
+#define TXLINEDOWN   1
+#define TIMEOUT      2
+#define CORRUPTFRAME 3
+#define CORRUPTBLOCK 4
+#define UNKNOWN_ERROR 5
+#define PHYLAYER_ERROR 6
+#define DLNKLAYER_ERROR 7
+#define NOTIMPLEMENTED 8
 
-class RadioException: public exception{
+class CommsException: public exception{
 public:
-	RadioException(std::string msg, int cod);
-	virtual ~RadioException();
+	CommsException(std::string msg, int cod);
+	virtual ~CommsException();
 	virtual const char* what() const throw()
 	{
 		return message.c_str();
