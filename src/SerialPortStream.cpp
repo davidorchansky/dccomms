@@ -189,13 +189,7 @@ int SerialPortStream::Read(void * buf, uint32_t size, unsigned long ms)
 			}
 			else
 			{
-				char sig = '-'; //Un byte aleatorio...
-				int res = write(fd, &sig, 1);
-				if(res < 0)
-				{
-					close(fd);
-					throw CommsException("Fallo de comunicacion al leer", RXLINEDOWN);
-				}
+				//TODO: CHECK THE CONNECTION STATUS AND RAISE EXCEPTION IF DOWN
 			}
 #else
 			int res = Available();
