@@ -1,6 +1,6 @@
 #define FCS_SIZE 4 
 #define INFO_SIZE 4
-#define PREAMBLE_SIZE 7
+#define PREAMBLE_SIZE 10
 
 #define AREYOU_SIZE 18
 #define IMFROM_SIZE 11
@@ -14,7 +14,9 @@ char buf[BUFFER_SIZE];
 
 bool BigEndian;
 
-char preamble[] = "juanito";
+char preamble[] = {0x55,0x55,0x55,0x55,0x55,0x55,
+0x55,0x55,0x55,0x55};
+
 unsigned char * MaxPrePos; //preamble + PREAMBLE_SIZE
 
 char areyou[] = "Hello, are you TX?"; //18
@@ -144,7 +146,7 @@ char sensorsInfo[40];
 
 void setup() {
 	Serial.begin(115200);
-	radioStream->begin(19200);
+	radioStream->begin(9600);
 
 	for (int i = 0; i < 40; i++)
 		sensorsInfo[i] = 'i';
@@ -161,7 +163,7 @@ void setup() {
 }
 
 int paylsize;
-
+unsigned int t0,t1;
 void loop()
 {
   
@@ -170,7 +172,17 @@ void loop()
 		caracterActual = Serial.peek();
 
 		if (paylsize=radioFrameReceived(&Serial, buf, (unsigned char*)preamble, MaxPrePos, &serialPreamblePos))
-		{
+		{/*
+                        t0 = millis();
+                        t1 = t0;
+                        while (t1-t0 < 10){ 
+                          t1 = millis();
+                          radioStream->write(0x55);
+                        };
+                        radioStream->write(0x0);
+                        radioStream->write(0xff);
+                        radioStream->write(0x01);  */  
+                    
 			radioStream->write(preamble, PREAMBLE_SIZE);
 			radioStream->write(buf, INFO_SIZE + paylsize + FCS_SIZE);
                         radioStream->flush();
