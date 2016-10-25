@@ -24,6 +24,8 @@ CommsBridge::CommsBridge(ICommsDevice * _device, int _baudrate): phyService(IPHY
 	txdlf = DataLinkFrame::BuildDataLinkFrame(DataLinkFrame::fcsType::crc32);
 	baudrate = _baudrate;
 	device = _device;
+	txserv.SetWork(&CommsBridge::TxWork);
+	rxserv.SetWork(&CommsBridge::RxWork);
 }
 
 CommsBridge::~CommsBridge() {
