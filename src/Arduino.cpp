@@ -6,25 +6,25 @@
  */
 
 #include <Arduino.h>
-#include <SerialPortInterface.h>
-#include <Stream.h>
+#include <CommsException.h>
+#include <IStream.h>
 #include <cstring>
 #include <chrono>
 #include <thread>
 #include <exception>
 #include <iostream>
 #include <cstring>
-#include <RadioException.h>
+#include <SerialPortStream.h>
 
-namespace radiotransmission {
+namespace dccomms {
 
 
 Arduino::Arduino(){}
-Arduino::Arduino(const char * p, SerialPortInterface::BaudRate baud):SerialPortInterface(p, baud){}
+Arduino::Arduino(const char * p, SerialPortStream::BaudRate baud):SerialPortStream(p, baud){}
 
-Arduino::Arduino(SerialPortInterface s):SerialPortInterface(s){}
+Arduino::Arduino(SerialPortStream s):SerialPortStream(s){}
 
-Arduino::Arduino(SerialPortInterface s, const char* p, Arduino::BaudRate b, const char * h, const char * vr):SerialPortInterface(s){
+Arduino::Arduino(SerialPortStream s, const char* p, Arduino::BaudRate b, const char * h, const char * vr):SerialPortStream(s){
 	// TODO Auto-generated constructor stub
 	hello = std::string(h);
 	validReply = std::string(vr);
@@ -50,17 +50,17 @@ Arduino Arduino::FindArduino(Arduino::BaudRate baud, const char * hello, const c
 	#endif
 
 	int i;
-	SerialPortInterface::PortSettings ps;
-	ps.baudrate = (SerialPortInterface::BaudRate) baud;
-	ps.parity = SerialPortInterface::NOPARITY;
-	ps.stopBits = SerialPortInterface::SB1;
-	ps.dataBits = SerialPortInterface::CHAR8;
+	SerialPortStream::PortSettings ps;
+	ps.baudrate = (SerialPortStream::BaudRate) baud;
+	ps.parity = SerialPortStream::NOPARITY;
+	ps.stopBits = SerialPortStream::SB1;
+	ps.dataBits = SerialPortStream::CHAR8;
 
 	for(i = 0; i <maxPorts; i++)
 	{
 //		try
 //		{
-			SerialPortInterface sp(spfiles[i], ps);
+			SerialPortStream sp(spfiles[i], ps);
 			bool opened = sp.Open();
 			if (opened)
 			{
@@ -78,7 +78,7 @@ Arduino Arduino::FindArduino(Arduino::BaudRate baud, const char * hello, const c
 //
 //		}
 	}
-	return Arduino(SerialPortInterface("",ps));
+	return Arduino(SerialPortStream("",ps));
 
 }
 
@@ -117,7 +117,7 @@ bool Arduino::TryReconnect()
 				Close();
 			}
 		}
-		catch(RadioException e)
+		catch(CommsException e)
 		{
 			std::cerr << "Excepción de radio" <<std::endl;
 		}
@@ -129,7 +129,7 @@ bool Arduino::TryReconnect()
 	return false;
 }
 
-bool Arduino::_checkDevice(Stream *s, const char* h, const char* r, unsigned long long m)
+bool Arduino::_checkDevice(IStream *s, const char* h, const char* r, unsigned long long m)
 {
 	unsigned int replySize = strlen(r);
 	//char* buffer = malloc(replySize);

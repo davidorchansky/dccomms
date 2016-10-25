@@ -5,9 +5,7 @@
  *      Author: diego
  */
 
-#include <DataLinkStream.h>
-
-
+#include <CommsException.h>
 #include <string>
 
 #include <stdio.h>   /* Standard input/output definitions */
@@ -15,24 +13,23 @@
 #include <unistd.h>  /* UNIX standard function definitions */
 #include <fcntl.h>   /* File control definitions */
 #include <errno.h>   /* Error number definitions */
+#include <NamedPipeStream.h>
 #include <termios.h> /* POSIX terminal control definitions */
 
 #include <sys/time.h> /*para timeout*/
 #include <sys/ioctl.h>
-#include <RadioException.h>
-
 #include <iostream>
 
-namespace radiotransmission {
+namespace dccomms {
 
-DataLinkStream::DataLinkStream(){}
-DataLinkStream::DataLinkStream(const char * p)
+NamedPipeStream::NamedPipeStream(){}
+NamedPipeStream::NamedPipeStream(const char * p)
 {
 	int s = strlen(p);
 	port = new char[s+1];
 	strcpy(port, p);
 }
-DataLinkStream::DataLinkStream(DataLinkStream::PortSettings ps)
+NamedPipeStream::NamedPipeStream(NamedPipeStream::PortSettings ps)
 {
 	int s = ps.file.size();
 	port = new char[s+1];
@@ -40,25 +37,12 @@ DataLinkStream::DataLinkStream(DataLinkStream::PortSettings ps)
 	portSettings = ps;
 }
 
-IPhyLayerService & DataLinkStream::operator << (const DataLinkFramePtr & dlf)
-{
-	Stream & s = *this;
-	s << dlf;
-	return *this;
-}
-IPhyLayerService & DataLinkStream::operator >> (DataLinkFramePtr & dlf)
-{
-	Stream & s = *this;
-	s >> dlf;
-	return *this;
-}
-
-bool DataLinkStream::BusyTransmitting()
+bool NamedPipeStream::BusyTransmitting()
 {
 	return false;
 }
 
-bool DataLinkStream::Open()
+bool NamedPipeStream::Open()
 {
 	//struct termios options;
 
@@ -74,7 +58,7 @@ bool DataLinkStream::Open()
 
 }
 
-void DataLinkStream::Close()
+void NamedPipeStream::Close()
 {
 
 	close(fd);
@@ -83,7 +67,7 @@ void DataLinkStream::Close()
 
 
 
-int DataLinkStream::Read(void * buf, uint32_t size, unsigned long ms)
+int NamedPipeStream::Read(void * buf, uint32_t size, unsigned long ms)
 {
 	struct timeval time0, time1;
 	gettimeofday(&time0, NULL);
@@ -129,7 +113,7 @@ int DataLinkStream::Read(void * buf, uint32_t size, unsigned long ms)
 				if(res < 0)
 				{
 					close(fd);
-					throw RadioException("Fallo de comunicacion al leer", RADIO_RXLINEDOWN);
+					throw CommsException("Fallo de comunicacion al leer", RXLINEDOWN);
 				}
 			}
 #endif
@@ -164,14 +148,14 @@ int DataLinkStream::Read(void * buf, uint32_t size, unsigned long ms)
 	if(res < 0)
 	{
 		close(fd);
-		throw RadioException("Fallo de comunicacion al leer", RADIO_RXLINEDOWN);
+		throw CommsException("Fallo de comunicacion al leer", RXLINEDOWN);
 	}
 
-	throw RadioException("Read Timeout", RADIO_TIMEOUT);
+	throw CommsException("Read Timeout", TIMEOUT);
 
 }
 
-void DataLinkStream::SetTimeout(unsigned long ms)
+void NamedPipeStream::SetTimeout(unsigned long ms)
 {
 	_timeout = ms >= 0 ? ms : 0;
 	if (ms)
@@ -180,18 +164,18 @@ void DataLinkStream::SetTimeout(unsigned long ms)
 		fcntl(fd, F_SETFL, 0);
 }
 
-int DataLinkStream::GetBufferSize()
+int NamedPipeStream::GetBufferSize()
 {
 	return fcntl(fd, F_GETPIPE_SZ);
 }
 
-void DataLinkStream::SetBufferSize(int bs)
+void NamedPipeStream::SetBufferSize(int bs)
 {
 	fcntl(fd, F_SETPIPE_SZ, bs);
 	bufferSize = GetBufferSize();
 }
 
-void DataLinkStream::FlushInput()
+void NamedPipeStream::FlushInput()
 {
 	int n;
 	n = read(fd, tmp, DLS_INBUFFER_SIZE_FLUSH);
@@ -215,30 +199,30 @@ void DataLinkStream::FlushInput()
 
 }
 
-void DataLinkStream::FlushIO()
+void NamedPipeStream::FlushIO()
 {
 	//tcflush(fd, TCIOFLUSH);
 }
 
-void DataLinkStream::FlushOutput()
+void NamedPipeStream::FlushOutput()
 {
 	//tcflush(fd, TCOFLUSH);
 }
 
-int DataLinkStream::Write(const void * buf, uint32_t size, uint32_t to)
+int NamedPipeStream::Write(const void * buf, uint32_t size, uint32_t to)
 {
 	int w = write(fd, (const uint8_t*)buf, size);
 	if(w < 0)
 	{
 		close(fd);
-		throw RadioException("Fallo de comunicacion al escribir", RADIO_TXLINEDOWN);
+		throw CommsException("Fallo de comunicacion al escribir", TXLINEDOWN);
 	}
 
 	return w;
 
 }
 
-int DataLinkStream::Available()
+int NamedPipeStream::Available()
 {
 	int n;
 	if(ioctl(fd, FIONREAD, &n)<0)
@@ -246,45 +230,32 @@ int DataLinkStream::Available()
 	return n;
 }
 
-bool DataLinkStream::IsOpen()
+bool NamedPipeStream::IsOpen()
 {
 	return _open;
 }
 
-Stream & DataLinkStream::operator >> (uint8_t & byte )
+IStream & NamedPipeStream::operator >> (uint8_t & byte )
 {
 	read(fd, &byte, sizeof(uint8_t));
 	return *this;
 }
 
-Stream & DataLinkStream::operator >> (char & byte )
+IStream & NamedPipeStream::operator >> (char & byte )
 {
 	read(fd, &byte, sizeof(uint8_t));
 	return *this;
 }
 
-Stream & DataLinkStream::operator >> (uint16_t & data16 )
+IStream & NamedPipeStream::operator >> (uint16_t & data16 )
 {
 	read(fd, &data16, sizeof(uint16_t));
 	return *this;
 }
 
-Stream & DataLinkStream::operator >> (uint32_t & data32 )
+IStream & NamedPipeStream::operator >> (uint32_t & data32 )
 {
 	read(fd, &data32, sizeof(uint32_t));
-	return *this;
-}
-
-Stream & DataLinkStream::operator << (uint8_t byte)
-{
-	write(fd, &byte, sizeof(uint8_t));
-	return *this;
-}
-
-Stream & DataLinkStream::operator << (const char * str)
-{
-	int n = strlen(str);
-	write(fd, str, n);
 	return *this;
 }
 } /* namespace radiotransmission */

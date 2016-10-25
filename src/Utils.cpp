@@ -7,8 +7,9 @@
 
 #include <Utils.h>
 #include <cstdint>
+#include <thread>
 
-namespace radiotransmission {
+namespace dccomms {
 
 Utils::Utils() {
 	// TODO Auto-generated constructor stub
@@ -43,6 +44,11 @@ std::string Utils::BuildString(std::initializer_list<std::string> list )
         res += elem;
     }
     return res;
+}
+
+void Utils::Sleep(int millis)
+{
+	std::this_thread::sleep_for(std::chrono::milliseconds(millis));
 }
 
 void Utils::Debug(std::ostream & o, std::string & msg)

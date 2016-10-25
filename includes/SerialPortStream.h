@@ -9,24 +9,21 @@
 #define SERIALPORTINTERFACE_H_
 
 
-#include <Stream.h>
-#include <DataLinkFrame.h>
-
+#include <ICommsDevice.h>
 #include <stdio.h>   /* Standard input/output definitions */
 
 #include <string>
 
 #include <fcntl.h>   /* File control definitions */
 #include <errno.h>   /* Error number definitions */
-#include <IPhyLayerService.h>
 #include <termios.h> /* POSIX terminal control definitions */
 
 #include <sys/time.h> /*para timeout*/
 #include <sys/ioctl.h>
 
-namespace radiotransmission {
+namespace dccomms {
 
-class SerialPortInterface : public Stream, public IPhyLayerService {
+class SerialPortStream : public ICommsDevice{
 public:
 
     enum BaudRate {
@@ -76,31 +73,31 @@ public:
 		PortSettings()
 		{
 			//Arduino default configuration
-            baudrate = SerialPortInterface::BAUD_9600;
-            parity   = SerialPortInterface::NOPARITY;
-            stopBits = SerialPortInterface::SB1;
-            dataBits = SerialPortInterface::CHAR8;
+            baudrate = SerialPortStream::BAUD_9600;
+            parity   = SerialPortStream::NOPARITY;
+            stopBits = SerialPortStream::SB1;
+            dataBits = SerialPortStream::CHAR8;
 		}
 	};
 
-	SerialPortInterface();
-	SerialPortInterface(const char *);
-	SerialPortInterface(const char *, SerialPortInterface::BaudRate);
-	SerialPortInterface(const char *, SerialPortInterface::PortSettings);
+	SerialPortStream();
+	SerialPortStream(const char *);
+	SerialPortStream(const char *, SerialPortStream::BaudRate);
+	SerialPortStream(const char *, SerialPortStream::PortSettings);
 	bool Open();
-	bool Open(const char *, SerialPortInterface::BaudRate);
-	bool Open(const char *, SerialPortInterface::PortSettings);
+	bool Open(const char *, SerialPortStream::BaudRate);
+	bool Open(const char *, SerialPortStream::PortSettings);
 	void Close();
 
 	int Read(void *, uint32_t, unsigned long msTimeout=0);
 	int Write(const void *, uint32_t, uint32_t msTimeout=0);
 
-	Stream & operator >> (uint8_t &);
-	Stream & operator >> (char &);
-	Stream & operator >> (uint16_t &);
-	Stream & operator >> (uint32_t &) ;
-	Stream & operator << (uint8_t);
-	Stream & operator << (const char * str);
+	IStream & operator >> (uint8_t &);
+	IStream & operator >> (char &);
+	IStream & operator >> (uint16_t &);
+	IStream & operator >> (uint32_t &) ;
+	//Stream & operator << (uint8_t);
+	//Stream & operator << (const char * str);
 	int Available();
 
 	bool IsOpen();
@@ -109,8 +106,7 @@ public:
 	void FlushOutput();
 	void FlushIO();
 	virtual bool BusyTransmitting();
-	virtual IPhyLayerService & operator << (const DataLinkFramePtr &);
-	virtual IPhyLayerService & operator >> (DataLinkFramePtr &);
+
 
 	void SetTimeout(unsigned long ms);
 

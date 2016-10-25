@@ -6,6 +6,7 @@
  */
 
 #include <BlockRadioTransmitter.h>
+#include <CommsException.h>
 #include <Radio.h>
 #include <cstring>
 #include <thread>         // std::this_thread::sleep_for
@@ -13,10 +14,9 @@
 #include <Utils.h>
 #include <openssl/md5.h>
 #include <iostream>
-#include <RadioException.h>
 #include <sys/time.h> /*para timeout*/
 #include <iostream>
-using namespace radiotransmission;
+using namespace dccomms;
 
 BlockRadioTransmitter::BlockRadioTransmitter(Radio & rad):radio(rad) {
 	_bigEndian = Utils::IsBigEndian();
