@@ -13,7 +13,7 @@
 #include <pthread.h>
 #include <iostream>
 #include <Utils.h>
-
+#include <string>
 
 
 
@@ -30,6 +30,10 @@ public:
 	void Start();
 	void Stop();
 
+	//Two instances of CommsBridge for the same purpose in the same machine (for debug reasons) must have different namespaces
+	//This method must be called before Start
+	void SetNamespace(std::string nspace);
+
 private:
 	void TxWork();
 	void RxWork();
@@ -41,7 +45,7 @@ private:
 	double _bitTransmissionTime; //milis
 
 	pthread_mutex_t mutex;
-
+	std::string serv_namespace;
 	CommsDeviceService phyService;
 	DataLinkFramePtr txdlf;
 	DataLinkFramePtr rxdlf;

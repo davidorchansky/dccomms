@@ -19,21 +19,28 @@ namespace dcent {
 using namespace std;
 
 CommsBridge::CommsBridge(ICommsDevice * _device, int _baudrate): phyService(IPHY_TYPE_PHY), txserv(this), rxserv(this) {
-	phyService.Start();
 	rxdlf = DataLinkFrame::BuildDataLinkFrame(DataLinkFrame::fcsType::crc32);
 	txdlf = DataLinkFrame::BuildDataLinkFrame(DataLinkFrame::fcsType::crc32);
 	baudrate = _baudrate;
 	device = _device;
 	txserv.SetWork(&CommsBridge::TxWork);
 	rxserv.SetWork(&CommsBridge::RxWork);
+	serv_namespace = "";
 }
 
 CommsBridge::~CommsBridge() {
 	Stop();
 }
 
+void CommsBridge::SetNamespace(std::string nspace)
+{
+	serv_namespace = nspace;
+	phyService.SetNamespace(serv_namespace);
+}
+
 void CommsBridge::Start()
 {
+	phyService.Start();
 	device->Open();
 	txserv.Start();
 	rxserv.Start();
