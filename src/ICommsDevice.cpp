@@ -74,7 +74,7 @@ ICommsLink& ICommsDevice::operator<< (const DataLinkFramePtr & dlf)
 		Write(dlf->payload,dlf->dataSize);
 		Write(dlf->fcs, dlf->fcsSize);
 
-		FlushIO();//Lo ideal seria FlushOutput, pero en algun lado hay algo que hace que se llene el buffer de entrada
+		//FlushIO();//Lo ideal seria FlushOutput, pero en algun lado hay algo que hace que se llene el buffer de entrada
 						  //y al final llega a bloquearse la comunicación... (TODO: comprobar qué es lo que hace que se llene el buffer de entrada)
 	}
 	return *this;
