@@ -172,42 +172,42 @@ int TCPStream::Available()
 
 void TCPStream::FlushInput()
 {
-	throw CommsException("Not implemented", NOTIMPLEMENTED);
+	throw CommsException("void TCPStream::FlushInput() Not implemented", NOTIMPLEMENTED);
 }
 
 void TCPStream::FlushIO()
 {
-	throw CommsException("Not implemented", NOTIMPLEMENTED);
+	throw CommsException("void TCPStream::FlushIO() Not implemented", NOTIMPLEMENTED);
 }
 
 void TCPStream::FlushOutput()
 {
-	throw CommsException("Not implemented", NOTIMPLEMENTED);
+	throw CommsException("void TCPStream::FlushOutput() Not implemented", NOTIMPLEMENTED);
 }
 
 bool TCPStream::IsOpen()
 {
-	throw CommsException("Not implemented", NOTIMPLEMENTED);
+	throw CommsException("bool TCPStream::IsOpen() Not implemented", NOTIMPLEMENTED);
 }
 
 IStream & TCPStream::operator >> (uint8_t & byte )
 {
-	throw CommsException("Operator not implemented", NOTIMPLEMENTED);
+	throw CommsException("IStream & TCPStream::operator >> (uint8_t & byte ) not implemented", NOTIMPLEMENTED);
 }
 
 IStream & TCPStream::operator >> (char & byte )
 {
-	throw CommsException("Operator not implemented", NOTIMPLEMENTED);
+	throw CommsException("IStream & TCPStream::operator >> (char & byte ) Operator not implemented", NOTIMPLEMENTED);
 }
 
 IStream & TCPStream::operator >> (uint16_t & data16 )
 {
-	throw CommsException("Operator not implemented", NOTIMPLEMENTED);
+	throw CommsException("IStream & TCPStream::operator >> (uint16_t & data16 ) not implemented", NOTIMPLEMENTED);
 }
 
 IStream & TCPStream::operator >> (uint32_t & data32 )
 {
-	throw CommsException("Operator not implemented", NOTIMPLEMENTED);
+	throw CommsException("IStream & TCPStream::operator >> (uint32_t & data32 ) Operator not implemented", NOTIMPLEMENTED);
 }
 
 }
