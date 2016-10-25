@@ -44,13 +44,16 @@ public:
 	virtual void SetPhyLayerState(const PhyState &);
 	//SetPhyLayerState cambia el estado de la capa fisica y se lo hace saber a la capa de arriba
 
+	//Two instances of CommsDeviceService for the same purpose in the same machine (for debug reasons) must have different namespaces
+	//This method must be called before Start
+	void SetNamespace(std::string nspace);
+private:
 	//El siguiente metodo es para Debug en la misma maquina y ha de llamarse antes que Start().
 	//Especifica el prefijo de las colas de mensajes (sin contar el '/'
 	void SetQueuePrefix(std::string _qprefix)
 	{
 		qprefix = _qprefix;
 	}
-private:
 	//Pide a la capa fisica su estado (solo para IPHY_TYPE_PHY)
 	void ReqPhyLayerState();
 	PhyState _GetPhyLayerState();
