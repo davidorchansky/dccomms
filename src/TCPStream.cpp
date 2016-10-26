@@ -11,6 +11,15 @@
 #include <sys/ioctl.h>
 #include <sys/time.h> /*para timeout*/
 
+/* According to POSIX.1-2001, POSIX.1-2008 */
+#include <sys/select.h>
+
+/* According to earlier standards */
+#include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <errno.h>
+
 namespace dccomms {
 
 TCPStream::TCPStream(std::string address) {
@@ -48,6 +57,23 @@ void TCPStream::OpenConnection()
 	if(sockfd < 0)
 		throw CommsException("TCP ERROR: Creating a TCP socket", PHYLAYER_ERROR);
 
+	int keepalive = 1;
+	socklen_t optlen = sizeof(keepalive);
+	int res = setsockopt(sockfd, SOL_SOCKET, SO_KEEPALIVE, &keepalive, optlen);
+	if(res < 0)
+	{
+		throw CommsException("Error when setting the keepalive to the socket", PHYLAYER_ERROR);
+	}
+	keepalive = 0;
+	   /* Check the status again */
+	 if(getsockopt(sockfd, SOL_SOCKET, SO_KEEPALIVE, &keepalive, &optlen) < 0) {
+	      perror("getsockopt()");
+	      close(sockfd);
+	      throw CommsException("Error when setting the keepalive to the socket", PHYLAYER_ERROR);
+	   }
+	  // printf("SO_KEEPALIVE is %s\n", (keepalive ? "ON" : "OFF"));
+
+
 	if (connect(sockfd,(struct sockaddr *) &device_addr,sizeof(device_addr)) < 0)
 		throw CommsException("TCP ERROR: Connection to device", PHYLAYER_ERROR);
 }
@@ -61,6 +87,7 @@ void TCPStream::Close()
 bool TCPStream::Open()
 {
 	OpenConnection();
+	return true;
 }
 
 int TCPStream::Write(const void * buf, uint32_t size, uint32_t to)
@@ -69,9 +96,30 @@ int TCPStream::Write(const void * buf, uint32_t size, uint32_t to)
 	if(w < 0)
 	{
 		close(sockfd);
-		throw CommsException("Fallo de comunicacion al escribir", TXLINEDOWN);
+		throw CommsException("Fallo de comunicacion al escribir", LINEDOWN);
 	}
 	return w;
+}
+
+int TCPStream::Recv(unsigned char * ptr, int bytesLeft)
+{
+	int res = recv(sockfd, ptr, bytesLeft, MSG_DONTWAIT);
+	if (res < 0)
+	{
+		switch(errno)
+		{
+		case EAGAIN:
+			return 0;
+			break;
+		default:
+			throw CommsException("Problem happened when reading socket", LINEDOWN);
+		}
+	}
+	else if (res == 0)
+	{
+		throw CommsException("The client closed the connection", LINEDOWN);
+	}
+	return res;
 }
 
 int TCPStream::Read(void * buf, uint32_t size, unsigned long ms)
@@ -88,57 +136,34 @@ int TCPStream::Read(void * buf, uint32_t size, unsigned long ms)
 	int bytesLeft = size - n;
 
 	unsigned long m = ms ? ms : _timeout;
-
+	int res;
 	if (m == 0)
 	{
 		//Bloqueado hasta coger m bytes
 		while(true)
 		{
-#ifndef SERIAL_DISCONNECT_TEST
-			if(Available()>0)
+			if(Connected())
 			{
-				n += read(sockfd, ptr, bytesLeft);
-				ptr = (uint8_t*)buf + n;
-				if(ptr == max)
-					return n; // == size
-				bytesLeft = size - n;
-			}
-#else
-			int res = Available();
-			if(res>0)
-			{
-				n += read(sockfd, ptr, bytesLeft);
-				ptr = (uint8_t*)buf + n;
-				if(ptr == max)
-					return n; // == size
-				bytesLeft = size - n;
-			}
-			else
-			{
-				char sig = '-'; //Un byte aleatorio...
-				res = write(sockfd, &sig, 1);
-				if(res < 0)
+				res = Recv(ptr, bytesLeft);
+				if (res > 0)
 				{
-					close(fd);
-					throw CommsException("Fallo de comunicacion al leer", RXLINEDOWN);
+					n += res;
+					ptr = (uint8_t*)buf + n;
+					if(ptr == max)
+						return n; // == size
+					bytesLeft = size - n;
 				}
 			}
-#endif
+			else
+				throw CommsException("Problem happened when reading socket", LINEDOWN);
 		}
-
 	}
-
-#ifndef CHECK_TIMEOUTEXCEPTION
 	while(t1 - t0 < m)
 	{
-		if(Available()>0)
+		res = Recv(ptr, bytesLeft);
+		if(res > 0)
 		{
-
-#ifdef PRINTSERIAL
-			int SZ = Available();
-			std::cout << std::endl << SZ <<std::endl;
-#endif
-			n += read(sockfd, ptr, bytesLeft);
+			n += res;
 			ptr = (uint8_t*)buf + n;
 			if(ptr == max)
 				return n; // == size
@@ -147,26 +172,67 @@ int TCPStream::Read(void * buf, uint32_t size, unsigned long ms)
 		gettimeofday(&time1, NULL);
 		t1 = time1.tv_sec*1000 + time1.tv_usec/1000;
 	}
-#endif
 
 	//Si se llega hasta este punto, es que ha transcurrido el timeout
 	char sig = '-'; //Un byte aleatorio...
-	int res = write(sockfd, &sig, 1);
+	res = write(sockfd, &sig, 1);
 	if(res < 0)
 	{
 		close(sockfd);
-		throw CommsException("Fallo de comunicacion al leer", RXLINEDOWN);
+		throw CommsException("Fallo de comunicacion al leer", LINEDOWN);
 	}
 
 	throw CommsException("Read Timeout", TIMEOUT);
 
 }
 
+void TCPStream::ThrowExceptionIfErrorOnSocket()
+{
+	//http://stackoverflow.com/questions/4142012/how-to-find-the-socket-connection-state-in-c
+	int error = 0;
+	socklen_t len = sizeof (error);
+	int retval = getsockopt (sockfd, SOL_SOCKET, SO_ERROR, &error, &len);
+	if (retval != 0) {
+	    /* there was a problem getting the error code */
+	   throw CommsException("error getting socket error code: %s\n"+ std::string(strerror(retval)), LINEDOWN);
+	}
+
+	if (error != 0) {
+	    /* socket has a non zero error status */
+	    throw CommsException("socket error: %s\n"+ std::string(strerror(error)), LINEDOWN);
+	}
+}
+
+bool TCPStream::Connected()
+{
+	//http://stackoverflow.com/questions/283375/detecting-tcp-client-disconnect
+	//http://blog.stephencleary.com/2009/05/detection-of-half-open-dropped.html
+	return !(Ready() && Available() == 0) ;
+}
+
+bool TCPStream::Ready()
+{
+	fd_set fds;
+	struct timeval t;
+	t.tv_sec = 0;
+	t.tv_usec = 0;
+
+	FD_ZERO(&fds);
+	FD_SET(sockfd, &fds);
+	int r = select(sockfd+1, &fds, NULL, NULL, &t);
+	if(-1 == r)
+	{
+		throw CommsException("Error when reading from descriptor", LINEDOWN);
+		return 0;
+	}
+	return r;
+}
+
 int TCPStream::Available()
 {
 	int n;
 	if(ioctl(sockfd, FIONREAD, &n)<0)
-		return -1;
+		throw CommsException("Some error happened when trying to read", LINEDOWN);
 	return n;
 }
 

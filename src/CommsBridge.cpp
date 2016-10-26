@@ -96,13 +96,7 @@ bool CommsBridge::ReceiveFrame()
 		LOG_DEBUG("EXCEPTION!!!!!!!!!!!!!!!");
 		switch (e.code)
 		{
-		case RXLINEDOWN:
-			LOG_DEBUG("CONNECTION LOST WITH DEVICE WHEN READING: "+msg);
-			phyService.SetPhyLayerState(CommsDeviceService::BUSY);
-			TryToReconnect();
-			phyService.SetPhyLayerState(CommsDeviceService::READY);
-			break;
-		case TXLINEDOWN:
+		case LINEDOWN:
 			LOG_DEBUG("CONNECTION LOST WITH DEVICE WHEN READING: "+msg);
 			phyService.SetPhyLayerState(CommsDeviceService::BUSY);
 			TryToReconnect();
@@ -146,13 +140,7 @@ void CommsBridge::TxWork()
 		std::string msg = e.what();
 		switch (e.code)
 		{
-		case RXLINEDOWN:
-			LOG_DEBUG("CONNECTION LOST WITH DEVICE WHEN WRITTING: "+msg);
-			phyService.SetPhyLayerState(CommsDeviceService::BUSY);
-			TryToReconnect();
-			phyService.SetPhyLayerState(CommsDeviceService::READY);
-			break;
-		case TXLINEDOWN:
+		case LINEDOWN:
 			LOG_DEBUG("CONNECTION LOST WITH DEVICE WHEN WRITTING: "+msg);
 			phyService.SetPhyLayerState(CommsDeviceService::BUSY);
 			TryToReconnect();

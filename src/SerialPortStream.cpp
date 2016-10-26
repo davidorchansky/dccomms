@@ -21,6 +21,15 @@
 
 #include <iostream>
 
+/* According to POSIX.1-2001, POSIX.1-2008 */
+#include <sys/select.h>
+
+/* According to earlier standards */
+#include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+
 namespace dccomms {
 
 SerialPortStream::SerialPortStream(){}
@@ -209,7 +218,7 @@ int SerialPortStream::Read(void * buf, uint32_t size, unsigned long ms)
 				if(res < 0)
 				{
 					close(fd);
-					throw CommsException("Fallo de comunicacion al leer", RXLINEDOWN);
+					throw CommsException("Fallo de comunicacion al leer", LINEDOWN);
 				}
 			}
 #endif
@@ -244,7 +253,7 @@ int SerialPortStream::Read(void * buf, uint32_t size, unsigned long ms)
 	if(res < 0)
 	{
 		close(fd);
-		throw CommsException("Fallo de comunicacion al leer", RXLINEDOWN);
+		throw CommsException("Fallo de comunicacion al leer", LINEDOWN);
 	}
 
 	throw CommsException("Read Timeout", TIMEOUT);
@@ -287,7 +296,7 @@ int SerialPortStream::Write(const void * buf, uint32_t size, uint32_t to)
 		if(w < 0)
 		{
 			close(fd);
-			throw CommsException("Fallo de comunicacion al escribir", TXLINEDOWN);
+			throw CommsException("Fallo de comunicacion al escribir", LINEDOWN);
 		}
 	}
 	return w;
@@ -309,7 +318,7 @@ int SerialPortStream::Write(const void * buf, uint32_t size, uint32_t to)
 		if(w < 0)
 		{
 			close(fd);
-			throw CommsException("Fallo de comunicacion al escribir", TXLINEDOWN);
+			throw CommsException("Fallo de comunicacion al escribir", LINEDOWN);
 		}
 	}
 	if(left)
@@ -319,7 +328,7 @@ int SerialPortStream::Write(const void * buf, uint32_t size, uint32_t to)
 		if(w < 0)
 		{
 			close(fd);
-			throw CommsException("Fallo de comunicacion al escribir", TXLINEDOWN);
+			throw CommsException("Fallo de comunicacion al escribir", LINEDOWN);
 		}
 	}
 	return w;
@@ -334,7 +343,7 @@ int SerialPortStream::Write(const void * buf, uint32_t size, uint32_t to)
 		if(bw < 0)
 		{
 			close(fd);
-			throw CommsException("Fallo de comunicacion al escribir", TXLINEDOWN);
+			throw CommsException("Fallo de comunicacion al escribir", LINEDOWN);
 		}
 	}
 	return tbw;
@@ -343,7 +352,7 @@ int SerialPortStream::Write(const void * buf, uint32_t size, uint32_t to)
 	if(w < 0)
 	{
 		close(fd);
-		throw CommsException("Fallo de comunicacion al escribir", TXLINEDOWN);
+		throw CommsException("Fallo de comunicacion al escribir", LINEDOWN);
 	}
 
 	return w;
@@ -355,7 +364,7 @@ int SerialPortStream::Available()
 {
 	int n;
 	if(ioctl(fd, FIONREAD, &n)<0)
-		return -1;	
+		throw CommsException("Some error happened when trying to read", LINEDOWN);
 	return n;
 }
 

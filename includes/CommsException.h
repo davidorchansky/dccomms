@@ -16,8 +16,7 @@
 using namespace std;
 namespace dccomms {
 
-#define RXLINEDOWN   0
-#define TXLINEDOWN   1
+#define LINEDOWN 	 0
 #define TIMEOUT      2
 #define CORRUPTFRAME 3
 #define CORRUPTBLOCK 4
