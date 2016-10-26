@@ -14,7 +14,7 @@
 #include <iostream>
 #include <Utils.h>
 #include <string>
-
+#include <mutex>
 
 
 namespace dcent {
@@ -39,12 +39,12 @@ private:
 	void RxWork();
 	void TransmitFrame();
 	bool ReceiveFrame();
-
+	bool TryToConnect();
+	bool TryToReconnect();
 	Timer timer;
 	unsigned int _frameTransmissionTime; //milis
 	double _bitTransmissionTime; //milis
 
-	pthread_mutex_t mutex;
 	std::string serv_namespace;
 	CommsDeviceService phyService;
 	DataLinkFramePtr txdlf;
@@ -52,6 +52,8 @@ private:
 
 	uint8_t obuf[MAX_ODATA_BUF];
 
+	mutex devicemutex;
+	bool connected;
 	bool transcurridoTiempoEnvio;
 	int baudrate;
 	ICommsDevice * device;
