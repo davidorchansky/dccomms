@@ -116,7 +116,7 @@ uint32_t BlockRadioTransmitter::Receive(const char* identifier, void * buf, unsi
 #else
 	if(memcmp(md5, rmd5, 16)!=0)
 	{
-		throw RadioException("Bloque no válido", RADIO_CORRUPTBLOCK);
+		throw CommsException("Bloque no válido", CORRUPTBLOCK);
 	}
 #endif
 #ifdef TIMMING
