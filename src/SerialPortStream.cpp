@@ -145,6 +145,7 @@ bool SerialPortStream::Open()
 		return true;
 	}
 	_open = false;
+	throw CommsException("Error trying to connect with the serial port", PHYLAYER_ERROR);
 	return false;
 
 }
