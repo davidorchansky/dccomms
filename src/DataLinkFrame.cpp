@@ -77,17 +77,7 @@ DataLinkFrame::DataLinkFrame(
 
     *ddir = desdir;
     *sdir = srcdir;
-    if(_BigEndian)
-    	*dsize = datasize;
-    else
-    {
-    	*(uint8_t*)dsize = (uint8_t)(datasize >> 8);
-    	*(((uint8_t*)dsize)+1) = (uint8_t)(datasize & 0xff);
-    }
-    if(datasize > DLNK_MAX_PAYLOAD_SIZE)
-    {
-    	ThrowDLinkLayerException(std::string("El tamano del payload no puede ser mayor que ")+ std::to_string(DLNK_MAX_PAYLOAD_SIZE));
-    }
+    _SetPayloadSizeInBuffer(datasize);
     fcs = ((uint8_t *) payload) + dataSize;
     memcpy(payload, data, datasize);
 
@@ -188,6 +178,33 @@ bool DataLinkFrame::checkFrame()
 
 	}
 	return true;
+}
+
+void DataLinkFrame::_SetPayloadSizeInBuffer(unsigned int datasize)
+{
+	if (datasize <= DLNK_MAX_PAYLOAD_SIZE)
+	{
+	    if(_BigEndian)
+	    	*dsize = datasize;
+	    else
+	    {
+	    	*(uint8_t*)dsize = (uint8_t)(datasize >> 8);
+	    	*(((uint8_t*)dsize)+1) = (uint8_t)(datasize & 0xff);
+	    }
+	}
+	else
+		ThrowDLinkLayerException(std::string("El tamano del payload no puede ser mayor que ")+ std::to_string(DLNK_MAX_PAYLOAD_SIZE));
+}
+
+void DataLinkFrame::PayloadUpdated(unsigned int datasize)
+{
+	_SetPayloadSizeInBuffer(datasize);
+	_calculateCRC();
+}
+
+uint8_t * DataLinkFrame::GetPayloadBuffer()
+{
+	return payload;
 }
 
 void DataLinkFrame::GetInfoFromBufferWithPreamble(void *o)

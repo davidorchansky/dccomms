@@ -50,6 +50,9 @@ public:
 	int GetFrameSize() const {return frameSize;}
 	uint8_t * GetFrameBuffer() const {return buffer;}
 
+	void PayloadUpdated(unsigned int datasize);
+	uint8_t * GetPayloadBuffer();
+
 	void GetInfoFromBuffer(void *);
 	void GetInfoFromBufferWithPreamble(void *o);
 
@@ -90,7 +93,7 @@ private:
 	uint8_t totalInfoSize = 0;
 
 	void _calculateCRC();
-
+	void _SetPayloadSizeInBuffer(unsigned int datasize);
 	bool _BigEndian;
 	bool dataIn = false;
 };
