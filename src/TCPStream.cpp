@@ -112,11 +112,13 @@ int TCPStream::Recv(unsigned char * ptr, int bytesLeft)
 			return 0;
 			break;
 		default:
+			close(sockfd);
 			throw CommsException("Problem happened when reading socket", LINEDOWN);
 		}
 	}
 	else if (res == 0)
 	{
+		close(sockfd);
 		throw CommsException("The client closed the connection", LINEDOWN);
 	}
 	return res;
@@ -142,8 +144,6 @@ int TCPStream::Read(void * buf, uint32_t size, unsigned long ms)
 		//Bloqueado hasta coger m bytes
 		while(true)
 		{
-			if(Connected())
-			{
 				res = Recv(ptr, bytesLeft);
 				if (res > 0)
 				{
@@ -153,9 +153,14 @@ int TCPStream::Read(void * buf, uint32_t size, unsigned long ms)
 						return n; // == size
 					bytesLeft = size - n;
 				}
-			}
-			else
-				throw CommsException("Problem happened when reading socket", LINEDOWN);
+				else
+				{
+					if(!Connected())
+					{
+						close(sockfd);
+						throw CommsException("Problem happened when reading socket", LINEDOWN);
+					}
+				}
 		}
 	}
 	while(t1 - t0 < m)
@@ -172,7 +177,7 @@ int TCPStream::Read(void * buf, uint32_t size, unsigned long ms)
 		gettimeofday(&time1, NULL);
 		t1 = time1.tv_sec*1000 + time1.tv_usec/1000;
 	}
-
+	/*
 	//Si se llega hasta este punto, es que ha transcurrido el timeout
 	char sig = '-'; //Un byte aleatorio...
 	res = write(sockfd, &sig, 1);
@@ -181,6 +186,7 @@ int TCPStream::Read(void * buf, uint32_t size, unsigned long ms)
 		close(sockfd);
 		throw CommsException("Fallo de comunicacion al leer", LINEDOWN);
 	}
+	*/
 
 	throw CommsException("Read Timeout", TIMEOUT);
 
@@ -194,11 +200,13 @@ void TCPStream::ThrowExceptionIfErrorOnSocket()
 	int retval = getsockopt (sockfd, SOL_SOCKET, SO_ERROR, &error, &len);
 	if (retval != 0) {
 	    /* there was a problem getting the error code */
+	   close(sockfd);
 	   throw CommsException("error getting socket error code: %s\n"+ std::string(strerror(retval)), LINEDOWN);
 	}
 
 	if (error != 0) {
 	    /* socket has a non zero error status */
+		close(sockfd);
 	    throw CommsException("socket error: %s\n"+ std::string(strerror(error)), LINEDOWN);
 	}
 }
@@ -222,6 +230,7 @@ bool TCPStream::Ready()
 	int r = select(sockfd+1, &fds, NULL, NULL, &t);
 	if(-1 == r)
 	{
+		close(sockfd);
 		throw CommsException("Error when reading from descriptor", LINEDOWN);
 		return 0;
 	}
