@@ -111,6 +111,8 @@ public:
 	void SetTimeout(unsigned long ms);
 
 protected:
+	bool Connected();
+	bool Ready();
 	PortSettings portSettings;
 	int fd;
     char *  port;
