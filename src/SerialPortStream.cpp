@@ -166,7 +166,46 @@ void SerialPortStream::Close()
 	_open = false;
 }
 
+bool SerialPortStream::Connected()
+{
+	//http://stackoverflow.com/questions/34170350/detecting-if-a-character-device-has-disconnected-in-linux-in-with-termios-api-c
+	bool connected = !(Ready() && Available() == 0) ; //But does not work with the virtual serial port...
+	return connected;
+	/*
+	char buf;
+	int res = write(fd, &buf, 0);
+	if (res == -1)
+	{
+		switch(errno)
+		{
+		case EPIPE:
+			return false; //throw CommsException("Serial port end is closed", LINEDOWN);
+			break;
+		default:
+			return false; //throw CommsException("Serial link down (unknown error)", LINEDOWN);
+			break;
+		}
+	}
+	return true;*/
+}
 
+bool SerialPortStream::Ready()
+{
+	fd_set fds;
+	struct timeval t;
+	t.tv_sec = 0;
+	t.tv_usec = 0;
+
+	FD_ZERO(&fds);
+	FD_SET(fd, &fds);
+	int r = select(fd+1, &fds, NULL, NULL, &t);
+	if(-1 == r)
+	{
+		throw CommsException("Error when reading from descriptor", LINEDOWN);
+		return 0;
+	}
+	return r;
+}
 
 int SerialPortStream::Read(void * buf, uint32_t size, unsigned long ms)
 {
@@ -199,7 +238,10 @@ int SerialPortStream::Read(void * buf, uint32_t size, unsigned long ms)
 			}
 			else
 			{
-				//TODO: CHECK THE CONNECTION STATUS AND RAISE EXCEPTION IF DOWN
+				if(!Connected())//TODO: CHECK THE CONNECTION STATUS AND RAISE EXCEPTION IF DOWN
+				{
+					throw CommsException("Problem happened when reading socket", LINEDOWN);
+				}
 			}
 #else
 			int res = Available();
@@ -362,7 +404,7 @@ int SerialPortStream::Write(const void * buf, uint32_t size, uint32_t to)
 
 int SerialPortStream::Available()
 {
-	int n;
+	int n = 0;
 	if(ioctl(fd, FIONREAD, &n)<0)
 		throw CommsException("Some error happened when trying to read", LINEDOWN);
 	return n;
