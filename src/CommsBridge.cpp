@@ -52,8 +52,8 @@ void CommsBridge::Stop()
 	txserv.Stop();
 	rxserv.Stop();
 	while(txserv.IsRunning() || rxserv.IsRunning()){}
-	device->Close();
 	connected = false;
+	device->Close();
 }
 
 void CommsBridge::RxWork()
@@ -98,9 +98,7 @@ bool CommsBridge::ReceiveFrame()
 		{
 		case LINEDOWN:
 			LOG_DEBUG("CONNECTION LOST WITH DEVICE WHEN READING: "+msg);
-			phyService.SetPhyLayerState(CommsDeviceService::BUSY);
 			TryToReconnect();
-			phyService.SetPhyLayerState(CommsDeviceService::READY);
 			break;
 		}
 	}
@@ -142,9 +140,7 @@ void CommsBridge::TxWork()
 		{
 		case LINEDOWN:
 			LOG_DEBUG("CONNECTION LOST WITH DEVICE WHEN WRITTING: "+msg);
-			phyService.SetPhyLayerState(CommsDeviceService::BUSY);
 			TryToReconnect();
-			phyService.SetPhyLayerState(CommsDeviceService::READY);
 			break;
 		}
 	}
@@ -160,6 +156,7 @@ bool CommsBridge::TryToReconnect()
 
 bool CommsBridge::TryToConnect()
 {
+	phyService.SetPhyLayerState(CommsDeviceService::BUSY);
 	while (!connected)
 	{
 		try
@@ -175,6 +172,7 @@ bool CommsBridge::TryToConnect()
 		}
 
 	}
+	phyService.SetPhyLayerState(CommsDeviceService::READY);
 	return connected;
 }
 

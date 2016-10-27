@@ -90,7 +90,7 @@ void CommsDeviceService::Init(int _type, struct mq_attr attr, int perm)
 	case IPHY_TYPE_PHY:
 		rxmqname += "_tx_dlnk_phy";
 		txmqname += "_rx_dlnk_phy";
-		_SetPhyLayerState(PhyState::READY);
+		_SetPhyLayerState(PhyState::BUSY);
 		break;
 	default:
 		ThrowPhyLayerException("Tipo de interfaz con la capa fisica incorrecto");
