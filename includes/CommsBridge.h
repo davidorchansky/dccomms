@@ -43,7 +43,7 @@ private:
 	bool TryToReconnect();
 	Timer timer;
 	unsigned int _frameTransmissionTime; //milis
-	unsigned int _byteTransmissionTime; //milis
+	double _byteTransmissionTime; //milis
 
 	std::string serv_namespace;
 	CommsDeviceService phyService;

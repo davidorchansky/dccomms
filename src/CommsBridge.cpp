@@ -18,7 +18,7 @@
 namespace dcent {
 using namespace std;
 
-CommsBridge::CommsBridge(ICommsDevice * _device, int _baudrate, DataLinkFrame::fcsType chksum): phyService(IPHY_TYPE_PHY), txserv(this), rxserv(this) {
+CommsBridge::CommsBridge(ICommsDevice * _device, int _baudrate, DataLinkFrame::fcsType chksum): phyService(IPHY_TYPE_PHY, chksum), txserv(this), rxserv(this) {
 	rxdlf = DataLinkFrame::BuildDataLinkFrame(chksum);
 	txdlf = DataLinkFrame::BuildDataLinkFrame(chksum);
 	baudrate = _baudrate;
@@ -41,7 +41,7 @@ void CommsBridge::SetNamespace(std::string nspace)
 
 void CommsBridge::Start()
 {
-	_byteTransmissionTime = (unsigned int) round(1000./ baudrate / 8.);
+	_byteTransmissionTime =  1000./( baudrate / 8.);
 	phyService.Start();
 	TryToConnect();
 	txserv.Start();
@@ -123,7 +123,7 @@ void CommsBridge::TxWork()
 					LOG_DEBUG("TX: frame is OK, ready to send");
 					TransmitFrame();
 					unsigned int frameSize = txdlf->GetFrameSize();
-					_frameTransmissionTime = frameSize * _byteTransmissionTime;
+					_frameTransmissionTime = ceil(frameSize * _byteTransmissionTime);
 					LOG_DEBUG("frame transmission time: " + std::to_string(_frameTransmissionTime));
 					timer.Reset();
 					unsigned int elapsed = 0;

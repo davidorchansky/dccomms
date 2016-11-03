@@ -68,6 +68,8 @@ void Radio::SendBytes(const void * buf, uint32_t size, uint8_t dirTo, uint32_t p
 	uint32_t np;
 	for(np = 1 ; np < numPackets; np++)
 	{
+		while(serial.BusyTransmitting());
+
 		DataLinkFramePtr dlfPtr = DataLinkFrame::BuildDataLinkFrame(dirTo, dir, packetSize, buffer, FCSType); //TODO: Deberiamos reservar memoria solo 1 vez para guardar una trama
 #ifdef DEBUG
 		std::cerr << "Enviando paquete..." << std::endl;
@@ -77,10 +79,11 @@ void Radio::SendBytes(const void * buf, uint32_t size, uint8_t dirTo, uint32_t p
 		buffer += packetSize;
 		std::this_thread::sleep_for(std::chrono::milliseconds(ms));
 
+
 	}
 	if(numPackets > 0)
 	{
-
+		while(serial.BusyTransmitting());
 		DataLinkFramePtr dlfPtr = DataLinkFrame::BuildDataLinkFrame(dirTo, dir, packetSize, buffer, FCSType);
 #ifdef DEBUG
 		std::cerr << "Enviando paquete..." << std::endl;
@@ -93,6 +96,7 @@ void Radio::SendBytes(const void * buf, uint32_t size, uint8_t dirTo, uint32_t p
 	uint32_t bytesLeft = size % packetSize;
 	if(bytesLeft)
 	{
+		while(serial.BusyTransmitting());
 		if(numPackets > 0)
 			std::this_thread::sleep_for(std::chrono::milliseconds(ms));
 		DataLinkFramePtr dlfPtr = DataLinkFrame::BuildDataLinkFrame(dirTo, dir, bytesLeft, buffer, FCSType);
@@ -101,7 +105,6 @@ void Radio::SendBytes(const void * buf, uint32_t size, uint8_t dirTo, uint32_t p
 		dlfPtr->printFrame(std::cerr);
 #endif
 		serial << dlfPtr;
-		//std::this_thread::sleep_for(std::chrono::milliseconds(ms));
 	}
 
 }
