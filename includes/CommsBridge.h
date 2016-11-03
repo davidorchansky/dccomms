@@ -25,7 +25,7 @@ using namespace dccomms;
 
 class CommsBridge {
 public:
-	CommsBridge(ICommsDevice *, int _baudrate = 0);
+	CommsBridge(ICommsDevice *, int _baudrate = 0, DataLinkFrame::fcsType _chksum = DataLinkFrame::fcsType::crc32);
 	virtual ~CommsBridge();
 	void Start();
 	void Stop();
@@ -43,7 +43,7 @@ private:
 	bool TryToReconnect();
 	Timer timer;
 	unsigned int _frameTransmissionTime; //milis
-	double _bitTransmissionTime; //milis
+	unsigned int _byteTransmissionTime; //milis
 
 	std::string serv_namespace;
 	CommsDeviceService phyService;

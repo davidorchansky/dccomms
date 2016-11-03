@@ -18,9 +18,9 @@
 namespace dcent {
 using namespace std;
 
-CommsBridge::CommsBridge(ICommsDevice * _device, int _baudrate): phyService(IPHY_TYPE_PHY), txserv(this), rxserv(this) {
-	rxdlf = DataLinkFrame::BuildDataLinkFrame(DataLinkFrame::fcsType::crc32);
-	txdlf = DataLinkFrame::BuildDataLinkFrame(DataLinkFrame::fcsType::crc32);
+CommsBridge::CommsBridge(ICommsDevice * _device, int _baudrate, DataLinkFrame::fcsType chksum): phyService(IPHY_TYPE_PHY), txserv(this), rxserv(this) {
+	rxdlf = DataLinkFrame::BuildDataLinkFrame(chksum);
+	txdlf = DataLinkFrame::BuildDataLinkFrame(chksum);
 	baudrate = _baudrate;
 	device = _device;
 	txserv.SetWork(&CommsBridge::TxWork);
@@ -41,6 +41,7 @@ void CommsBridge::SetNamespace(std::string nspace)
 
 void CommsBridge::Start()
 {
+	_byteTransmissionTime = (unsigned int) round(1000./ baudrate / 8.);
 	phyService.Start();
 	TryToConnect();
 	txserv.Start();
@@ -90,7 +91,7 @@ bool CommsBridge::ReceiveFrame()
 		*device >> rxdlf;
 		return rxdlf->checkFrame();
 	}
-	catch(CommsException e)
+	catch(CommsException &e)
 	{
 		std::string msg = e.what();
 		LOG_DEBUG("EXCEPTION!!!!!!!!!!!!!!!");
@@ -102,6 +103,7 @@ bool CommsBridge::ReceiveFrame()
 			break;
 		}
 	}
+	return true;
 }
 
 void CommsBridge::TxWork()
@@ -118,10 +120,18 @@ void CommsBridge::TxWork()
 				if(txdlf->checkFrame())
 				{
 					//PACKET OK
-					//TODO: SEND PACKET TO THE UPPER LAYER
-					//...
 					LOG_DEBUG("TX: frame is OK, ready to send");
 					TransmitFrame();
+					unsigned int frameSize = txdlf->GetFrameSize();
+					_frameTransmissionTime = frameSize * _byteTransmissionTime;
+					LOG_DEBUG("frame transmission time: " + std::to_string(_frameTransmissionTime));
+					timer.Reset();
+					unsigned int elapsed = 0;
+					while(elapsed < _frameTransmissionTime)
+					{
+						elapsed = timer.Elapsed();
+					}
+					LOG_DEBUG("Tiempo transcurrido: "+std::to_string(elapsed));
 
 				}
 				else
@@ -133,7 +143,7 @@ void CommsBridge::TxWork()
 			phyService.SetPhyLayerState(CommsDeviceService::READY);
 		}
 	}
-	catch(CommsException e)
+	catch(CommsException & e)
 	{
 		std::string msg = e.what();
 		switch (e.code)
@@ -152,6 +162,7 @@ bool CommsBridge::TryToReconnect()
 	connected = false;
 	TryToConnect();
 	devicemutex.unlock();
+	return true;
 }
 
 bool CommsBridge::TryToConnect()
@@ -164,7 +175,7 @@ bool CommsBridge::TryToConnect()
 			device->Open();
 			connected = true;
 		}
-		catch(CommsException e)
+		catch(CommsException & e)
 		{
 			std::string msg = e.what();
 			LOG_DEBUG("Problem happened when trying to connect with the comms device (" + msg +")... Trying again...");

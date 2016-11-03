@@ -36,6 +36,7 @@ public:
 	virtual void Stop();
 
 	virtual unsigned int GetRxFifoSize();
+	void SetChecksumType(DataLinkFrame::fcsType fcs);
 
 	//Methods only for type IPHY_TYPE_DLINK
 	virtual bool BusyTransmitting();

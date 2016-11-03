@@ -75,6 +75,11 @@ void CommsDeviceService::SetNamespace(std::string m)
 	SetQueuePrefix(m);
 }
 
+void CommsDeviceService::SetChecksumType(DataLinkFrame::fcsType fcs)
+{
+	fcsType = fcs;
+}
+
 void CommsDeviceService::Init(int _type, struct mq_attr attr, int perm)
 {
 	type = _type;
