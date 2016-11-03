@@ -8,6 +8,7 @@
 #include <Utils.h>
 #include <cstdint>
 #include <thread>
+#include <openssl/md5.h>
 
 namespace dccomms {
 
@@ -49,6 +50,11 @@ std::string Utils::BuildString(std::initializer_list<std::string> list )
 void Utils::Sleep(int millis)
 {
 	std::this_thread::sleep_for(std::chrono::milliseconds(millis));
+}
+
+void Utils::md5(void *data, unsigned int length, void * md5)
+{
+	MD5((uint8_t*)data, length, (uint8_t*)md5);
 }
 
 void Utils::Debug(std::ostream & o, std::string & msg)

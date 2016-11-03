@@ -21,7 +21,7 @@ static bool DebugComms = true;
 #else
 static bool DebugComms = false;
 #endif
-#define LOG_DEBUG(msg) if(DebugComms){std::cout << "DEBUG("+std::string(typeid(*this).name())+":"+std::string(__func__)+"): " + std::string(msg) << std::endl; std::cerr << std::flush;}
+#define LOG_DEBUG(msg) if(DebugComms){std::cerr << "DEBUG("+std::string(typeid(*this).name())+":"+std::string(__func__)+"): " + std::string(msg) << std::endl; std::cerr << std::flush;}
 
 class Utils {
 public:
@@ -32,6 +32,7 @@ public:
 	static std::string BuildString(std::initializer_list<std::string> list );
 	static void Debug(std::ostream &, std::string &);
 	static void Sleep(int millis);
+	static void md5(void *data, unsigned int length, void *md5);
 
 };
 
