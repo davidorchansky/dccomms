@@ -29,6 +29,8 @@ public:
 	virtual ~Utils();
 	static bool IsBigEndian();
 	static void IntSwitchEndian(void * b, uint32_t entero);
+	static void IntSwitchEndian(void * b, uint16_t entero);
+	//static void SaveInt16AsBigEndian(void * b, uint16_t integer);
 	static std::string BuildString(std::initializer_list<std::string> list );
 	static void Debug(std::ostream &, std::string &);
 	static void Sleep(int millis);

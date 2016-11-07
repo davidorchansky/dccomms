@@ -23,6 +23,7 @@ Utils::~Utils() {
 
 bool Utils::IsBigEndian()
 {
+	//https://es.wikipedia.org/wiki/Endianness
 	uint32_t word = 0x1;
 	uint8_t * byte = (uint8_t *)&word;
 	return *byte != 0x1;
@@ -36,6 +37,25 @@ void Utils::IntSwitchEndian(void * b, uint32_t entero)
 	*(buf+2) = (uint8_t)((entero >> 8) & 0xff);
 	*(buf+3) = (uint8_t)(entero & 0xff);
 }
+
+void Utils::IntSwitchEndian(void * b, uint16_t integer)
+{
+	*(uint8_t*)b = (uint8_t)(integer >> 8);
+	*(((uint8_t*)b)+1) = (uint8_t)(integer & 0xff);
+}
+/*
+void Utils::SaveInt16AsBigEndian(void * b, uint16_t integer)
+{
+	if(IsBigEndian())
+	{
+		*(uint16_t*) b = integer;
+	}
+	else
+	{
+		Int16SwitchEndian(b, integer);
+	}
+}
+*/
 
 std::string Utils::BuildString(std::initializer_list<std::string> list )
 {
