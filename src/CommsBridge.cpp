@@ -150,7 +150,7 @@ void CommsBridge::TxWork()
 		{
 		case LINEDOWN:
 			LOG_DEBUG("CONNECTION LOST WITH DEVICE WHEN WRITTING: "+msg);
-			TryToReconnect();
+			//TryToReconnect();
 			break;
 		}
 	}
