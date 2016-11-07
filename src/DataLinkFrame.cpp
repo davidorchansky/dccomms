@@ -184,6 +184,7 @@ void DataLinkFrame::_SetPayloadSizeInBuffer(unsigned int datasize)
 {
 	if (datasize <= DLNK_MAX_PAYLOAD_SIZE)
 	{
+		fcs = ((uint8_t *) payload) + dataSize;
 	    if(_BigEndian)
 	    	*dsize = datasize;
 	    else
