@@ -46,6 +46,8 @@ void CommsBridge::Start()
 	TryToConnect();
 	txserv.Start();
 	rxserv.Start();
+
+	phyService.SetPhyLayerState(CommsDeviceService::READY);
 }
 
 void CommsBridge::Stop()
