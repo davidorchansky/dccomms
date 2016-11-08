@@ -53,7 +53,7 @@ void DataLinkFrame::Init(DataLinkFrame::fcsType fcst)
     payload = ((uint8_t *) dsize)  + DLNK_DSIZE_SIZE;
 
     memcpy(pre, DataLinkFrame::manchesterPre, DLNK_PREAMBLE_SIZE);
-    frameSize = overheadSize;
+    _SetPayloadSizeInBuffer(0);
     totalInfoSize = DLNK_DIR_SIZE*2 + DLNK_DSIZE_SIZE;
     dataIn = false;
 }
@@ -73,15 +73,13 @@ DataLinkFrame::DataLinkFrame(
 {
 	Init(fcst);
 
-	dataSize = datasize;
-
     *ddir = desdir;
     *sdir = srcdir;
     _SetPayloadSizeInBuffer(datasize);
-    fcs = ((uint8_t *) payload) + dataSize;
-    memcpy(payload, data, datasize);
+    fcs = ((uint8_t *) payload) + payloadSize;
+    memcpy(payload, data, payloadSize);
 
-    frameSize = overheadSize + dataSize;
+
 
     _calculateCRC();
     dataIn = true;
@@ -126,7 +124,7 @@ void DataLinkFrame::_calculateCRC()
 	case crc16:
 		uint16_t crc1;
 		crc1 = Checksum::crc16(ddir, totalInfoSize);
-		crc1 = Checksum::crc16(payload, dataSize, crc1);
+		crc1 = Checksum::crc16(payload, payloadSize, crc1);
 
 		*fcs = (uint8_t)(crc1 >> 8);
 		*(fcs+1) = (uint8_t)(crc1 & 0x00ff);
@@ -135,7 +133,7 @@ void DataLinkFrame::_calculateCRC()
 	case crc32:
 		uint32_t crc2;
 		crc2 = Checksum::crc32(ddir, totalInfoSize);
-		crc2 = Checksum::crc32(payload, dataSize, crc2);
+		crc2 = Checksum::crc32(payload, payloadSize, crc2);
 
         *(fcs)    = (uint8_t)((crc2 >> 24) & 0x000000ff);
         *(fcs+1)  = (uint8_t)((crc2 >> 16) & 0x000000ff);
@@ -158,7 +156,7 @@ bool DataLinkFrame::checkFrame()
 	case crc16:
 		uint16_t crc1;
 		crc1 = Checksum::crc16(ddir, totalInfoSize);
-		crc1 = Checksum::crc16(payload, dataSize, crc1);
+		crc1 = Checksum::crc16(payload, payloadSize, crc1);
 		crc1 = Checksum::crc16(fcs, fcsSize, crc1);
 		return crc1 == 0;
 		break;
@@ -166,7 +164,7 @@ bool DataLinkFrame::checkFrame()
 	case crc32:
 		uint32_t crc2;
 		crc2 = Checksum::crc32(ddir, totalInfoSize);
-		crc2 = Checksum::crc32(payload, dataSize, crc2);
+		crc2 = Checksum::crc32(payload, payloadSize, crc2);
 		crc2 = Checksum::crc32(fcs, fcsSize, crc2);
 		return crc2 == 0;
 		break;
@@ -184,13 +182,15 @@ void DataLinkFrame::_SetPayloadSizeInBuffer(unsigned int datasize)
 {
 	if (datasize <= DLNK_MAX_PAYLOAD_SIZE)
 	{
-		fcs = ((uint8_t *) payload) + dataSize;
+		payloadSize = datasize;
+		frameSize = overheadSize + payloadSize;
+		fcs = ((uint8_t *) payload) + payloadSize;
 	    if(_BigEndian)
-	    	*dsize = datasize;
+	    	*dsize = payloadSize;
 	    else
 	    {
-	    	*(uint8_t*)dsize = (uint8_t)(datasize >> 8);
-	    	*(((uint8_t*)dsize)+1) = (uint8_t)(datasize & 0xff);
+	    	*(uint8_t*)dsize = (uint8_t)(payloadSize >> 8);
+	    	*(((uint8_t*)dsize)+1) = (uint8_t)(payloadSize & 0xff);
 	    }
 	}
 	else
@@ -228,27 +228,27 @@ void DataLinkFrame::GetInfoFromBuffer(void *o)
 
 	if(this->_BigEndian)
 	{
-		this->dataSize  = *this->dsize;
+		this->payloadSize  = *this->dsize;
 	}
 	else
 	{
-		this->dataSize = ((*this->dsize) << 8) | ((*this->dsize) >> 8);
+		this->payloadSize = ((*this->dsize) << 8) | ((*this->dsize) >> 8);
 	}
 
-    if(this->dataSize > DLNK_MAX_PAYLOAD_SIZE)
+    if(this->payloadSize > DLNK_MAX_PAYLOAD_SIZE)
     {
     	ThrowDLinkLayerException(std::string("El tamano del payload no puede ser mayor que ")+ std::to_string(DLNK_MAX_PAYLOAD_SIZE));
     }
 
-	memcpy(this->payload, optr, this->dataSize);
-	optr+=this->dataSize;
+	memcpy(this->payload, optr, this->payloadSize);
+	optr+=this->payloadSize;
 
-	fcs = ((uint8_t *) payload) + dataSize;
+	fcs = ((uint8_t *) payload) + payloadSize;
 	memcpy(this->fcs, optr, this->fcsSize);
 	optr+=this->fcsSize;
 
 
-	this->frameSize = this->overheadSize + this->dataSize;
+	this->frameSize = this->overheadSize + this->payloadSize;
 	dataIn = true;
 }
 

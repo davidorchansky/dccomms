@@ -44,9 +44,8 @@ public:
 
 	virtual ~DataLinkFrame();
 
-	uint8_t getDesDir(){return *ddir;}
-	uint8_t getSrcDir(){return *sdir;}
-	uint16_t getDataSize(){return *dsize;}
+	uint8_t GetDesDir(){return *ddir;}
+	uint8_t GetSrcDir(){return *sdir;}
 	int GetFrameSize() const {return frameSize;}
 	uint8_t * GetFrameBuffer() const {return buffer;}
 
@@ -60,7 +59,7 @@ public:
 
 	int frameSize = 0;
 
-	uint16_t dataSize = 0;
+	uint16_t payloadSize = 0;
 	uint8_t* payload = NULL;
 
 	void printFrame(std::ostream &);
