@@ -166,14 +166,14 @@ void Radio::ReceiveBytes(void * buf, uint32_t size, uint8_t dirFrom, unsigned lo
 				std::cerr << "Frame de radio correcto!" <<std::endl;
 				std::cerr << std::flush;
 	#endif
-				uint16_t bytesToRead = (bytes + dlfPtr->dataSize) <= size ? dlfPtr->dataSize : size - bytes;
+				uint16_t bytesToRead = (bytes + dlfPtr->payloadSize) <= size ? dlfPtr->payloadSize : size - bytes;
 
 				for(i=0; i<bytesToRead; i++)
 				{
 					*buffer = dlfPtr->payload[i];
 					buffer++;
 				}
-				bytes += dlfPtr->dataSize;
+				bytes += dlfPtr->payloadSize;
 			}
 			else
 			{
