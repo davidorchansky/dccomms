@@ -40,24 +40,24 @@ ICommsLink& ICommsDevice::operator >> (DataLinkFramePtr & dlf)
 
 	if(dlf->_BigEndian)
 	{
-		dlf->dataSize  = *dlf->dsize;
+		dlf->payloadSize  = *dlf->dsize;
 	}
 	else
 	{
-		dlf->dataSize = ((*dlf->dsize) << 8) | ((*dlf->dsize) >> 8);
+		dlf->payloadSize = ((*dlf->dsize) << 8) | ((*dlf->dsize) >> 8);
 	}
 
-    if(dlf->dataSize > DLNK_MAX_PAYLOAD_SIZE)
+    if(dlf->payloadSize > DLNK_MAX_PAYLOAD_SIZE)
     {
     	throw CommsException(std::string("DLNKLAYER_ERROR: El tamano del payload no puede ser mayor que ")+ std::to_string(DLNK_MAX_PAYLOAD_SIZE), DLNKLAYER_ERROR);
     }
 
-	Read(dlf->payload, dlf->dataSize);
+	Read(dlf->payload, dlf->payloadSize);
 
-	dlf->fcs = ((uint8_t *) dlf->payload) + dlf->dataSize;
+	dlf->fcs = ((uint8_t *) dlf->payload) + dlf->payloadSize;
 	Read(dlf->fcs, dlf->fcsSize);
 
-	dlf->frameSize = dlf->overheadSize + dlf->dataSize;
+	dlf->frameSize = dlf->overheadSize + dlf->payloadSize;
 
 	dlf->dataIn = true;
 	return *this;
@@ -71,7 +71,7 @@ ICommsLink& ICommsDevice::operator<< (const DataLinkFramePtr & dlf)
 		Write(dlf->ddir,DLNK_DIR_SIZE);
 		Write(dlf->sdir,DLNK_DIR_SIZE);
 		Write(dlf->dsize,DLNK_DSIZE_SIZE);
-		Write(dlf->payload,dlf->dataSize);
+		Write(dlf->payload,dlf->payloadSize);
 		Write(dlf->fcs, dlf->fcsSize);
 
 		//FlushIO();//Lo ideal seria FlushOutput, pero en algun lado hay algo que hace que se llene el buffer de entrada
