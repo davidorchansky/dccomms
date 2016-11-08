@@ -126,6 +126,8 @@ void CommsDeviceService::Init(int _type, struct mq_attr attr, int perm)
 	SetNonblockFlag(false, TX_MQ);
 	SetNonblockFlag(false, RX_MQ);
 
+	ClearInputQueue();
+
 #ifdef DEBUG
 	std::cerr << "TXMQ:" << std::endl;
 	ShowMQAttr(std::cerr, TX_MQ);
@@ -238,11 +240,29 @@ void CommsDeviceService::SetNonblockFlag(bool v, int mq)
 	}
 }
 
+void CommsDeviceService::ClearInputQueue()
+{
+	bool curflag = GetNonblockFlag(RX_MQ);
+	SetNonblockFlag(true, RX_MQ);
+
+	char _auxb[4000];
+	int n = 0;
+	while(n >= 0)
+	{
+		n = mq_receive(rxmqid, _auxb, 4000, NULL);
+	}
+	SetNonblockFlag(curflag, RX_MQ);
+}
+
 ICommsLink & CommsDeviceService::operator << (const DataLinkFramePtr & dlf)
 {
 	txmsg.BuildFrameMsg(dlf);
-	LOG_DEBUG("Seteando manualmente el estado de 'OCUPADO'");
-	_SetPhyLayerState(BUSY);
+	if(type == IPHY_TYPE_DLINK)
+	{
+		//the frame is directed from de dlink layer to the phy layer, so we set the phy layer state to BUSY
+		LOG_DEBUG("Seteando manualmente el estado de 'OCUPADO'");
+		_SetPhyLayerState(BUSY);
+	}
 	SendMsg(txmsg);
 
 	return *this; //nunca llegara aqui
@@ -295,8 +315,8 @@ void CommsDeviceService::PushNewFrame(DataLinkFramePtr dlf)
 
 ICommsLink & CommsDeviceService::operator >> (DataLinkFramePtr & dlf)
 {
-	dlf = GetNextFrame();
-
+	//dlf = GetNextFrame();
+	dlf->GetInfoFromBufferWithPreamble(GetNextFrame()->GetFrameBuffer());
 	return *this;
 }
 
@@ -305,14 +325,14 @@ void CommsDeviceService::_SetPhyLayerState(const PhyState & state)
 	phyState_mutex.lock();
 
 	phyState = state;
-#ifdef DEBUG
+#ifdef DEBUG_SERVICE
 	switch(state)
 	{
 	case PhyState::BUSY:
-		LOG_DEBUG("Estado OCUPADO");
+		LOG_DEBUG("State: BUSY");
 		break;
 	case PhyState::READY:
-		LOG_DEBUG("Estado LISTO");
+		LOG_DEBUG("State: READY");
 		break;
 	default:
 		LOG_DEBUG("ERROR GRAVE: ESTADO IMPOSIBLE!!");

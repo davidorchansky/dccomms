@@ -72,6 +72,7 @@ private:
 	long GetNumMsgOnQueue(int);
 	bool GetNonblockFlag(int);
 
+	void ClearInputQueue();
 	void SetNonblockFlag(bool, int);
 
 	void SendPhyLayerState();
