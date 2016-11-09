@@ -24,7 +24,7 @@ once cloned this repository. Go inside and run the following:
 
 ```bash
 $ git submodule init
-$ git submodule update
+$ git submodule update --init --recursive
 $ mkdir build
 $ cd build
 $ cmake ../
