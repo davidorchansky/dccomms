@@ -1,0 +1,3 @@
+[submodule "cpplogging"]
+	path = deps/cpplogging
+	url = https://github.com/didaccb/cpplogging.git
