@@ -28,7 +28,7 @@ class DataLinkFrame;
 
 typedef boost::shared_ptr<DataLinkFrame> DataLinkFramePtr;
 
-class DataLinkFrame {
+class DataLinkFrame{
 	friend class ICommsDevice;
 public:
 	enum fcsType { crc16, crc32, nofcs };
@@ -95,8 +95,8 @@ private:
 	void _SetPayloadSizeInBuffer(unsigned int datasize);
 	bool _BigEndian;
 	bool dataIn = false;
-};
 
+};
 
 } /* namespace radiotransmission */
 

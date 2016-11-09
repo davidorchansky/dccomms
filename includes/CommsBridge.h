@@ -15,7 +15,7 @@
 #include <Utils.h>
 #include <string>
 #include <mutex>
-
+#include <Loggable.h>
 
 namespace dcent {
 
@@ -23,7 +23,7 @@ namespace dcent {
 
 using namespace dccomms;
 
-class CommsBridge {
+class CommsBridge: public Loggable {
 public:
 	CommsBridge(ICommsDevice *, int _baudrate = 0, DataLinkFrame::fcsType _chksum = DataLinkFrame::fcsType::crc32);
 	virtual ~CommsBridge();

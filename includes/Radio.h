@@ -10,10 +10,11 @@
 
 #include <DataLinkFrame.h>
 #include <ICommsLink.h>
+#include <Loggable.h>
 
 namespace dccomms
 {
-	class Radio
+	class Radio: public Loggable
 	{
 	public:
 		enum fcsType

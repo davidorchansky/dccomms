@@ -49,6 +49,7 @@ public:
 	//This method must be called before Start
 	void SetNamespace(std::string nspace);
 private:
+	std::string _namespace;
 	//El siguiente metodo es para Debug en la misma maquina y ha de llamarse antes que Start().
 	//Especifica el prefijo de las colas de mensajes (sin contar el '/'
 	void SetQueuePrefix(std::string _qprefix)

@@ -68,11 +68,17 @@ CommsDeviceService::CommsDeviceService(int _type, const DataLinkFrame::fcsType &
 	fcsType = _fcsType;
 	qprefix = "";
 	type = _type;
+	SetLogName("CommsDeviceService");
 }
 
 void CommsDeviceService::SetNamespace(std::string m)
 {
-	SetQueuePrefix(m);
+	_namespace = m;
+	SetQueuePrefix(_namespace);
+	if(_namespace != "")
+	{
+		SetLogName(_namespace+":CommsDeviceService");
+	}
 }
 
 void CommsDeviceService::SetChecksumType(DataLinkFrame::fcsType fcs)
@@ -260,7 +266,7 @@ ICommsLink & CommsDeviceService::operator << (const DataLinkFramePtr & dlf)
 	if(type == IPHY_TYPE_DLINK)
 	{
 		//the frame is directed from de dlink layer to the phy layer, so we set the phy layer state to BUSY
-		LOG_DEBUG("Seteando manualmente el estado de 'OCUPADO'");
+		Log->debug("Seteando manualmente el estado de 'OCUPADO'");
 		_SetPhyLayerState(BUSY);
 	}
 	SendMsg(txmsg);
@@ -329,13 +335,13 @@ void CommsDeviceService::_SetPhyLayerState(const PhyState & state)
 	switch(state)
 	{
 	case PhyState::BUSY:
-		LOG_DEBUG("State: BUSY");
+		Log->debug("State: BUSY");
 		break;
 	case PhyState::READY:
-		LOG_DEBUG("State: READY");
+		Log->debug("State: READY");
 		break;
 	default:
-		LOG_DEBUG("ERROR GRAVE: ESTADO IMPOSIBLE!!");
+		Log->debug("ERROR GRAVE: ESTADO IMPOSIBLE!!");
 	}
 #endif
 
@@ -361,13 +367,13 @@ void CommsDeviceService::SendPhyLayerState(const PhyState & state)
 	switch(state)
 	{
 	case PhyState::BUSY:
-		LOG_DEBUG("Enviado estado OCUPADO");
+		Log->debug("Enviado estado OCUPADO");
 		break;
 	case PhyState::READY:
-		LOG_DEBUG("Enviado estado LISTO");
+		Log->debug("Enviado estado LISTO");
 		break;
 	default:
-		LOG_DEBUG("ERROR GRAVE: ENVIADO ESTADO IMPOSIBLE!!");
+		Log->critical("ERROR GRAVE: ENVIADO ESTADO IMPOSIBLE!!");
 	}
 }
 
@@ -530,20 +536,20 @@ void CommsDeviceService::ServiceThread::Work()
 {
 	while(mcontinue)
 	{
-		LOG_DEBUG("Esperando mensaje...");
+		physervice->Log->debug("Esperando mensaje...");
 		physervice->ReceiveMsg(physervice->rxmsg);
 		switch(physervice->rxmsg.GetMsgType())
 		{
 		case ServiceMessage::FRAME:
-			LOG_DEBUG("Recibida trama desde la capa fisica");
+			physervice->Log->debug("Recibida trama desde la capa fisica");
 			physervice->SaveFrameFromMsg(physervice->rxmsg);
 			break;
 		case ServiceMessage::CMD_STATE:
-			LOG_DEBUG("Recibido mensaje de estado de la capa fisica");
+			physervice->Log->debug("Recibido mensaje de estado de la capa fisica");
 			physervice->SavePhyStateFromMsg(physervice->rxmsg);
 			break;
 		case ServiceMessage::REQ_STATE:
-			LOG_DEBUG("Recibida peticion de estado de la capa fisica");
+			physervice->Log->debug("Recibida peticion de estado de la capa fisica");
 			physervice->SendPhyLayerState();
 			break;
 		default:
@@ -551,7 +557,7 @@ void CommsDeviceService::ServiceThread::Work()
 		}
 		//std::this_thread::sleep_for(std::chrono::seconds(2));
 	}
-	LOG_DEBUG("Terminando...");
+	physervice->Log->debug("Terminando...");
 	terminated = true;
 }
 

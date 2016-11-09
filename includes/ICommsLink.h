@@ -9,10 +9,11 @@
 #define INCLUDES_ICOMMSLINK_H_
 
 #include <DataLinkFrame.h>
+#include <Loggable.h>
 
 namespace dccomms {
 
-class ICommsLink {
+class ICommsLink: public Loggable{
 public:
 	ICommsLink();
 	virtual ~ICommsLink();

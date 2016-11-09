@@ -16,12 +16,8 @@
 
 namespace dccomms {
 
-#ifdef DEBUG_SERVICE
-static bool DebugComms = true;
-#else
-static bool DebugComms = false;
-#endif
-#define LOG_DEBUG(msg) if(DebugComms){std::cerr << "DEBUG("+std::string(typeid(*this).name())+":"+std::string(__func__)+"): " + std::string(msg) << std::endl; std::cerr << std::flush;}
+#define LOG_DEBUG(msg) std::cerr << msg << std::endl
+#define FUNC_MSG(msg) ("("+td::string(typeid(*this).name())+":"+std::string(__func__)+"): " + std::string(msg))
 
 class Utils {
 public:

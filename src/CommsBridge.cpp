@@ -27,6 +27,7 @@ CommsBridge::CommsBridge(ICommsDevice * _device, int _baudrate, DataLinkFrame::f
 	rxserv.SetWork(&CommsBridge::RxWork);
 	serv_namespace = "";
 	connected = false;
+	SetLogName("CommsBridge");
 }
 
 CommsBridge::~CommsBridge() {
@@ -37,6 +38,10 @@ void CommsBridge::SetNamespace(std::string nspace)
 {
 	serv_namespace = nspace;
 	phyService.SetNamespace(serv_namespace);
+	if(serv_namespace != "")
+	{
+		SetLogName(serv_namespace + ":CommsBridge");
+	}
 }
 
 void CommsBridge::Start()
@@ -61,29 +66,29 @@ void CommsBridge::Stop()
 
 void CommsBridge::RxWork()
 {
-	LOG_DEBUG("RX: waiting for frame from the device...");
+	Log->debug("RX: waiting for frame from the device...");
 	bool noerrors = ReceiveFrame();
 	if(noerrors)
 	{
 		//PACKET OK
-		LOG_DEBUG("RX: received frame without errors");
-		LOG_DEBUG("RX: delivering received frame to the upper layer...");
+		Log->debug("RX: received frame without errors");
+		Log->debug("RX: delivering received frame to the upper layer...");
 		phyService << rxdlf;
-		LOG_DEBUG("RX: frame delivered to the upper layer");
+		Log->debug("RX: frame delivered to the upper layer");
 
 	}
 	else
 	{
 		//PACKET WITH ERRORS
-		LOG_DEBUG("RX: received frame with errors. Frame will be discarded");
+		Log->debug("RX: received frame with errors. Frame will be discarded");
 	}
 }
 
 void CommsBridge::TransmitFrame()
 {
-	LOG_DEBUG("TX: transmitting frame...");
+	Log->debug("TX: transmitting frame...");
 	*device << txdlf;
-	LOG_DEBUG("TX: frame transmitted");
+	Log->debug("TX: frame transmitted");
 }
 
 bool CommsBridge::ReceiveFrame()
@@ -96,11 +101,10 @@ bool CommsBridge::ReceiveFrame()
 	catch(CommsException &e)
 	{
 		std::string msg = e.what();
-		LOG_DEBUG("EXCEPTION!!!!!!!!!!!!!!!");
 		switch (e.code)
 		{
 		case LINEDOWN:
-			LOG_DEBUG("CONNECTION LOST WITH DEVICE WHEN READING: "+msg);
+			Log->error("CONNECTION LOST WITH DEVICE WHEN READING: {}", msg);
 			TryToReconnect();
 			break;
 		}
@@ -117,29 +121,29 @@ void CommsBridge::TxWork()
 			phyService.SetPhyLayerState(CommsDeviceService::BUSY);
 			while(phyService.GetRxFifoSize() > 0)
 			{
-				LOG_DEBUG("TX: FIFO size: " + std::to_string(phyService.GetRxFifoSize()));
+				Log->debug("TX: FIFO size: {}", phyService.GetRxFifoSize());
 				phyService >> txdlf;
 				if(txdlf->checkFrame())
 				{
 					//PACKET OK
-					LOG_DEBUG("TX: frame is OK, ready to send");
+					Log->debug("TX: frame is OK, ready to send");
 					TransmitFrame();
 					unsigned int frameSize = txdlf->GetFrameSize();
 					_frameTransmissionTime = ceil(frameSize * _byteTransmissionTime);
-					LOG_DEBUG("frame transmission time: " + std::to_string(_frameTransmissionTime));
+					Log->debug("frame transmission time: {}", _frameTransmissionTime);
 					timer.Reset();
 					unsigned int elapsed = 0;
 					while(elapsed < _frameTransmissionTime)
 					{
 						elapsed = timer.Elapsed();
 					}
-					LOG_DEBUG("Tiempo transcurrido: "+std::to_string(elapsed));
+					Log->debug("Tiempo transcurrido: "+std::to_string(elapsed));
 
 				}
 				else
 				{
 					//PACKET WITH ERRORS
-					LOG_DEBUG("TX: INTERNAL ERROR: frame received with errors from the upper layer!");
+					Log->critical("TX: INTERNAL ERROR: frame received with errors from the upper layer!");
 				}
 			}
 			phyService.SetPhyLayerState(CommsDeviceService::READY);
@@ -151,7 +155,7 @@ void CommsBridge::TxWork()
 		switch (e.code)
 		{
 		case LINEDOWN:
-			LOG_DEBUG("CONNECTION LOST WITH DEVICE WHEN WRITTING: "+msg);
+			Log->error("CONNECTION LOST WITH DEVICE WHEN WRITTING: "+msg);
 			//TryToReconnect();
 			break;
 		}
@@ -180,7 +184,7 @@ bool CommsBridge::TryToConnect()
 		catch(CommsException & e)
 		{
 			std::string msg = e.what();
-			LOG_DEBUG("Problem happened when trying to connect with the comms device (" + msg +")... Trying again...");
+			Log->error("Problem happened when trying to connect with the comms device (" + msg +")... Trying again...");
 			Utils::Sleep(1000);
 		}
 

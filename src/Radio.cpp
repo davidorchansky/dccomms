@@ -30,25 +30,19 @@ Radio::Radio(unsigned char d, ICommsLink & s, Radio::fcsType fcst, uint32_t maxR
 	{
 		case Radio::fcsType::crc32:
 			FCSType = DataLinkFrame::fcsType::crc32;
-#ifdef DEBUG
-		std::cerr << "Configurado crc32" << std::endl;
-#endif
-
+			Log->debug("Configurado crc32");
 			break;
 		case Radio::fcsType::crc16:
 			FCSType = DataLinkFrame::fcsType::crc16;
-#ifdef DEBUG
-		std::cerr << "Configurado crc16" << std::endl;
-#endif
+			Log->debug("Configurado crc16");
 			break;
 		case Radio::fcsType::nofcs:
 			FCSType = DataLinkFrame::fcsType::nofcs;
-#ifdef DEBUG
-		std::cerr << "Configurado crc16" << std::endl;
-#endif
+			Log->debug("Configurado nofcs");
 			break;
 	}
 	//FCSType = (DataLinkFrame::fcsType) fcst;
+	SetLogName("Radio");
 }
 
 Radio::~Radio()
@@ -71,10 +65,10 @@ void Radio::SendBytes(const void * buf, uint32_t size, uint8_t dirTo, uint32_t p
 		while(serial.BusyTransmitting());
 
 		DataLinkFramePtr dlfPtr = DataLinkFrame::BuildDataLinkFrame(dirTo, dir, packetSize, buffer, FCSType); //TODO: Deberiamos reservar memoria solo 1 vez para guardar una trama
-#ifdef DEBUG
-		std::cerr << "Enviando paquete..." << std::endl;
-		dlfPtr->printFrame(std::cerr);
-#endif
+
+		Log->debug("Enviando paquete...");
+		//Log->debug(*dlfPtr);
+
 		serial << dlfPtr;
 		buffer += packetSize;
 		std::this_thread::sleep_for(std::chrono::milliseconds(ms));
@@ -85,10 +79,10 @@ void Radio::SendBytes(const void * buf, uint32_t size, uint8_t dirTo, uint32_t p
 	{
 		while(serial.BusyTransmitting());
 		DataLinkFramePtr dlfPtr = DataLinkFrame::BuildDataLinkFrame(dirTo, dir, packetSize, buffer, FCSType);
-#ifdef DEBUG
-		std::cerr << "Enviando paquete..." << std::endl;
-		dlfPtr->printFrame(std::cerr);
-#endif
+
+		Log->debug("Enviando paquete...");
+		//Log->debug(*dlfPtr);
+
 		serial << dlfPtr;
 		buffer += packetSize;
 	}
@@ -100,10 +94,10 @@ void Radio::SendBytes(const void * buf, uint32_t size, uint8_t dirTo, uint32_t p
 		if(numPackets > 0)
 			std::this_thread::sleep_for(std::chrono::milliseconds(ms));
 		DataLinkFramePtr dlfPtr = DataLinkFrame::BuildDataLinkFrame(dirTo, dir, bytesLeft, buffer, FCSType);
-#ifdef DEBUG
-		std::cerr << "Enviando paquete..." << std::endl;
-		dlfPtr->printFrame(std::cerr);
-#endif
+
+		Log->debug("Enviando paquete...");
+		//Log->debug(*dlfPtr);
+
 		serial << dlfPtr;
 	}
 
@@ -156,16 +150,11 @@ void Radio::ReceiveBytes(void * buf, uint32_t size, uint8_t dirFrom, unsigned lo
 		{
 
 			serial >> dlfPtr;
-	#ifdef DEBUG
-			dlfPtr->printFrame(std::cerr);
-			std::cerr << std::flush;
-	#endif
+			//Log->debug(*dlfPtr);
 			if(dlfPtr->checkFrame())
 			{
-	#ifdef DEBUG
-				std::cerr << "Frame de radio correcto!" <<std::endl;
-				std::cerr << std::flush;
-	#endif
+				Log->debug("Frame de radio correcto!");
+				//Log->debug(*dlfPtr);
 				uint16_t bytesToRead = (bytes + dlfPtr->payloadSize) <= size ? dlfPtr->payloadSize : size - bytes;
 
 				for(i=0; i<bytesToRead; i++)
@@ -177,12 +166,8 @@ void Radio::ReceiveBytes(void * buf, uint32_t size, uint8_t dirFrom, unsigned lo
 			}
 			else
 			{
-
 				TotalErrors += 1;
-				std::cerr << "Error en frame de radio (Total Errors: "<<TotalErrors<< ")" <<std::endl << std::flush;
-	#ifdef DEBUG
-			//	std::this_thread::sleep_for(std::chrono::milliseconds(50000));
-	#endif
+				Log->error("Error en frame de radio (Total Errors: {})", TotalErrors);
 			}
 
 		}
