@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 2.6)
-project (dcentcomms CXX)
+project (dccomms CXX)
 
 
 set(CMAKE_VERBOSE_MAKEFILE ON)
