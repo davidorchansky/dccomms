@@ -12,20 +12,28 @@ endif ()
  
 ####### LOAD DEPENDENCIES ######
 
-SET(COMMS_DEPS_DIR "deps/")
+SET(${PROJECT_NAME}_DEPS_DIR "deps/")
 
 if (NOT TARGET cpplogging)
-	add_subdirectory(${COMMS_DEPS_DIR}/cpplogging)
+	add_subdirectory(${${PROJECT_NAME}_DEPS_DIR}/cpplogging)
 endif()
 
 ###### 
 
-SET(COMMS_INCLUDE_DIRS "includes")
-file(GLOB COMMS_CPP_FILES "src/*.cpp") 
-SET(COMMS_CXX_COMPILE_FLAGS "-fPIC -std=c++0x")
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMS_CXX_COMPILE_FLAGS}")
+SET(${PROJECT_NAME}_INCLUDE_DIRS "includes")
+file(GLOB ${PROJECT_NAME}_CPP_FILES "src/*.cpp") 
+SET(${PROJECT_NAME}_CXX_COMPILE_FLAGS "-fPIC -std=c++0x")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${${PROJECT_NAME}_CXX_COMPILE_FLAGS}")
 SET(CMAKE_BUILD_TYPE Release)
 
-add_library(${PROJECT_NAME} SHARED ${COMMS_CPP_FILES})
-target_include_directories(${PROJECT_NAME} PUBLIC ${COMMS_INCLUDE_DIRS})
+add_library(${PROJECT_NAME} SHARED ${${PROJECT_NAME}_CPP_FILES})
+target_include_directories(${PROJECT_NAME} PUBLIC ${${PROJECT_NAME}_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} m pthread rt crypto cpplogging)
+
+file(GLOB ${PROJECT_NAME}_INCLUDES "${${PROJECT_NAME}_INCLUDE_DIRS}/*.h")
+ 
+install(TARGETS ${PROJECT_NAME}
+	LIBRARY DESTINATION "lib"
+	)
+install(FILES ${${PROJECT_NAME}_INCLUDES} DESTINATION "include")
+	
