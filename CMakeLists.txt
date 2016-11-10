@@ -14,7 +14,9 @@ endif ()
 
 SET(COMMS_DEPS_DIR "deps/")
 
-add_subdirectory(${COMMS_DEPS_DIR}/cpplogging)
+if (NOT TARGET cpplogging)
+	add_subdirectory(${COMMS_DEPS_DIR}/cpplogging)
+endif()
 
 ###### 
 
