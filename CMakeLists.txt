@@ -30,7 +30,7 @@ add_library(${PROJECT_NAME} SHARED ${${PROJECT_NAME}_CPP_FILES})
 target_include_directories(${PROJECT_NAME} PUBLIC ${${PROJECT_NAME}_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} m pthread rt crypto cpplogging)
 
-file(GLOB ${PROJECT_NAME}_INCLUDES "${${PROJECT_NAME}_INCLUDE_DIRS}/*.h")
+file(GLOB ${PROJECT_NAME}_INCLUDES "includes/*.h")
  
 install(TARGETS ${PROJECT_NAME}
 	LIBRARY DESTINATION "lib"
