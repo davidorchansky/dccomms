@@ -11,6 +11,7 @@
 #include <DataLinkFrame.h>
 #include <Loggable.h>
 
+using namespace cpplogging;
 namespace dccomms {
 
 class ICommsLink: public Loggable{
