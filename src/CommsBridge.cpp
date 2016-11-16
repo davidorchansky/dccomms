@@ -107,7 +107,15 @@ bool CommsBridge::ReceiveFrame()
 			Log->error("CONNECTION LOST WITH DEVICE WHEN READING: {}", msg);
 			TryToReconnect();
 			break;
+		default:
+			Log->error("Unknown error when receiving next frame: {}\n"
+					"Considering errors in the frame."
+					, msg);
+
+			break;
+
 		}
+		return false;
 	}
 	return true;
 }
