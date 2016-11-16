@@ -18,7 +18,7 @@ const unsigned char* DataLinkFrame::manchesterPre = _manchesterPre;
 
 static void ThrowDLinkLayerException(std::string msg)
 {
-	throw CommsException("DLINK EXCEPTION: "+msg, DLNKLAYER_ERROR);
+	throw CommsException("DLINK EXCEPTION: "+msg, COMMS_EXCEPTION_DLNKLAYER_ERROR);
 }
 
 void DataLinkFrame::Init(DataLinkFrame::fcsType fcst)

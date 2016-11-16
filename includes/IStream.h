@@ -31,12 +31,15 @@ public:
 	//virtual void TimeoutMode(bool) = 0;
 
 	void WaitFor(const uint8_t * expected, uint32_t size);
+	int ReadInt(int & num, char & nextByte);
+	int ReadUInt(int & num, char & nextByte);
 
 	virtual void FlushInput() = 0;
 	virtual void FlushOutput() = 0;
 	virtual void FlushIO() = 0;
 
-
+private:
+	char buffer[1024];
 };
 
 } /* namespace radiotransmission */

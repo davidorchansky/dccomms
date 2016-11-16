@@ -22,18 +22,29 @@
 
 namespace dccomms {
 
+TCPStream::TCPStream() {
+	portno = 8090;
+	ip = "localhost";
+}
+
 TCPStream::TCPStream(std::string address) {
 	// TODO Auto-generated constructor stub
-	std::vector<std::string> strs;
-	boost::split(strs, address, boost::is_any_of(":"));
-	portno = std::stoi(strs[1]);
-	ip = strs[0];
+	SetServerAddr(address);
 }
 
 TCPStream::~TCPStream() {
 	// TODO Auto-generated destructor stub
 	CloseConnection();
 }
+
+void TCPStream::SetServerAddr(std::string address)
+{
+	std::vector<std::string> strs;
+	boost::split(strs, address, boost::is_any_of(":"));
+	portno = std::stoi(strs[1]);
+	ip = strs[0];
+}
+
 void TCPStream::CloseConnection()
 {
 	close(sockfd);
@@ -44,7 +55,7 @@ void TCPStream::OpenConnection()
 	device = gethostbyname(ip.c_str());
 	if (device == NULL)
 	{
-	  throw CommsException("TCP ERROR: No such host", PHYLAYER_ERROR);
+	  throw CommsException("TCP ERROR: No such host", COMMS_EXCEPTION_PHYLAYER_ERROR);
 	}
 	bzero((char *) &device_addr, sizeof(device_addr));
 	device_addr.sin_family = AF_INET;
@@ -55,27 +66,27 @@ void TCPStream::OpenConnection()
 
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if(sockfd < 0)
-		throw CommsException("TCP ERROR: Creating a TCP socket", PHYLAYER_ERROR);
+		throw CommsException("TCP ERROR: Creating a TCP socket", COMMS_EXCEPTION_PHYLAYER_ERROR);
 
 	int keepalive = 1;
 	socklen_t optlen = sizeof(keepalive);
 	int res = setsockopt(sockfd, SOL_SOCKET, SO_KEEPALIVE, &keepalive, optlen);
 	if(res < 0)
 	{
-		throw CommsException("Error when setting the keepalive to the socket", PHYLAYER_ERROR);
+		throw CommsException("Error when setting the keepalive to the socket", COMMS_EXCEPTION_PHYLAYER_ERROR);
 	}
 	keepalive = 0;
 	   /* Check the status again */
 	 if(getsockopt(sockfd, SOL_SOCKET, SO_KEEPALIVE, &keepalive, &optlen) < 0) {
 	      perror("getsockopt()");
 	      close(sockfd);
-	      throw CommsException("Error when setting the keepalive to the socket", PHYLAYER_ERROR);
+	      throw CommsException("Error when setting the keepalive to the socket", COMMS_EXCEPTION_PHYLAYER_ERROR);
 	   }
 	  // printf("SO_KEEPALIVE is %s\n", (keepalive ? "ON" : "OFF"));
 
 
 	if (connect(sockfd,(struct sockaddr *) &device_addr,sizeof(device_addr)) < 0)
-		throw CommsException("TCP ERROR: Connection to device", PHYLAYER_ERROR);
+		throw CommsException("TCP ERROR: Connection to device", COMMS_EXCEPTION_PHYLAYER_ERROR);
 }
 
 
@@ -96,7 +107,7 @@ int TCPStream::Write(const void * buf, uint32_t size, uint32_t to)
 	if(w < 0)
 	{
 		close(sockfd);
-		throw CommsException("Fallo de comunicacion al escribir", LINEDOWN);
+		throw CommsException("Fallo de comunicacion al escribir", COMMS_EXCEPTION_LINEDOWN);
 	}
 	return w;
 }
@@ -113,13 +124,13 @@ int TCPStream::Recv(unsigned char * ptr, int bytesLeft)
 			break;
 		default:
 			close(sockfd);
-			throw CommsException("Problem happened when reading socket", LINEDOWN);
+			throw CommsException("Problem happened when reading socket", COMMS_EXCEPTION_LINEDOWN);
 		}
 	}
 	else if (res == 0)
 	{
 		close(sockfd);
-		throw CommsException("The client closed the connection", LINEDOWN);
+		throw CommsException("The client closed the connection", COMMS_EXCEPTION_LINEDOWN);
 	}
 	return res;
 }
@@ -158,7 +169,7 @@ int TCPStream::Read(void * buf, uint32_t size, unsigned long ms)
 					if(!Connected())
 					{
 						close(sockfd);
-						throw CommsException("Problem happened when reading socket", LINEDOWN);
+						throw CommsException("Problem happened when reading socket", COMMS_EXCEPTION_LINEDOWN);
 					}
 				}
 		}
@@ -188,7 +199,7 @@ int TCPStream::Read(void * buf, uint32_t size, unsigned long ms)
 	}
 	*/
 
-	throw CommsException("Read Timeout", TIMEOUT);
+	throw CommsException("Read Timeout", COMMS_EXCEPTION_TIMEOUT);
 
 }
 
@@ -201,13 +212,13 @@ void TCPStream::ThrowExceptionIfErrorOnSocket()
 	if (retval != 0) {
 	    /* there was a problem getting the error code */
 	   close(sockfd);
-	   throw CommsException("error getting socket error code: %s\n"+ std::string(strerror(retval)), LINEDOWN);
+	   throw CommsException("error getting socket error code: %s\n"+ std::string(strerror(retval)), COMMS_EXCEPTION_LINEDOWN);
 	}
 
 	if (error != 0) {
 	    /* socket has a non zero error status */
 		close(sockfd);
-	    throw CommsException("socket error: %s\n"+ std::string(strerror(error)), LINEDOWN);
+	    throw CommsException("socket error: %s\n"+ std::string(strerror(error)), COMMS_EXCEPTION_LINEDOWN);
 	}
 }
 
@@ -231,7 +242,7 @@ bool TCPStream::Ready()
 	if(-1 == r)
 	{
 		close(sockfd);
-		throw CommsException("Error when reading from descriptor", LINEDOWN);
+		throw CommsException("Error when reading from descriptor", COMMS_EXCEPTION_LINEDOWN);
 		return 0;
 	}
 	return r;
@@ -241,48 +252,48 @@ int TCPStream::Available()
 {
 	int n;
 	if(ioctl(sockfd, FIONREAD, &n)<0)
-		throw CommsException("Some error happened when trying to read", LINEDOWN);
+		throw CommsException("Some error happened when trying to read", COMMS_EXCEPTION_LINEDOWN);
 	return n;
 }
 
 void TCPStream::FlushInput()
 {
-	throw CommsException("void TCPStream::FlushInput() Not implemented", NOTIMPLEMENTED);
+	throw CommsException("void TCPStream::FlushInput() Not implemented", COMMS_EXCEPTION_NOTIMPLEMENTED);
 }
 
 void TCPStream::FlushIO()
 {
-	throw CommsException("void TCPStream::FlushIO() Not implemented", NOTIMPLEMENTED);
+	throw CommsException("void TCPStream::FlushIO() Not implemented", COMMS_EXCEPTION_NOTIMPLEMENTED);
 }
 
 void TCPStream::FlushOutput()
 {
-	throw CommsException("void TCPStream::FlushOutput() Not implemented", NOTIMPLEMENTED);
+	throw CommsException("void TCPStream::FlushOutput() Not implemented", COMMS_EXCEPTION_NOTIMPLEMENTED);
 }
 
 bool TCPStream::IsOpen()
 {
-	throw CommsException("bool TCPStream::IsOpen() Not implemented", NOTIMPLEMENTED);
+	throw CommsException("bool TCPStream::IsOpen() Not implemented", COMMS_EXCEPTION_NOTIMPLEMENTED);
 }
 
 IStream & TCPStream::operator >> (uint8_t & byte )
 {
-	throw CommsException("IStream & TCPStream::operator >> (uint8_t & byte ) not implemented", NOTIMPLEMENTED);
+	throw CommsException("IStream & TCPStream::operator >> (uint8_t & byte ) not implemented", COMMS_EXCEPTION_NOTIMPLEMENTED);
 }
 
 IStream & TCPStream::operator >> (char & byte )
 {
-	throw CommsException("IStream & TCPStream::operator >> (char & byte ) Operator not implemented", NOTIMPLEMENTED);
+	throw CommsException("IStream & TCPStream::operator >> (char & byte ) Operator not implemented", COMMS_EXCEPTION_NOTIMPLEMENTED);
 }
 
 IStream & TCPStream::operator >> (uint16_t & data16 )
 {
-	throw CommsException("IStream & TCPStream::operator >> (uint16_t & data16 ) not implemented", NOTIMPLEMENTED);
+	throw CommsException("IStream & TCPStream::operator >> (uint16_t & data16 ) not implemented", COMMS_EXCEPTION_NOTIMPLEMENTED);
 }
 
 IStream & TCPStream::operator >> (uint32_t & data32 )
 {
-	throw CommsException("IStream & TCPStream::operator >> (uint32_t & data32 ) Operator not implemented", NOTIMPLEMENTED);
+	throw CommsException("IStream & TCPStream::operator >> (uint32_t & data32 ) Operator not implemented", COMMS_EXCEPTION_NOTIMPLEMENTED);
 }
 
 }

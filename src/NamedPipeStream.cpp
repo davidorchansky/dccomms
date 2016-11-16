@@ -113,7 +113,7 @@ int NamedPipeStream::Read(void * buf, uint32_t size, unsigned long ms)
 				if(res < 0)
 				{
 					close(fd);
-					throw CommsException("Fallo de comunicacion al leer", LINEDOWN);
+					throw CommsException("Fallo de comunicacion al leer", COMMS_EXCEPTION_LINEDOWN);
 				}
 			}
 #endif
@@ -148,10 +148,10 @@ int NamedPipeStream::Read(void * buf, uint32_t size, unsigned long ms)
 	if(res < 0)
 	{
 		close(fd);
-		throw CommsException("Fallo de comunicacion al leer", LINEDOWN);
+		throw CommsException("Fallo de comunicacion al leer", COMMS_EXCEPTION_LINEDOWN);
 	}
 
-	throw CommsException("Read Timeout", TIMEOUT);
+	throw CommsException("Read Timeout", COMMS_EXCEPTION_TIMEOUT);
 
 }
 
@@ -215,7 +215,7 @@ int NamedPipeStream::Write(const void * buf, uint32_t size, uint32_t to)
 	if(w < 0)
 	{
 		close(fd);
-		throw CommsException("Fallo de comunicacion al escribir", LINEDOWN);
+		throw CommsException("Fallo de comunicacion al escribir", COMMS_EXCEPTION_LINEDOWN);
 	}
 
 	return w;

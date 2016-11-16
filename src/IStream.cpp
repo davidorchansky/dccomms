@@ -33,6 +33,56 @@ void IStream::WaitFor(const uint8_t * expected, uint32_t size)
 	}
 }
 
+int IStream::ReadInt(int & num, char & nextByte)
+{
+	int n = 0; //number of [0-9] read
+	char * ptr = buffer;
+
+	Read(ptr, 1);
+	nextByte = *ptr;
+	if(*ptr == '-' || *ptr == '+')
+	{
+		ptr++;
+		Read(ptr, 1);
+		nextByte = *ptr;
+	}
+	while(*ptr >= '0' && *ptr <= '9')
+	{
+		ptr++;
+		n++;
+		Read(ptr, 1);
+		nextByte = *ptr;
+	}
+	if(n)
+	{
+		num = atoi(buffer);
+		return ptr-buffer; //Number of bytes read
+	}
+	return -1;
+}
+
+int IStream::ReadUInt(int & num, char & nextByte)
+{
+	int n = 0; //number of [0-9] read
+	char * ptr = buffer;
+
+	Read(ptr, 1);
+	nextByte = *ptr;
+	while(*ptr >= '0' && *ptr <= '9')
+	{
+		ptr++;
+		n++;
+		Read(ptr, 1);
+		nextByte = *ptr;
+	}
+	if(n)
+	{
+		num = atoi(buffer);
+		return ptr-buffer; //Number of bytes read
+	}
+	return -1;
+}
+
 /*
 int Stream::Read(uint8_t * buf, uint32_t size, uint32_t to)
 {

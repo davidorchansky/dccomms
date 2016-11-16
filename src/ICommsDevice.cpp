@@ -21,12 +21,12 @@ ICommsDevice::~ICommsDevice() {
 
 bool ICommsDevice::Open() {
 	// TODO Auto-generated destructor stub
-	throw CommsException("Operator not implemented", NOTIMPLEMENTED);
+	throw CommsException("Operator not implemented", COMMS_EXCEPTION_NOTIMPLEMENTED);
 }
 
 void ICommsDevice::Close() {
 	// TODO Auto-generated destructor stub
-	throw CommsException("Operator not implemented", NOTIMPLEMENTED);
+	throw CommsException("Operator not implemented", COMMS_EXCEPTION_NOTIMPLEMENTED);
 }
 
 ICommsLink& ICommsDevice::operator >> (DataLinkFramePtr & dlf)
@@ -49,7 +49,7 @@ ICommsLink& ICommsDevice::operator >> (DataLinkFramePtr & dlf)
 
     if(dlf->payloadSize > DLNK_MAX_PAYLOAD_SIZE)
     {
-    	throw CommsException(std::string("DLNKLAYER_ERROR: El tamano del payload no puede ser mayor que ")+ std::to_string(DLNK_MAX_PAYLOAD_SIZE), DLNKLAYER_ERROR);
+    	throw CommsException(std::string("DLNKLAYER_ERROR: El tamano del payload no puede ser mayor que ")+ std::to_string(DLNK_MAX_PAYLOAD_SIZE), COMMS_EXCEPTION_DLNKLAYER_ERROR);
     }
 
 	Read(dlf->payload, dlf->payloadSize);

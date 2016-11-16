@@ -103,7 +103,7 @@ bool CommsBridge::ReceiveFrame()
 		std::string msg = e.what();
 		switch (e.code)
 		{
-		case LINEDOWN:
+		case COMMS_EXCEPTION_LINEDOWN:
 			Log->error("CONNECTION LOST WITH DEVICE WHEN READING: {}", msg);
 			TryToReconnect();
 			break;
@@ -154,7 +154,7 @@ void CommsBridge::TxWork()
 		std::string msg = e.what();
 		switch (e.code)
 		{
-		case LINEDOWN:
+		case COMMS_EXCEPTION_LINEDOWN:
 			Log->error("CONNECTION LOST WITH DEVICE WHEN WRITTING: "+msg);
 			//TryToReconnect();
 			break;

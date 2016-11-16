@@ -26,7 +26,7 @@ namespace dccomms {
 
 static void ThrowPhyLayerException(std::string msg)
 {
-	throw CommsException("PHYLAYER EXCEPTION: "+msg, PHYLAYER_ERROR);
+	throw CommsException("PHYLAYER EXCEPTION: "+msg, COMMS_EXCEPTION_PHYLAYER_ERROR);
 }
 
 

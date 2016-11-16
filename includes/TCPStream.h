@@ -24,10 +24,12 @@
 namespace dccomms {
 class TCPStream : public ICommsDevice {
 public:
+	TCPStream();
 	TCPStream(std::string serveraddr);
 	virtual ~TCPStream();
 	void CloseConnection();
 	void OpenConnection();
+	void SetServerAddr(std::string);
 
 	int Read(void *, uint32_t, unsigned long msTimeout=0);
 	int Write(const void *, uint32_t, uint32_t msTimeout=0);
@@ -50,7 +52,7 @@ public:
 
 	//-----
 
-private:
+protected:
 	bool Connected();
 	bool Ready();
 	void ThrowExceptionIfErrorOnSocket();

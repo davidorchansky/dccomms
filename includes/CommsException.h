@@ -16,14 +16,14 @@
 using namespace std;
 namespace dccomms {
 
-#define LINEDOWN 	 0
-#define TIMEOUT      2
-#define CORRUPTFRAME 3
-#define CORRUPTBLOCK 4
-#define UNKNOWN_ERROR 5
-#define PHYLAYER_ERROR 6
-#define DLNKLAYER_ERROR 7
-#define NOTIMPLEMENTED 8
+#define COMMS_EXCEPTION_LINEDOWN 	 	0
+#define COMMS_EXCEPTION_TIMEOUT      	2
+#define COMMS_EXCEPTION_CORRUPTFRAME 	3
+#define COMMS_EXCEPTION_CORRUPTBLOCK 	4
+#define COMMS_EXCEPTION_UNKNOWN_ERROR 	5
+#define COMMS_EXCEPTION_PHYLAYER_ERROR 	6
+#define COMMS_EXCEPTION_DLNKLAYER_ERROR 7
+#define COMMS_EXCEPTION_NOTIMPLEMENTED 	8
 
 class CommsException: public exception{
 public:
