@@ -44,13 +44,24 @@ public:
 
 	virtual ~DataLinkFrame();
 
-	uint8_t GetDesDir(){return *ddir;}
-	uint8_t GetSrcDir(){return *sdir;}
-	int GetFrameSize() const {return frameSize;}
-	uint8_t * GetFrameBuffer() const {return buffer;}
+	inline uint8_t GetDesDir(){return *ddir;}
+	inline uint8_t GetSrcDir(){return *sdir;}
+	inline int GetFrameSize() const {return frameSize;}
+	inline uint8_t * GetFrameBuffer() const {return buffer;}
+	inline fcsType GetFcsType() const {return fcstype;}
+
+	void SetDesDir(uint8_t _ddir);
+	void SetSrcDir(uint8_t _sdir);
+
+	void UpdateFrame(
+			uint8_t, //destination dir
+			uint8_t, //source dir
+			uint16_t, //data size
+			uint8_t * //data
+			);
 
 	void PayloadUpdated(unsigned int datasize);
-	uint8_t * GetPayloadBuffer();
+	inline uint8_t * GetPayloadBuffer();
 
 	void GetInfoFromBuffer(void *);
 	void GetInfoFromBufferWithPreamble(void *o);

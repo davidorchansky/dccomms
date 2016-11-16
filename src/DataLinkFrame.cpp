@@ -203,6 +203,31 @@ void DataLinkFrame::PayloadUpdated(unsigned int datasize)
 	_calculateCRC();
 }
 
+void DataLinkFrame::UpdateFrame(
+		uint8_t _ddir, //destination dir
+		uint8_t _sdir, //source dir
+		uint16_t _dsize, //data size
+		uint8_t * _data //data
+		)
+{
+	*ddir = _ddir;
+	*sdir = _sdir;
+	memcpy(payload, _data, _dsize);
+	PayloadUpdated(_dsize);
+}
+
+inline void DataLinkFrame::SetSrcDir(uint8_t _sdir)
+{
+	*sdir = _sdir;
+	_calculateCRC();
+}
+
+void DataLinkFrame::SetDesDir(uint8_t _ddir)
+{
+	*ddir = _ddir;
+	_calculateCRC();
+}
+
 uint8_t * DataLinkFrame::GetPayloadBuffer()
 {
 	return payload;
