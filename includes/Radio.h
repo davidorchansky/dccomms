@@ -33,13 +33,15 @@ namespace dccomms
 		int TotalErrors = 0;
 
 	private:
+		ICommsLink & serial;
+		unsigned char dir;
+
 		uint32_t _maxRxBufferSize;
 		uint8_t * _rxBuffer;
 		uint32_t _rxBufferFirstPos;
 		uint32_t _rxBufferLastPos;
 		uint32_t _bytesInBuffer = 0;
-		unsigned char dir;
-		ICommsLink & serial;
+
 		DataLinkFrame::fcsType FCSType;
 
 		void _DecreaseBytesInBuffer();
