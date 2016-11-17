@@ -347,7 +347,7 @@ void DataLinkFrame::printFrame(std::ostream & o)
 
 		o << std::endl << "FCS: 0x";
 		p = fcs;
-		for(int i = 0; i < fcsSize; i++)
+		for(unsigned int i = 0; i < fcsSize; i++)
 		{
 			o.width(2);
 			o.fill('0');
