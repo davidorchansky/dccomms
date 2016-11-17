@@ -235,7 +235,7 @@ uint8_t * DataLinkFrame::GetPayloadBuffer()
 
 void DataLinkFrame::GetInfoFromBufferWithPreamble(void *o)
 {
-	GetInfoFromBuffer(o + DLNK_PREAMBLE_SIZE);
+	GetInfoFromBuffer((uint8_t*)o + DLNK_PREAMBLE_SIZE);
 }
 
 void DataLinkFrame::GetInfoFromBuffer(void *o)
