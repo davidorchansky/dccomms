@@ -127,9 +127,7 @@ Checksum::crc32(const void *buf, size_t size)
 	 * seeded on 0
 	 */
 	uint32_t crc = 0;
-	uint32_t rem;
 	uint16_t octet;
-	uint16_t i, j;
 	const uint8_t *p, *q;
 
 	q = (const uint8_t *) buf + size;
@@ -150,9 +148,7 @@ Checksum::crc32(const void *buf, size_t size, uint32_t crc)
 	 * seeded on parameter crc
 	 */
 
-	uint32_t rem;
 	uint16_t octet;
-	uint16_t i, j;
 	const uint8_t *p, *q;
 
 	q = (const uint8_t *) buf + size;
