@@ -36,9 +36,6 @@ Arduino::Arduino(SerialPortStream s, const char* p, Arduino::BaudRate b, const c
 
 Arduino Arduino::FindArduino(Arduino::BaudRate baud, const char * hello, const char * validReply)
 {
-	int fd; /* File descriptor for the port */
-	char msg[200];
-	
 	#ifdef BBB
 	int maxPorts = 13;
 	const char *spfiles[] = {"/dev/ttyO5","/dev/ttyO4","/dev/ttyO1","/dev/ttyO0", "/dev/ttyO2","/dev/ttyACM0", "/dev/ttyACM1", "/dev/ttyACM2", "/dev/ttyACM3",
@@ -89,8 +86,6 @@ Arduino::~Arduino() {
 
 bool Arduino::TryReconnect()
 {
-	int fd; /* File descriptor for the port */
-	char msg[200];
 	const char *spfiles[] = {"/dev/ttyACM0", "/dev/ttyACM1", "/dev/ttyACM2", "/dev/ttyACM3",
 			"/dev/ttyACM4", "/dev/ttyACM5", "/dev/ttyACM6", "/dev/ttyACM7"};
 
