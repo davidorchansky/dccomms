@@ -5,7 +5,7 @@
  *      Author: diego
  */
 
-#include <ICommsLink.h>
+#include <dccomms/ICommsLink.h>
 
 namespace dccomms {
 

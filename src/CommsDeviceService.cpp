@@ -5,15 +5,15 @@
  *      Author: diego
  */
 
-#include <CommsDeviceService.h>
-#include <CommsException.h>
+#include <dccomms/CommsDeviceService.h>
+#include <dccomms/CommsException.h>
 #include <errno.h>
 #include <iostream>
 #include <fcntl.h> /* Defines O_* constants */
 #include <sys/stat.h> /* Defines mode constants */
 #include <mqueue.h>
 #include <chrono>
-#include <Utils.h>
+#include <dccomms/Utils.h>
 
 namespace dccomms {
 

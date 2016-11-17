@@ -5,7 +5,7 @@
  *      Author: diego
  */
 
-#include <CommsException.h>
+#include <dccomms/CommsException.h>
 #include <cstring>
 #include <string>
 

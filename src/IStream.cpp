@@ -5,7 +5,7 @@
  *      Author: diego
  */
 
-#include <IStream.h>
+#include <dccomms/IStream.h>
 #include <iostream>
 namespace dccomms {
 

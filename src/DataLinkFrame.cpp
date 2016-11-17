@@ -5,10 +5,10 @@
  *      Author: diego
  */
 
-#include <DataLinkFrame.h>
+#include <dccomms/DataLinkFrame.h>
 #include <cstdlib>
 #include <cstring>
-#include <Checksum.h>
+#include <dccomms/Checksum.h>
 
 namespace dccomms {
 

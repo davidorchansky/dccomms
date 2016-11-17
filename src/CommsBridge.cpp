@@ -9,11 +9,11 @@
 #include <iostream>
 #include <sys/time.h>
 #include <sys/stat.h>
-#include <Utils.h>
-#include <CommsException.h>
+#include <dccomms/Utils.h>
+#include <dccomms/CommsException.h>
 #include <boost/algorithm/string.hpp>
-#include <CommsBridge.h>
-#include <ICommsDevice.h>
+#include <dccomms/CommsBridge.h>
+#include <dccomms/ICommsDevice.h>
 
 namespace dcent {
 using namespace std;

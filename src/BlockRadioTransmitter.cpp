@@ -5,13 +5,13 @@
  *      Author: diego
  */
 
-#include <BlockRadioTransmitter.h>
-#include <CommsException.h>
-#include <Radio.h>
+#include <dccomms/BlockRadioTransmitter.h>
+#include <dccomms/CommsException.h>
+#include <dccomms/Radio.h>
 #include <cstring>
 #include <thread>         // std::this_thread::sleep_for
 #include <chrono>
-#include <Utils.h>
+#include <dccomms/Utils.h>
 #include <openssl/md5.h>
 #include <iostream>
 #include <sys/time.h> /*para timeout*/

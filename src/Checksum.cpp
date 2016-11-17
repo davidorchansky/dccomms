@@ -5,7 +5,7 @@
  *      Author: diego
  */
 
-#include <Checksum.h>
+#include <dccomms/Checksum.h>
 namespace dccomms {
 
 Checksum::Checksum() {

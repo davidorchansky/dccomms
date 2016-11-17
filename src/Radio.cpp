@@ -6,11 +6,11 @@
  */
 
 
-#include <Radio.h>
-#include <Arduino.h>
-#include <CommsException.h>
-#include <DataLinkFrame.h>
-#include <ICommsLink.h>
+#include <dccomms/Radio.h>
+#include <dccomms/Arduino.h>
+#include <dccomms/CommsException.h>
+#include <dccomms/DataLinkFrame.h>
+#include <dccomms/ICommsLink.h>
 #include <thread>         // std::this_thread::sleep_for
 #include <chrono>
 #include <iostream>

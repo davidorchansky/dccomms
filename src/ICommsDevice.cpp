@@ -5,8 +5,8 @@
  *      Author: diego
  */
 
-#include <ICommsDevice.h>
-#include <CommsException.h>
+#include <dccomms/ICommsDevice.h>
+#include <dccomms/CommsException.h>
 
 namespace dccomms {
 

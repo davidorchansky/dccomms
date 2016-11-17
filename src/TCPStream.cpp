@@ -5,8 +5,8 @@
  *      Author: diego
  */
 
-#include <TCPStream.h>
-#include <CommsException.h>
+#include <dccomms/TCPStream.h>
+#include <dccomms/CommsException.h>
 #include <boost/algorithm/string.hpp>
 #include <sys/ioctl.h>
 #include <sys/time.h> /*para timeout*/

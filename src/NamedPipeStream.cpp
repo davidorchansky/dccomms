@@ -5,7 +5,7 @@
  *      Author: diego
  */
 
-#include <CommsException.h>
+#include <dccomms/CommsException.h>
 #include <string>
 
 #include <stdio.h>   /* Standard input/output definitions */
@@ -13,7 +13,7 @@
 #include <unistd.h>  /* UNIX standard function definitions */
 #include <fcntl.h>   /* File control definitions */
 #include <errno.h>   /* Error number definitions */
-#include <NamedPipeStream.h>
+#include <dccomms/NamedPipeStream.h>
 #include <termios.h> /* POSIX terminal control definitions */
 
 #include <sys/time.h> /*para timeout*/

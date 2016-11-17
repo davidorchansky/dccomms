@@ -5,16 +5,16 @@
  *      Author: diego
  */
 
-#include <Arduino.h>
-#include <CommsException.h>
-#include <IStream.h>
+#include <dccomms/Arduino.h>
+#include <dccomms/CommsException.h>
+#include <dccomms/IStream.h>
 #include <cstring>
 #include <chrono>
 #include <thread>
 #include <exception>
 #include <iostream>
 #include <cstring>
-#include <SerialPortStream.h>
+#include <dccomms/SerialPortStream.h>
 
 namespace dccomms {
 

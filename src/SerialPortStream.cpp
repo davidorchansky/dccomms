@@ -5,7 +5,7 @@
  *      Author: diego
  */
 
-#include <CommsException.h>
+#include <dccomms/CommsException.h>
 #include <string>
 
 #include <stdio.h>   /* Standard input/output definitions */
@@ -17,7 +17,7 @@
 
 #include <sys/time.h> /*para timeout*/
 #include <sys/ioctl.h>
-#include <SerialPortStream.h>
+#include <dccomms/SerialPortStream.h>
 
 #include <iostream>
 
