@@ -32,5 +32,5 @@ target_link_libraries(${PROJECT_NAME} m pthread rt crypto cpplogging)
 install(TARGETS ${PROJECT_NAME}
 	LIBRARY DESTINATION "lib"
 	)
-install(DIRECTORY "include/dccomms" DESTINATION} "include")
+install(DIRECTORY "include/dccomms" DESTINATION "include")
 	
