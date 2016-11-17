@@ -216,7 +216,7 @@ void DataLinkFrame::UpdateFrame(
 	PayloadUpdated(_dsize);
 }
 
-inline void DataLinkFrame::SetSrcDir(uint8_t _sdir)
+void DataLinkFrame::SetSrcDir(uint8_t _sdir)
 {
 	*sdir = _sdir;
 	_calculateCRC();
