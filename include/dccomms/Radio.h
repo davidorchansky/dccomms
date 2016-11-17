@@ -8,8 +8,8 @@
 #ifndef RADIO_H_
 #define RADIO_H_
 
-#include <DataLinkFrame.h>
-#include <ICommsLink.h>
+#include <dccomms/DataLinkFrame.h>
+#include <dccomms/ICommsLink.h>
 #include <Loggable.h>
 
 namespace dccomms

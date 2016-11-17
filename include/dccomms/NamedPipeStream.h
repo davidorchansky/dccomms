@@ -14,7 +14,7 @@
 
 #include <fcntl.h>   /* File control definitions */
 #include <errno.h>   /* Error number definitions */
-#include <ICommsDevice.h>
+#include <dccomms/ICommsDevice.h>
 #include <termios.h> /* POSIX terminal control definitions */
 
 #include <sys/time.h> /*para timeout*/

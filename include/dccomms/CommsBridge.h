@@ -8,11 +8,11 @@
 #ifndef COMMSTCP_H_
 #define COMMSTCP_H_
 
-#include <CommsDeviceService.h>
-#include <ICommsDevice.h>
+#include <dccomms/CommsDeviceService.h>
+#include <dccomms/ICommsDevice.h>
 #include <pthread.h>
 #include <iostream>
-#include <Utils.h>
+#include <dccomms/Utils.h>
 #include <string>
 #include <mutex>
 #include <Loggable.h>

@@ -8,7 +8,7 @@
 #ifndef ARDUINO_H_
 #define ARDUINO_H_
 
-#include <SerialPortStream.h>
+#include <dccomms/SerialPortStream.h>
 
 
 namespace dccomms {

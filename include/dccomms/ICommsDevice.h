@@ -8,8 +8,8 @@
 #ifndef INCLUDES_ICOMMSDEVICE_H_
 #define INCLUDES_ICOMMSDEVICE_H_
 
-#include <ICommsLink.h>
-#include <IStream.h>
+#include <dccomms/ICommsLink.h>
+#include <dccomms/IStream.h>
 
 namespace dccomms {
 

@@ -7,7 +7,7 @@
 
 #ifndef BLOCKRADIOTRANSMITTER_H_
 #define BLOCKRADIOTRANSMITTER_H_
-#include <Radio.h>
+#include <dccomms/Radio.h>
 namespace dccomms
 {
 

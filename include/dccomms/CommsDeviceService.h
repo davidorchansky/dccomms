@@ -11,8 +11,8 @@
 #include <fcntl.h> /* Defines O_* constants */
 #include <sys/stat.h> /* Defines mode constants */
 #include <mqueue.h>
-#include <DataLinkFrame.h>
-#include <ICommsLink.h>
+#include <dccomms/DataLinkFrame.h>
+#include <dccomms/ICommsLink.h>
 #include <queue>
 #include <mutex>
 #include <thread>

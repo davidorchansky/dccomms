@@ -9,11 +9,11 @@
 #define DATALINKFRAME_H_
 
 
-#include <DataLinkFrame.h>
+#include <dccomms/DataLinkFrame.h>
 #include <ostream>
 #include <cstring>
 #include <boost/shared_ptr.hpp>
-#include <CommsException.h>
+#include <dccomms/CommsException.h>
 
 namespace dccomms {
 

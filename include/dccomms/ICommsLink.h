@@ -8,7 +8,7 @@
 #ifndef INCLUDES_ICOMMSLINK_H_
 #define INCLUDES_ICOMMSLINK_H_
 
-#include <DataLinkFrame.h>
+#include <dccomms/DataLinkFrame.h>
 #include <Loggable.h>
 
 using namespace cpplogging;

@@ -8,7 +8,7 @@
 #ifndef INCLUDES_TCPSTREAM_H_
 #define INCLUDES_TCPSTREAM_H_
 
-#include <ICommsDevice.h>
+#include <dccomms/ICommsDevice.h>
 #include <string>
 
 //Cstyle

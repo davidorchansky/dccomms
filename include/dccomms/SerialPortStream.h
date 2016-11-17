@@ -9,7 +9,7 @@
 #define SERIALPORTINTERFACE_H_
 
 
-#include <ICommsDevice.h>
+#include <dccomms/ICommsDevice.h>
 #include <stdio.h>   /* Standard input/output definitions */
 
 #include <string>
