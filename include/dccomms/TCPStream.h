@@ -31,7 +31,7 @@ public:
 	void OpenConnection();
 	void SetServerAddr(std::string);
 
-	int Read(void *, uint32_t, unsigned long msTimeout=0);
+	virtual int Read(void *, uint32_t, unsigned long msTimeout=0);
 	int Write(const void *, uint32_t, uint32_t msTimeout=0);
 
 	IStream & operator >> (uint8_t &);
