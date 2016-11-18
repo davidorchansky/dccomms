@@ -7,6 +7,8 @@
 
 #include <dccomms/IStream.h>
 #include <iostream>
+#include <cstring>
+
 namespace dccomms {
 
 IStream::IStream() {
@@ -106,6 +108,12 @@ Stream & Stream::operator >> (uint8_t &byte)
 
 }
 */
+IStream & IStream::operator << (const std::string & str)
+{
+	*this << str.c_str();
+	return *this;
+}
+
 IStream & IStream::operator << (uint8_t byte)
 {
 	Write(&byte, sizeof(uint8_t));
@@ -114,7 +122,7 @@ IStream & IStream::operator << (uint8_t byte)
 
 IStream & IStream::operator << (const char * str)
 {
-	int n = sizeof(str);
+	int n = strlen(str);
 	Write(str, n);
 	return *this;
 }

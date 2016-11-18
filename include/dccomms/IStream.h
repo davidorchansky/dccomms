@@ -9,6 +9,8 @@
 #define STREAM_H_
 
 #include <cstdint>
+#include <string>
+
 namespace dccomms {
 
 class IStream {
@@ -24,19 +26,21 @@ public:
 	virtual IStream & operator >> (uint16_t &) = 0;
 	virtual IStream & operator >> (uint32_t &) = 0;
 	virtual IStream & operator << (uint8_t);
-	virtual IStream & operator << (const char * str);
+
 	virtual int Available() = 0;
 
 	virtual bool IsOpen() = 0;
 	//virtual void TimeoutMode(bool) = 0;
 
-	void WaitFor(const uint8_t * expected, uint32_t size);
-	int ReadInt(int & num, char & nextByte);
-	int ReadUInt(int & num, char & nextByte);
-
 	virtual void FlushInput() = 0;
 	virtual void FlushOutput() = 0;
 	virtual void FlushIO() = 0;
+
+	void WaitFor(const uint8_t * expected, uint32_t size);
+	int ReadInt(int & num, char & nextByte);
+	int ReadUInt(int & num, char & nextByte);
+	IStream & operator << (const char * str);
+	IStream & operator << (const std::string & str);
 
 private:
 	char buffer[1024];
