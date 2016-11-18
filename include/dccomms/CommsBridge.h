@@ -25,22 +25,22 @@ using namespace dccomms;
 
 class CommsBridge: public Loggable {
 public:
-	CommsBridge(ICommsDevice *, int _baudrate = 0, DataLinkFrame::fcsType _chksum = DataLinkFrame::fcsType::crc32);
+	CommsBridge(ICommsDevice *, int _baudrate = 2000, DataLinkFrame::fcsType _chksum = DataLinkFrame::fcsType::crc32);
 	virtual ~CommsBridge();
-	void Start();
-	void Stop();
+	virtual void Start();
+	virtual void Stop();
 
 	//Two instances of CommsBridge for the same purpose in the same machine (for debug reasons) must have different namespaces
 	//This method must be called before Start
 	void SetNamespace(std::string nspace);
 
-private:
-	void TxWork();
-	void RxWork();
-	void TransmitFrame();
-	bool ReceiveFrame();
-	bool TryToConnect();
-	bool TryToReconnect();
+protected:
+	virtual void TxWork();
+	virtual void RxWork();
+	virtual void TransmitFrame();
+	virtual bool ReceiveFrame();
+	virtual bool TryToConnect();
+	virtual bool TryToReconnect();
 	Timer timer;
 	unsigned int _frameTransmissionTime; //milis
 	double _byteTransmissionTime; //milis
@@ -59,20 +59,6 @@ private:
 	ICommsDevice * device;
 
 	ServiceThread<CommsBridge> txserv, rxserv;
-
-	unsigned int GetMilliseconds(struct timeval * t)
-	{
-		  return  (*t).tv_sec *1000 + (*t).tv_usec/1000;
-	}
-
-	void PrintLog(std::string msg)
-	{
-		if (true)//elem != "SENDER")
-		{
-			std::cerr << "LOOP: " << msg << std::endl;
-			std::cerr.flush();
-		}
-	}
 
 };
 } /* namespace dcent */
