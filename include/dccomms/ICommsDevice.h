@@ -21,6 +21,9 @@ public:
 	virtual ICommsLink& operator >> (DataLinkFramePtr & dlf);
 	virtual ICommsLink& operator<< (const DataLinkFramePtr & dlf);
 
+	virtual ICommsDevice & operator << (const char * str);
+	virtual ICommsDevice & operator << (const std::string &);
+
 	virtual bool Open();
 	virtual void Close();
 };

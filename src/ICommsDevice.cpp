@@ -29,6 +29,18 @@ void ICommsDevice::Close() {
 	throw CommsException("Operator not implemented", COMMS_EXCEPTION_NOTIMPLEMENTED);
 }
 
+ICommsDevice& ICommsDevice::operator << (const char * str)
+{
+	IStream::operator <<(str);
+	return *this;
+}
+
+ICommsDevice& ICommsDevice::operator << (const std::string & str)
+{
+	IStream::operator <<(str);
+	return *this;
+}
+
 ICommsLink& ICommsDevice::operator >> (DataLinkFramePtr & dlf)
 {
 	WaitFor((const uint8_t*) dlf->pre, DLNK_PREAMBLE_SIZE);
