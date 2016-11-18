@@ -15,7 +15,7 @@
 #include <dccomms/CommsBridge.h>
 #include <dccomms/ICommsDevice.h>
 
-namespace dcent {
+namespace dccomms {
 using namespace std;
 
 CommsBridge::CommsBridge(ICommsDevice * _device, int _baudrate, DataLinkFrame::fcsType chksum): phyService(IPHY_TYPE_PHY, chksum), txserv(this), rxserv(this) {

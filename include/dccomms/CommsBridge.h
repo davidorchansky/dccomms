@@ -17,7 +17,7 @@
 #include <mutex>
 #include <Loggable.h>
 
-namespace dcent {
+namespace dccomms {
 
 #define MAX_ODATA_BUF 4096
 
