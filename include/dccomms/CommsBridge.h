@@ -23,7 +23,7 @@ namespace dccomms {
 
 using namespace dccomms;
 
-class CommsBridge: public Loggable {
+class CommsBridge: public virtual Loggable {
 public:
 	CommsBridge(ICommsDevice *, int _baudrate = 2000, DataLinkFrame::fcsType _chksum = DataLinkFrame::fcsType::crc32);
 	virtual ~CommsBridge();
@@ -33,6 +33,7 @@ public:
 	//Two instances of CommsBridge for the same purpose in the same machine (for debug reasons) must have different namespaces
 	//This method must be called before Start
 	void SetNamespace(std::string nspace);
+	virtual void SetLogName(std::string name);
 
 protected:
 	virtual void TxWork();

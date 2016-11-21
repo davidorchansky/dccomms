@@ -38,10 +38,12 @@ void CommsBridge::SetNamespace(std::string nspace)
 {
 	serv_namespace = nspace;
 	phyService.SetNamespace(serv_namespace);
-	if(serv_namespace != "")
-	{
-		SetLogName(serv_namespace + ":CommsBridge");
-	}
+}
+
+void CommsBridge::SetLogName(std::string name)
+{
+	Loggable::SetLogName(name);
+	phyService.SetLogName(name +":CommsDeviceService");
 }
 
 void CommsBridge::Start()
