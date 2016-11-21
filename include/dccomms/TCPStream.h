@@ -56,7 +56,7 @@ protected:
 	bool Connected();
 	bool Ready();
 	void ThrowExceptionIfErrorOnSocket();
-	int Recv(unsigned char *, int bytesLeft);
+	int Recv(unsigned char *, int bytesLeft, bool block = true);
 
 	int sockfd, portno;
 	std::string ip;

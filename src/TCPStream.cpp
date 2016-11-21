@@ -112,9 +112,13 @@ int TCPStream::Write(const void * buf, uint32_t size, uint32_t to)
 	return w;
 }
 
-int TCPStream::Recv(unsigned char * ptr, int bytesLeft)
+int TCPStream::Recv(unsigned char * ptr, int bytesLeft, bool block )
 {
-	int res = recv(sockfd, ptr, bytesLeft, MSG_DONTWAIT);
+	int res = 0;
+	if(block)
+		res = recv(sockfd, ptr, bytesLeft, MSG_WAITALL);
+	else
+		res = recv(sockfd, ptr, bytesLeft, MSG_DONTWAIT);
 	if (res < 0)
 	{
 		switch(errno)
@@ -176,7 +180,7 @@ int TCPStream::Read(void * buf, uint32_t size, unsigned long ms)
 	}
 	while(t1 - t0 < m)
 	{
-		res = Recv(ptr, bytesLeft);
+		res = Recv(ptr, bytesLeft, false);
 		if(res > 0)
 		{
 			n += res;
