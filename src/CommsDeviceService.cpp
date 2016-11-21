@@ -75,10 +75,6 @@ void CommsDeviceService::SetNamespace(std::string m)
 {
 	_namespace = m;
 	SetQueuePrefix(_namespace);
-	if(_namespace != "")
-	{
-		SetLogName(_namespace+":CommsDeviceService");
-	}
 }
 
 void CommsDeviceService::SetChecksumType(DataLinkFrame::fcsType fcs)
