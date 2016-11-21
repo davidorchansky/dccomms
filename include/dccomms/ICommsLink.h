@@ -14,7 +14,7 @@
 using namespace cpplogging;
 namespace dccomms {
 
-class ICommsLink: public Loggable{
+class ICommsLink: public virtual Loggable{
 public:
 	ICommsLink();
 	virtual ~ICommsLink();
