@@ -151,6 +151,8 @@ bool SerialPortStream::Open()
 
 		tcsetattr(fd, TCSAFLUSH, &options);
 		_open = true;
+
+		SetTimeout(0);
 		return true;
 	}
 	_open = false;
@@ -171,22 +173,6 @@ bool SerialPortStream::Connected()
 	//http://stackoverflow.com/questions/34170350/detecting-if-a-character-device-has-disconnected-in-linux-in-with-termios-api-c
 	bool connected = !(Ready() && Available() == 0) ; //But does not work with the virtual serial port...
 	return connected;
-	/*
-	char buf;
-	int res = write(fd, &buf, 0);
-	if (res == -1)
-	{
-		switch(errno)
-		{
-		case EPIPE:
-			return false; //throw CommsException("Serial port end is closed", LINEDOWN);
-			break;
-		default:
-			return false; //throw CommsException("Serial link down (unknown error)", LINEDOWN);
-			break;
-		}
-	}
-	return true;*/
 }
 
 bool SerialPortStream::Ready()
@@ -227,57 +213,26 @@ int SerialPortStream::Read(void * buf, uint32_t size, unsigned long ms)
 		//Bloqueado hasta coger m bytes
 		while(true)
 		{
-#ifndef SERIAL_DISCONNECT_TEST
-			if(Available()>0)
+			int res = read(fd, ptr, bytesLeft);
+			if (res > 0)
 			{
-				n += read(fd, ptr, bytesLeft);
+				n += res;
 				ptr = (uint8_t*)buf + n;
 				if(ptr == max)
 					return n; // == size
 				bytesLeft = size - n;
 			}
 			else
-			{
 				if(!Connected())//TODO: CHECK THE CONNECTION STATUS AND RAISE EXCEPTION IF DOWN
 				{
 					throw CommsException("Problem happened when reading socket", COMMS_EXCEPTION_LINEDOWN);
 				}
-			}
-#else
-			int res = Available();
-			if(res>0)
-			{
-				n += read(fd, ptr, bytesLeft);
-				ptr = (uint8_t*)buf + n;
-				if(ptr == max)
-					return n; // == size
-				bytesLeft = size - n;
-			}
-			else
-			{
-				char sig = '-'; //Un byte aleatorio...
-				res = write(fd, &sig, 1);
-				if(res < 0)
-				{
-					close(fd);
-					throw CommsException("Fallo de comunicacion al leer", COMMS_EXCEPTION_LINEDOWN);
-				}
-			}
-#endif
 		}
-
 	}
-
-#ifndef CHECK_TIMEOUTEXCEPTION
 	while(t1 - t0 < m)
 	{
 		if(Available()>0)
 		{
-
-#ifdef PRINTSERIAL
-			int SZ = Available();
-			std::cout << std::endl << SZ <<std::endl;
-#endif
 			n += read(fd, ptr, bytesLeft);
 			ptr = (uint8_t*)buf + n;
 			if(ptr == max)
@@ -287,7 +242,6 @@ int SerialPortStream::Read(void * buf, uint32_t size, unsigned long ms)
 		gettimeofday(&time1, NULL);
 		t1 = time1.tv_sec*1000 + time1.tv_usec/1000;
 	}
-#endif
 
 	//Si se llega hasta este punto, es que ha transcurrido el timeout
 	char sig = '-'; //Un byte aleatorio...
