@@ -85,6 +85,34 @@ int IStream::ReadUInt(int & num, char & nextByte)
 	return -1;
 }
 
+int IStream::ReadUntil(uint8_t * dst, const uint8_t * finalPattern, int finalPatternLength, int maxLength)
+{
+	uint8_t * cdptr = dst,
+			* edptr = dst + maxLength;
+
+	const uint8_t * cfpptr = finalPattern,
+			* efpptr = finalPattern + finalPatternLength;
+
+	while(cfpptr < efpptr)
+	{
+		if(cdptr < edptr)
+		{
+			Read(cdptr, 1);
+			if(*cdptr != *cfpptr)
+			{
+				cfpptr = finalPattern;
+			}
+			else
+			{
+				cfpptr++;
+			}
+			cdptr++;
+		}
+		else return cdptr - dst;
+	}
+	return cdptr - dst;
+}
+
 /*
 int Stream::Read(uint8_t * buf, uint32_t size, uint32_t to)
 {

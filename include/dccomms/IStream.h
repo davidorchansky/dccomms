@@ -42,6 +42,8 @@ public:
 	IStream & operator << (const char * str);
 	IStream & operator << (const std::string & str);
 
+	int ReadUntil(uint8_t * dst, const uint8_t * finalPattern, int finalPatternLength, int maxLength);
+
 private:
 	char buffer[1024];
 };
