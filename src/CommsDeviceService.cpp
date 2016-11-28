@@ -537,7 +537,11 @@ void CommsDeviceService::ServiceThread::Work()
 		switch(physervice->rxmsg.GetMsgType())
 		{
 		case ServiceMessage::FRAME:
-			physervice->Log->debug("Recibida trama desde la capa fisica");
+			if(physervice->type  == IPHY_TYPE_DLINK)
+				physervice->Log->debug("Received frame from the physical layer");
+			else
+				physervice->Log->debug("Received frame from the D-Link layer");
+
 			physervice->SaveFrameFromMsg(physervice->rxmsg);
 			break;
 		case ServiceMessage::CMD_STATE:

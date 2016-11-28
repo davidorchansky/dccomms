@@ -48,6 +48,7 @@ public:
 	//Two instances of CommsDeviceService for the same purpose in the same machine (for debug reasons) must have different namespaces
 	//This method must be called before Start
 	void SetNamespace(std::string nspace);
+	int type;
 private:
 	std::string _namespace;
 	//El siguiente metodo es para Debug en la misma maquina y ha de llamarse antes que Start().
@@ -154,7 +155,7 @@ private:
 	std::string qprefix;
 
 	unsigned int maxmsgsize;
-	int type;
+
 	PhyState phyState;
 	DataLinkFrame::fcsType fcsType;
 
