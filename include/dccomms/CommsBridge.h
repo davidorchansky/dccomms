@@ -34,6 +34,7 @@ public:
 	//This method must be called before Start
 	void SetNamespace(std::string nspace);
 	virtual void SetLogName(std::string name);
+	virtual void SetLogLevel(Loggable::LogLevel);
 
 protected:
 	virtual void TxWork();

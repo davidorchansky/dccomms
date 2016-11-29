@@ -45,6 +45,11 @@ void CommsBridge::SetLogName(std::string name)
 	Loggable::SetLogName(name);
 	phyService.SetLogName(name +":CommsDeviceService");
 }
+void CommsBridge::SetLogLevel(Loggable::LogLevel _level)
+{
+	Loggable::SetLogLevel(_level);
+	phyService.SetLogLevel(_level);
+}
 
 void CommsBridge::Start()
 {
@@ -190,6 +195,7 @@ bool CommsBridge::TryToConnect()
 		{
 			device->Open();
 			connected = true;
+			Log->info("Connected");
 		}
 		catch(CommsException & e)
 		{
