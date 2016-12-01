@@ -16,6 +16,7 @@
 #include <queue>
 #include <mutex>
 #include <thread>
+#include <condition_variable>
 
 namespace dccomms {
 
@@ -48,6 +49,10 @@ public:
 	//Two instances of CommsDeviceService for the same purpose in the same machine (for debug reasons) must have different namespaces
 	//This method must be called before Start
 	void SetNamespace(std::string nspace);
+
+	void WaitForFramesFromRxFifo();
+	bool WaitForFramesFromRxFifo(unsigned int timeout);
+	void WaitForDeviceReadyToTransmit();
 	int type;
 private:
 	std::string _namespace;
@@ -145,6 +150,7 @@ private:
 
 	std::mutex rxfifo_mutex;
 	std::mutex phyState_mutex;
+	condition_variable rxfifo_cond, phyState_cond;
 
 	std::string txmqname, rxmqname;
 	mqd_t txmqid, rxmqid;

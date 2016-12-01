@@ -288,20 +288,49 @@ void CommsDeviceService::ReceiveMsg(ServiceMessage & msg)
 	}
 }
 
+void CommsDeviceService::WaitForFramesFromRxFifo()
+{
+	std::unique_lock<std::mutex> lock(rxfifo_mutex);
+	while(rxfifo.empty())
+	{
+		rxfifo_cond.wait(lock);
+	}
+}
+
+bool CommsDeviceService::WaitForFramesFromRxFifo(unsigned int timeout)
+{
+	std::unique_lock<std::mutex> lock(rxfifo_mutex);
+	while(rxfifo.empty())
+	{
+		auto status = rxfifo_cond.wait_for(lock, std::chrono::milliseconds(timeout));
+		if(status == std::cv_status::timeout)
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+void CommsDeviceService::WaitForDeviceReadyToTransmit()
+{
+	std::unique_lock<std::mutex> lock(phyState_mutex);
+	while(phyState == PhyState::BUSY)
+	{
+		phyState_cond.wait(lock);
+	}
+}
+
 DataLinkFramePtr CommsDeviceService::GetNextFrame()
 {
-	bool empty = true;
-	while(empty)
+	std::unique_lock<std::mutex> lock(rxfifo_mutex);
+	while(rxfifo.empty())
 	{
-		rxfifo_mutex.lock();
-		empty = rxfifo.empty();
-		rxfifo_mutex.unlock();
+		rxfifo_cond.wait(lock);
 	}
-
-	rxfifo_mutex.lock();
 	DataLinkFramePtr dlf = rxfifo.front();
 	rxfifo.pop();
-	rxfifo_mutex.unlock();
+
+	//unique_lock destryctor unlocks automatically rxfifo_mutex
 
 	return dlf;
 }
@@ -312,6 +341,7 @@ void CommsDeviceService::PushNewFrame(DataLinkFramePtr dlf)
 
 	rxfifo.push(dlf);
 
+	rxfifo_cond.notify_one();
 	rxfifo_mutex.unlock();
 }
 
@@ -327,19 +357,10 @@ void CommsDeviceService::_SetPhyLayerState(const PhyState & state)
 	phyState_mutex.lock();
 
 	phyState = state;
-#ifdef DEBUG_SERVICE
-	switch(state)
+	if(state == PhyState::READY)
 	{
-	case PhyState::BUSY:
-		Log->debug("State: BUSY");
-		break;
-	case PhyState::READY:
-		Log->debug("State: READY");
-		break;
-	default:
-		Log->debug("ERROR GRAVE: ESTADO IMPOSIBLE!!");
+		phyState_cond.notify_one();
 	}
-#endif
 
 	phyState_mutex.unlock();
 }

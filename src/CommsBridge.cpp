@@ -131,38 +131,39 @@ void CommsBridge::TxWork()
 {
 	try
 	{
-		if(phyService.GetRxFifoSize() > 0)
+		phyService.WaitForFramesFromRxFifo();
+		phyService.SetPhyLayerState(CommsDeviceService::BUSY);
+		do
 		{
-			phyService.SetPhyLayerState(CommsDeviceService::BUSY);
-			while(phyService.GetRxFifoSize() > 0)
-			{
-				Log->debug("TX: FIFO size: {}", phyService.GetRxFifoSize());
-				phyService >> txdlf;
-				if(txdlf->checkFrame())
-				{
-					//PACKET OK
-					Log->debug("TX: frame is OK, ready to send");
-					TransmitFrame();
-					unsigned int frameSize = txdlf->GetFrameSize();
-					_frameTransmissionTime = ceil(frameSize * _byteTransmissionTime);
-					Log->debug("frame transmission time: {}", _frameTransmissionTime);
-					timer.Reset();
-					unsigned int elapsed = 0;
-					while(elapsed < _frameTransmissionTime)
-					{
-						elapsed = timer.Elapsed();
-					}
-					Log->debug("Tiempo transcurrido: "+std::to_string(elapsed));
+			phyService >> txdlf;
+			Log->debug("TX: FIFO size: {}", phyService.GetRxFifoSize());
 
-				}
-				else
+			if(txdlf->checkFrame())
+			{
+				//PACKET OK
+				Log->debug("TX: frame is OK, ready to send");
+				TransmitFrame();
+				unsigned int frameSize = txdlf->GetFrameSize();
+				_frameTransmissionTime = ceil(frameSize * _byteTransmissionTime);
+				Log->debug("frame transmission time: {}", _frameTransmissionTime);
+				timer.Reset();
+				unsigned int elapsed = 0;
+				while(elapsed < _frameTransmissionTime)
 				{
-					//PACKET WITH ERRORS
-					Log->critical("TX: INTERNAL ERROR: frame received with errors from the upper layer!");
+					elapsed = timer.Elapsed();
 				}
+				Log->debug("Tiempo transcurrido: "+std::to_string(elapsed));
+
 			}
-			phyService.SetPhyLayerState(CommsDeviceService::READY);
-		}
+			else
+			{
+				//PACKET WITH ERRORS
+				Log->critical("TX: INTERNAL ERROR: frame received with errors from the upper layer!");
+			}
+		}while(phyService.GetRxFifoSize() > 0);
+
+		phyService.SetPhyLayerState(CommsDeviceService::READY);
+
 	}
 	catch(CommsException & e)
 	{
