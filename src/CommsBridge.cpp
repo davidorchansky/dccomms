@@ -148,10 +148,8 @@ void CommsBridge::TxWork()
 				Log->debug("frame transmission time: {}", _frameTransmissionTime);
 				timer.Reset();
 				unsigned int elapsed = 0;
-				while(elapsed < _frameTransmissionTime)
-				{
-					elapsed = timer.Elapsed();
-				}
+                std::this_thread::sleep_for(std::chrono::milliseconds(_frameTransmissionTime));
+                elapsed = timer.Elapsed();
 				Log->debug("Tiempo transcurrido: "+std::to_string(elapsed));
 
 			}
