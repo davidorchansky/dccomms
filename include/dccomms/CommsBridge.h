@@ -35,6 +35,10 @@ public:
 	void SetNamespace(std::string nspace);
 	virtual void SetLogName(std::string name);
 	virtual void SetLogLevel(Loggable::LogLevel);
+        virtual void FlushLog();
+        virtual void FlushLogOn(LogLevel);
+        virtual void LogToConsole(bool);
+        virtual void LogToFile(const string &filename);
 
 protected:
 	virtual void TxWork();

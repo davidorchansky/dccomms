@@ -51,14 +51,41 @@ void CommsBridge::SetLogLevel(Loggable::LogLevel _level)
 	phyService.SetLogLevel(_level);
 }
 
+void CommsBridge::LogToConsole(bool c)
+{
+    Loggable::LogToConsole(c);
+    phyService.LogToConsole(c);
+}
+
+void CommsBridge::LogToFile(const string &filename)
+{
+    Loggable::LogToFile(filename);
+    phyService.LogToFile(filename);
+}
+
+void CommsBridge::FlushLog()
+{
+    Loggable::FlushLog();
+    phyService.FlushLog();
+}
+
+void CommsBridge::FlushLogOn(LogLevel level)
+{
+    Loggable::FlushLogOn(level);
+    phyService.FlushLogOn(level);
+}
+
 void CommsBridge::Start()
 {
 	_byteTransmissionTime =  1000./( baudrate / 8.);
 	phyService.Start();
 	TryToConnect();
+    Log->debug("starting TX service...");
 	txserv.Start();
+    Log->debug("starting RX service...");
 	rxserv.Start();
 
+    Log->debug("setting state ready...");
 	phyService.SetPhyLayerState(CommsDeviceService::READY);
 }
 
@@ -77,8 +104,8 @@ void CommsBridge::RxWork()
 	bool noerrors = ReceiveFrame();
 	if(noerrors)
 	{
-		//PACKET OK
-		Log->debug("RX: received frame without errors");
+        //PACKET OK
+        Log->debug("RX: received frame without errors");
 		Log->debug("RX: delivering received frame to the upper layer...");
 		phyService << rxdlf;
 		Log->debug("RX: frame delivered to the upper layer");
@@ -87,7 +114,7 @@ void CommsBridge::RxWork()
 	else
 	{
 		//PACKET WITH ERRORS
-		Log->debug("RX: received frame with errors. Frame will be discarded");
+        Log->warn("RX: received frame with errors. Frame will be discarded");
 	}
 }
 
@@ -111,11 +138,11 @@ bool CommsBridge::ReceiveFrame()
 		switch (e.code)
 		{
 		case COMMS_EXCEPTION_LINEDOWN:
-			Log->error("CONNECTION LOST WITH DEVICE WHEN READING: {}", msg);
+            Log->error("RX: CONNECTION LOST WITH DEVICE WHEN READING: {}", msg);
 			TryToReconnect();
 			break;
 		default:
-			Log->error("Unknown error when receiving next frame: {}\n"
+            Log->error("RX: Unknown error when receiving next frame: {}\n"
 					"Considering errors in the frame."
 					, msg);
 
@@ -131,7 +158,9 @@ void CommsBridge::TxWork()
 {
 	try
 	{
+        Log->debug("TX: waiting for frames to transmit");
 		phyService.WaitForFramesFromRxFifo();
+        Log->debug("TX: frames available. Setting phylayer state BUSY");
 		phyService.SetPhyLayerState(CommsDeviceService::BUSY);
 		do
 		{
@@ -140,17 +169,16 @@ void CommsBridge::TxWork()
 
 			if(txdlf->checkFrame())
 			{
-				//PACKET OK
-				Log->debug("TX: frame is OK, ready to send");
+                //PACKET OK
 				TransmitFrame();
 				unsigned int frameSize = txdlf->GetFrameSize();
 				_frameTransmissionTime = ceil(frameSize * _byteTransmissionTime);
-				Log->debug("frame transmission time: {}", _frameTransmissionTime);
+                Log->debug("TX: estimated frame transmission time: {}", _frameTransmissionTime);
 				timer.Reset();
 				unsigned int elapsed = 0;
                 std::this_thread::sleep_for(std::chrono::milliseconds(_frameTransmissionTime));
                 elapsed = timer.Elapsed();
-				Log->debug("Tiempo transcurrido: "+std::to_string(elapsed));
+                Log->debug("TX: elapsed time: {} ms", elapsed);
 
 			}
 			else
@@ -160,6 +188,7 @@ void CommsBridge::TxWork()
 			}
 		}while(phyService.GetRxFifoSize() > 0);
 
+        Log->debug("TX: transmitted all frames in FIFO. Setting phylayer state to READY");
 		phyService.SetPhyLayerState(CommsDeviceService::READY);
 
 	}
@@ -169,7 +198,7 @@ void CommsBridge::TxWork()
 		switch (e.code)
 		{
 		case COMMS_EXCEPTION_LINEDOWN:
-			Log->error("CONNECTION LOST WITH DEVICE WHEN WRITTING: "+msg);
+            Log->error("TX: CONNECTION LOST WITH DEVICE WHEN WRITTING: {}", msg);
 			//TryToReconnect();
 			break;
 		}
@@ -187,6 +216,7 @@ bool CommsBridge::TryToReconnect()
 
 bool CommsBridge::TryToConnect()
 {
+    Log->debug("Traying to connect with the device... Setting phylayer state as BUSY");
 	phyService.SetPhyLayerState(CommsDeviceService::BUSY);
 	while (!connected)
 	{
@@ -194,16 +224,17 @@ bool CommsBridge::TryToConnect()
 		{
 			device->Open();
 			connected = true;
-			Log->info("Connected");
+            Log->info("Device connected");
 		}
 		catch(CommsException & e)
 		{
 			std::string msg = e.what();
-			Log->error("Problem happened when trying to connect with the comms device (" + msg +")... Trying again...");
+            Log->error("Problem happened when trying to connect with the comms device ({})... Trying again...", msg);
 			Utils::Sleep(1000);
 		}
 
 	}
+    Log->debug("Setting the phylayer state to READY");
 	phyService.SetPhyLayerState(CommsDeviceService::READY);
 	return connected;
 }
