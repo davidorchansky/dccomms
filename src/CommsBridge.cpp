@@ -60,7 +60,7 @@ void CommsBridge::LogToConsole(bool c)
 void CommsBridge::LogToFile(const string &filename)
 {
     Loggable::LogToFile(filename);
-    phyService.LogToFile(filename);
+    phyService.LogToFile(filename + "_service");
 }
 
 void CommsBridge::FlushLog()
@@ -105,7 +105,7 @@ void CommsBridge::RxWork()
 	if(noerrors)
 	{
         //PACKET OK
-        Log->debug("RX: received frame without errors");
+        Log->debug("RX: received frame without errors (FS: {}).", rxdlf->GetFrameSize());
 		Log->debug("RX: delivering received frame to the upper layer...");
 		phyService << rxdlf;
 		Log->debug("RX: frame delivered to the upper layer");
@@ -114,13 +114,13 @@ void CommsBridge::RxWork()
 	else
 	{
 		//PACKET WITH ERRORS
-        Log->warn("RX: received frame with errors. Frame will be discarded");
+        Log->warn("RX: received frame with errors. Frame will be discarded (FS: {}).", rxdlf->GetFrameSize());
 	}
 }
 
 void CommsBridge::TransmitFrame()
 {
-	Log->debug("TX: transmitting frame...");
+    Log->debug("TX: transmitting frame... (FS: {}).", txdlf->GetFrameSize());
 	*device << txdlf;
 	Log->debug("TX: frame transmitted");
 }
@@ -173,7 +173,7 @@ void CommsBridge::TxWork()
 				TransmitFrame();
 				unsigned int frameSize = txdlf->GetFrameSize();
 				_frameTransmissionTime = ceil(frameSize * _byteTransmissionTime);
-                Log->debug("TX: estimated frame transmission time: {}", _frameTransmissionTime);
+                Log->debug("TX: estimated frame transmission time: {} ms (FS: {}).", _frameTransmissionTime, frameSize);
 				timer.Reset();
 				unsigned int elapsed = 0;
                 std::this_thread::sleep_for(std::chrono::milliseconds(_frameTransmissionTime));
