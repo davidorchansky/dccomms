@@ -8,7 +8,7 @@
 #ifndef INCLUDES_TCPSTREAM_H_
 #define INCLUDES_TCPSTREAM_H_
 
-#include <dccomms/ICommsDevice.h>
+#include <dccomms/IStreamCommsDevice.h>
 #include <string>
 
 //Cstyle
@@ -22,7 +22,7 @@
 #include <netdb.h>
 
 namespace dccomms {
-class TCPStream : public ICommsDevice {
+class TCPStream : public IStreamCommsDevice {
 public:
 	TCPStream();
 	TCPStream(std::string serveraddr);

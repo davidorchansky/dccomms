@@ -29,7 +29,7 @@ class DataLinkFrame;
 typedef boost::shared_ptr<DataLinkFrame> DataLinkFramePtr;
 
 class DataLinkFrame{
-	friend class ICommsDevice;
+        friend class IStreamCommsDevice;
 public:
 	enum fcsType { crc16, crc32, nofcs };
 

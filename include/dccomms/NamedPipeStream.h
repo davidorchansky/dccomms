@@ -14,7 +14,7 @@
 
 #include <fcntl.h>   /* File control definitions */
 #include <errno.h>   /* Error number definitions */
-#include <dccomms/ICommsDevice.h>
+#include <dccomms/IStreamCommsDevice.h>
 #include <termios.h> /* POSIX terminal control definitions */
 
 #include <sys/time.h> /*para timeout*/
@@ -26,7 +26,7 @@ namespace dccomms {
 #define DLS_INBUFFER_SIZE_FLUSH 200000
 
 
-class NamedPipeStream : public ICommsDevice {
+class NamedPipeStream : public IStreamCommsDevice {
 public:
 
 	struct PortSettings

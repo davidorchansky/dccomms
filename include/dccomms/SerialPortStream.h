@@ -9,7 +9,7 @@
 #define SERIALPORTINTERFACE_H_
 
 
-#include <dccomms/ICommsDevice.h>
+#include <dccomms/IStreamCommsDevice.h>
 #include <stdio.h>   /* Standard input/output definitions */
 
 #include <string>
@@ -23,7 +23,7 @@
 
 namespace dccomms {
 
-class SerialPortStream : public ICommsDevice{
+class SerialPortStream : public IStreamCommsDevice{
 public:
 
     enum BaudRate {

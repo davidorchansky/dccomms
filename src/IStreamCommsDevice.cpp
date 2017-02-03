@@ -5,43 +5,43 @@
  *      Author: diego
  */
 
-#include <dccomms/ICommsDevice.h>
+#include <dccomms/IStreamCommsDevice.h>
 #include <dccomms/CommsException.h>
 
 namespace dccomms {
 
-ICommsDevice::ICommsDevice() {
+IStreamCommsDevice::IStreamCommsDevice() {
 	// TODO Auto-generated constructor stub
 
 }
 
-ICommsDevice::~ICommsDevice() {
+IStreamCommsDevice::~IStreamCommsDevice() {
 	// TODO Auto-generated destructor stub
 }
 
-bool ICommsDevice::Open() {
-	// TODO Auto-generated destructor stub
-	throw CommsException("Operator not implemented", COMMS_EXCEPTION_NOTIMPLEMENTED);
-}
-
-void ICommsDevice::Close() {
+bool IStreamCommsDevice::Open() {
 	// TODO Auto-generated destructor stub
 	throw CommsException("Operator not implemented", COMMS_EXCEPTION_NOTIMPLEMENTED);
 }
 
-ICommsDevice& ICommsDevice::operator << (const char * str)
+void IStreamCommsDevice::Close() {
+	// TODO Auto-generated destructor stub
+	throw CommsException("Operator not implemented", COMMS_EXCEPTION_NOTIMPLEMENTED);
+}
+
+IStreamCommsDevice& IStreamCommsDevice::operator << (const char * str)
 {
 	IStream::operator <<(str);
 	return *this;
 }
 
-ICommsDevice& ICommsDevice::operator << (const std::string & str)
+IStreamCommsDevice& IStreamCommsDevice::operator << (const std::string & str)
 {
 	IStream::operator <<(str);
 	return *this;
 }
 
-ICommsLink& ICommsDevice::operator >> (DataLinkFramePtr & dlf)
+ICommsLink& IStreamCommsDevice::operator >> (DataLinkFramePtr & dlf)
 {
 	WaitFor((const uint8_t*) dlf->pre, DLNK_PREAMBLE_SIZE);
 
@@ -75,7 +75,7 @@ ICommsLink& ICommsDevice::operator >> (DataLinkFramePtr & dlf)
 	return *this;
 }
 
-ICommsLink& ICommsDevice::operator<< (const DataLinkFramePtr & dlf)
+ICommsLink& IStreamCommsDevice::operator<< (const DataLinkFramePtr & dlf)
 {
 	if(dlf->dataIn)
 	{

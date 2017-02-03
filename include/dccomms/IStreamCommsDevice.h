@@ -13,16 +13,16 @@
 
 namespace dccomms {
 
-class ICommsDevice : public IStream, public ICommsLink{
+class IStreamCommsDevice : public IStream, public ICommsLink{
 public:
-	ICommsDevice();
-	virtual ~ICommsDevice();
+        IStreamCommsDevice();
+        virtual ~IStreamCommsDevice();
 
 	virtual ICommsLink& operator >> (DataLinkFramePtr & dlf);
 	virtual ICommsLink& operator<< (const DataLinkFramePtr & dlf);
 
-	virtual ICommsDevice & operator << (const char * str);
-	virtual ICommsDevice & operator << (const std::string &);
+        virtual IStreamCommsDevice & operator << (const char * str);
+        virtual IStreamCommsDevice & operator << (const std::string &);
 
 	virtual bool Open();
 	virtual void Close();
