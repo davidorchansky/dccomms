@@ -16,6 +16,7 @@
 #include <string>
 #include <mutex>
 #include <Loggable.h>
+#include <dccomms/TransportPDU.h>
 
 namespace dccomms {
 
@@ -54,7 +55,8 @@ protected:
 	std::string serv_namespace;
 	CommsDeviceService phyService;
 	DataLinkFramePtr txdlf;
-	DataLinkFramePtr rxdlf;
+        DataLinkFramePtr rxdlf;
+        TransportPDUPtr txtrp, rxtrp;
 
 	uint8_t obuf[MAX_ODATA_BUF];
 

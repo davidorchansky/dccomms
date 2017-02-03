@@ -19,11 +19,15 @@ TransportPDU::TransportPDU(int msize):
 
 void TransportPDU::_Init()
 {
+    _InitPointers ();
+    SetSeqNum(0);
+}
+
+void TransportPDU::_InitPointers()
+{
     _nseq = _buffer;
 
     _payload = _buffer + OverheadSize;
-
-    SetSeqNum(0);
 }
 
 uint8_t TransportPDU::GetSeqNum ()
@@ -43,6 +47,12 @@ void TransportPDU::IncSeqNum ()
 uint8_t * TransportPDU::GetPayloadBuffer ()
 {
    return _payload;
+}
+
+void TransportPDU::UpdateBuffer (uint8_t *newBuffer)
+{
+    _buffer = newBuffer;
+    _InitPointers ();
 }
 
 uint8_t * TransportPDU::GetPayloadBuffer (int &size, bool copy)

@@ -28,6 +28,8 @@ CommsBridge::CommsBridge(ICommsDevice * _device, int _baudrate, DataLinkFrame::f
 	serv_namespace = "";
 	connected = false;
 	SetLogName("CommsBridge");
+    rxtrp = TransportPDU::BuildTransportPDU (0);
+    txtrp = TransportPDU::BuildTransportPDU (0);
 }
 
 CommsBridge::~CommsBridge() {
@@ -105,7 +107,8 @@ void CommsBridge::RxWork()
 	if(noerrors)
 	{
         //PACKET OK
-        Log->debug("RX: received frame without errors (FS: {}).", rxdlf->GetFrameSize());
+        rxtrp->UpdateBuffer(rxdlf->GetPayloadBuffer ());
+        Log->debug("RX: received frame without errors (Seq: {}) (FS: {}).", rxtrp->GetSeqNum (), rxdlf->GetFrameSize());
 		Log->debug("RX: delivering received frame to the upper layer...");
 		phyService << rxdlf;
 		Log->debug("RX: frame delivered to the upper layer");
@@ -120,7 +123,8 @@ void CommsBridge::RxWork()
 
 void CommsBridge::TransmitFrame()
 {
-    Log->debug("TX: transmitting frame... (FS: {}).", txdlf->GetFrameSize());
+    txtrp->UpdateBuffer(txdlf->GetPayloadBuffer ());
+    Log->debug("TX: transmitting frame... (Seq: {}) (FS: {}).", txtrp->GetSeqNum (), txdlf->GetFrameSize());
 	*device << txdlf;
 	Log->debug("TX: frame transmitted");
 }

@@ -26,6 +26,7 @@ public:
     uint8_t GetSeqNum();
     void SetSeqNum(uint8_t seq);
     void IncSeqNum();
+    void UpdateBuffer(uint8_t * newBuffer);
     uint8_t * GetPayloadBuffer();
     uint8_t * GetPayloadBuffer (int &size, bool copy = false);
 
@@ -36,6 +37,7 @@ private:
     int _payloadSize;
 
     void _Init();
+    void _InitPointers();
 };
 
 }
