@@ -9,7 +9,7 @@
 #define COMMSTCP_H_
 
 #include <dccomms/CommsDeviceService.h>
-#include <dccomms/IStreamCommsDevice.h>
+#include <dccomms/ICommsDevice.h>
 #include <pthread.h>
 #include <iostream>
 #include <dccomms/Utils.h>
@@ -26,7 +26,7 @@ using namespace dccomms;
 
 class CommsBridge: public virtual Loggable {
 public:
-	CommsBridge(IStreamCommsDevice *, int _baudrate = 2000, DataLinkFrame::fcsType _chksum = DataLinkFrame::fcsType::crc32);
+        CommsBridge(ICommsDevice *, int _baudrate = 2000, DataLinkFrame::fcsType _chksum = DataLinkFrame::fcsType::crc32);
 	virtual ~CommsBridge();
 	virtual void Start();
 	virtual void Stop();
@@ -64,7 +64,7 @@ protected:
 	bool connected;
 	bool transcurridoTiempoEnvio;
 	int baudrate;
-	IStreamCommsDevice * device;
+        ICommsDevice * device;
 
 	ServiceThread<CommsBridge> txserv, rxserv;
 

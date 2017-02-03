@@ -13,12 +13,11 @@
 #include <dccomms/CommsException.h>
 #include <boost/algorithm/string.hpp>
 #include <dccomms/CommsBridge.h>
-#include <dccomms/IStreamCommsDevice.h>
 
 namespace dccomms {
 using namespace std;
 
-CommsBridge::CommsBridge(IStreamCommsDevice * _device, int _baudrate, DataLinkFrame::fcsType chksum): phyService(IPHY_TYPE_PHY, chksum), txserv(this), rxserv(this) {
+CommsBridge::CommsBridge(ICommsDevice * _device, int _baudrate, DataLinkFrame::fcsType chksum): phyService(IPHY_TYPE_PHY, chksum), txserv(this), rxserv(this) {
 	rxdlf = DataLinkFrame::BuildDataLinkFrame(chksum);
 	txdlf = DataLinkFrame::BuildDataLinkFrame(chksum);
 	baudrate = _baudrate;

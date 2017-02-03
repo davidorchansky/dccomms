@@ -8,12 +8,12 @@
 #ifndef INCLUDES_ICOMMSDEVICE_H_
 #define INCLUDES_ICOMMSDEVICE_H_
 
-#include <dccomms/ICommsLink.h>
+#include <dccomms/ICommsDevice.h>
 #include <dccomms/IStream.h>
 
 namespace dccomms {
 
-class IStreamCommsDevice : public IStream, public ICommsLink{
+class IStreamCommsDevice : public IStream, public ICommsDevice{
 public:
         IStreamCommsDevice();
         virtual ~IStreamCommsDevice();
