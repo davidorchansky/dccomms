@@ -23,9 +23,24 @@ namespace dccomms {
 #define IPHY_TYPE_DLINK 0
 #define IPHY_TYPE_PHY 1
 
+class CommsDeviceService;
+typedef boost::shared_ptr<CommsDeviceService> CommsDeviceServicePtr;
+
 class CommsDeviceService: public ICommsLink {
 public:
 	enum PhyState {BUSY=0, READY};
+
+        static CommsDeviceServicePtr BuildCommsDeviceService(
+                int iphytype = IPHY_TYPE_DLINK,
+                const DataLinkFrame::fcsType & fcs = DataLinkFrame::crc32,
+                int maxframesize = 7000
+                )
+        {
+            return CommsDeviceServicePtr(new CommsDeviceService(
+                        iphytype,
+                        fcs,
+                        maxframesize));
+        }
 
 	CommsDeviceService(int iphytype = IPHY_TYPE_DLINK, const DataLinkFrame::fcsType & fcs = DataLinkFrame::crc32, int maxframesize = 7000);
 	virtual ~CommsDeviceService();
