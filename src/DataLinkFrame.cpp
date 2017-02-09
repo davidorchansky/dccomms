@@ -399,4 +399,14 @@ DataLinkFramePtr DataLinkFrame::BuildDataLinkFrame(
 			));
 }
 
+
+
+DataLinkFramePtr DataLinkFrame::Copy(DataLinkFramePtr src)
+{
+    auto dlf = BuildDataLinkFrame(src->GetFcsType ());
+    dlf->GetInfoFromBufferWithPreamble (src->GetFrameBuffer ());
+    return dlf;
+}
+
+
 } /* namespace radiotransmission */

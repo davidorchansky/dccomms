@@ -41,6 +41,7 @@ public:
 			uint8_t *, //data
 			fcsType //fcstype
 			);
+        static DataLinkFramePtr Copy(DataLinkFramePtr src);
 
 	virtual ~DataLinkFrame();
 
