@@ -78,7 +78,8 @@ void CommsBridge::FlushLogOn(LogLevel level)
 
 void CommsBridge::Start()
 {
-	_byteTransmissionTime =  1000./( baudrate / 8.);
+    if(baudrate > 0)
+        _byteTransmissionTime =  1000./( baudrate / 8.);
 	phyService.Start();
 	TryToConnect();
     Log->debug("starting TX service...");
@@ -173,13 +174,17 @@ void CommsBridge::TxWork()
 			if(txdlf->checkFrame())
 			{
                 //PACKET OK
-				TransmitFrame();
-				unsigned int frameSize = txdlf->GetFrameSize();
-				_frameTransmissionTime = ceil(frameSize * _byteTransmissionTime);
-                Log->debug("TX: estimated frame transmission time: {} ms (FS: {}).", _frameTransmissionTime, frameSize);
-				timer.Reset();
-				unsigned int elapsed = 0;
-                std::this_thread::sleep_for(std::chrono::milliseconds(_frameTransmissionTime));
+                unsigned int elapsed = 0;
+                TransmitFrame();
+                timer.Reset();
+                if(baudrate > 0)
+                {
+                    unsigned int frameSize = txdlf->GetFrameSize();
+                    _frameTransmissionTime = ceil(frameSize * _byteTransmissionTime);
+                    Log->debug("TX: estimated frame transmission time: {} ms (FS: {}).", _frameTransmissionTime, frameSize);
+
+                    std::this_thread::sleep_for(std::chrono::milliseconds(_frameTransmissionTime));
+                }
                 elapsed = timer.Elapsed();
                 Log->debug("TX: elapsed time: {} ms", elapsed);
 
