@@ -14,6 +14,7 @@
 #include <cstring>
 #include <boost/shared_ptr.hpp>
 #include <dccomms/CommsException.h>
+#include <dccomms/Packet.h>
 
 namespace dccomms {
 
@@ -24,91 +25,100 @@ namespace dccomms {
 
 
 
-class DataLinkFrame;
+  class DataLinkFrame;
 
-typedef boost::shared_ptr<DataLinkFrame> DataLinkFramePtr;
+  typedef boost::shared_ptr<DataLinkFrame> DataLinkFramePtr;
 
-class DataLinkFrame{
-        friend class IStreamCommsDevice;
-public:
-	enum fcsType { crc16, crc32, nofcs };
+  class DataLinkFrame: Packet{
+    friend class IStreamCommsDevice;
+  public:
+    enum fcsType { crc16, crc32, nofcs };
 
-	static DataLinkFramePtr BuildDataLinkFrame(fcsType fcst);
-	static DataLinkFramePtr BuildDataLinkFrame(
-			uint8_t, //destination dir
-			uint8_t, //source dir
-			uint16_t, //data size
-			uint8_t *, //data
-			fcsType //fcstype
-			);
-        static DataLinkFramePtr Copy(DataLinkFramePtr src);
+    static DataLinkFramePtr BuildDataLinkFrame(fcsType fcst);
+    static DataLinkFramePtr BuildDataLinkFrame(
+        uint8_t, //destination dir
+        uint8_t, //source dir
+        uint16_t, //data size
+        uint8_t *, //data
+        fcsType //fcstype
+        );
+    static DataLinkFramePtr Copy(DataLinkFramePtr src);
 
-	virtual ~DataLinkFrame();
+    virtual ~DataLinkFrame();
 
-	uint8_t GetDesDir(){return *ddir;}
-	uint8_t GetSrcDir(){return *sdir;}
-	int GetFrameSize() const {return frameSize;}
-	uint8_t * GetFrameBuffer() const {return buffer;}
-	fcsType GetFcsType() const {return fcstype;}
+    uint8_t GetDesDir(){return *_ddir;}
+    uint8_t GetSrcDir(){return *_sdir;}
+    int GetFrameSize() const {return _frameSize;}
+    uint8_t * GetFrameBuffer() const {return _buffer;}
+    fcsType GetFcsType() const {return _fcstype;}
 
-	void SetDesDir(uint8_t _ddir);
-	void SetSrcDir(uint8_t _sdir);
+    void SetDesDir(uint8_t _ddir);
+    void SetSrcDir(uint8_t _sdir);
 
-	void UpdateFrame(
-			uint8_t, //destination dir
-			uint8_t, //source dir
-			uint16_t, //data size
-			uint8_t * //data
-			);
+    void UpdateFrame(
+        uint8_t, //destination dir
+        uint8_t, //source dir
+        uint16_t, //data size
+        uint8_t * //data
+        );
 
-	void PayloadUpdated(unsigned int datasize);
-	uint8_t * GetPayloadBuffer();
+    void PayloadUpdated(unsigned int datasize);
+    inline uint8_t * GetPayloadBuffer()
+    {
+            return _payload;
+    }
 
-	void GetInfoFromBuffer(void *);
-	void GetInfoFromBufferWithPreamble(void *o);
+    inline uint32_t GetPayloadSize()
+    {
+            return _payloadSize;
+    }
 
-	uint8_t* GetFrameBits(void *dst);
+    void GetInfoFromBuffer(void *);
+    void GetInfoFromBufferWithPreamble(void *o);
 
-	int frameSize = 0;
+    uint8_t* GetFrameBits(void *dst);
 
-	uint16_t payloadSize = 0;
-	uint8_t* payload = NULL;
+    void printFrame(std::ostream &);
+    bool checkFrame();
 
-	void printFrame(std::ostream &);
-	bool checkFrame();
+    static bool IsBigEndian();
+    static const unsigned char * manchesterPre;
+  private:
+    DataLinkFrame(fcsType fcst);
+    DataLinkFrame(
+        uint8_t, //destination dir
+        uint8_t, //source dir
+        uint16_t, //data size
+        uint8_t *, //data
+        fcsType //fcstype
+        );
 
-	static bool IsBigEndian();
-	static const unsigned char * manchesterPre;
-private:
-	DataLinkFrame(fcsType fcst);
-	DataLinkFrame(
-			uint8_t, //destination dir
-			uint8_t, //source dir
-			uint16_t, //data size
-			uint8_t *, //data
-			fcsType //fcstype
-			);
+    void Init(DataLinkFrame::fcsType fcst);
 
-	void Init(DataLinkFrame::fcsType fcst);
+    uint8_t * _pre,* _ddir,*_sdir,* _fcs;
+    uint16_t * _dsize;
 
-	uint8_t * pre,* ddir,*sdir,* fcs;
-	uint16_t * dsize;
+    uint8_t *_buffer = NULL;
+    uint16_t _overheadSize = 0;
 
-	uint8_t *buffer = NULL;
-	uint16_t overheadSize = 0;
-
-	fcsType fcstype;
-	uint32_t fcsSize = 0;
+    fcsType _fcstype;
+    uint32_t _fcsSize = 0;
 
 
-	uint8_t totalInfoSize = 0;
+    int _frameSize = 0;
 
-	void _calculateCRC();
-	void _SetPayloadSizeInBuffer(unsigned int datasize);
-	bool _BigEndian;
-	bool dataIn = false;
+    uint16_t _payloadSize = 0;
+    uint8_t* _payload = NULL;
 
-};
+
+    uint8_t _totalInfoSize = 0;
+
+    void _calculateCRC();
+    void _SetPayloadSizeInBuffer(unsigned int datasize);
+    bool _BigEndian;
+    bool _dataIn = false;
+
+  };
 
 } /* namespace radiotransmission */
 

@@ -43,48 +43,48 @@ IStreamCommsDevice& IStreamCommsDevice::operator << (const std::string & str)
 
 ICommsLink& IStreamCommsDevice::operator >> (DataLinkFramePtr & dlf)
 {
-	WaitFor((const uint8_t*) dlf->pre, DLNK_PREAMBLE_SIZE);
+	WaitFor((const uint8_t*) dlf->_pre, DLNK_PREAMBLE_SIZE);
 
-	Read(dlf->ddir, DLNK_DIR_SIZE);
-	Read(dlf->sdir, DLNK_DIR_SIZE);
+	Read(dlf->_ddir, DLNK_DIR_SIZE);
+	Read(dlf->_sdir, DLNK_DIR_SIZE);
 
-	Read((uint8_t *)dlf->dsize, DLNK_DSIZE_SIZE);
+	Read((uint8_t *)dlf->_dsize, DLNK_DSIZE_SIZE);
 
 	if(dlf->_BigEndian)
 	{
-		dlf->payloadSize  = *dlf->dsize;
+		dlf->_payloadSize  = *dlf->_dsize;
 	}
 	else
 	{
-		dlf->payloadSize = ((*dlf->dsize) << 8) | ((*dlf->dsize) >> 8);
+		dlf->_payloadSize = ((*dlf->_dsize) << 8) | ((*dlf->_dsize) >> 8);
 	}
 
-    if(dlf->payloadSize > DLNK_MAX_PAYLOAD_SIZE)
+    if(dlf->_payloadSize > DLNK_MAX_PAYLOAD_SIZE)
     {
     	throw CommsException(std::string("DLNKLAYER_ERROR: El tamano del payload no puede ser mayor que ")+ std::to_string(DLNK_MAX_PAYLOAD_SIZE), COMMS_EXCEPTION_DLNKLAYER_ERROR);
     }
 
-	Read(dlf->payload, dlf->payloadSize);
+	Read(dlf->_payload, dlf->_payloadSize);
 
-	dlf->fcs = ((uint8_t *) dlf->payload) + dlf->payloadSize;
-	Read(dlf->fcs, dlf->fcsSize);
+	dlf->_fcs = ((uint8_t *) dlf->_payload) + dlf->_payloadSize;
+	Read(dlf->_fcs, dlf->_fcsSize);
 
-	dlf->frameSize = dlf->overheadSize + dlf->payloadSize;
+	dlf->_frameSize = dlf->_overheadSize + dlf->_payloadSize;
 
-	dlf->dataIn = true;
+	dlf->_dataIn = true;
 	return *this;
 }
 
 ICommsLink& IStreamCommsDevice::operator<< (const DataLinkFramePtr & dlf)
 {
-	if(dlf->dataIn)
+	if(dlf->_dataIn)
 	{
-		Write(dlf->pre,DLNK_PREAMBLE_SIZE);
-		Write(dlf->ddir,DLNK_DIR_SIZE);
-		Write(dlf->sdir,DLNK_DIR_SIZE);
-		Write(dlf->dsize,DLNK_DSIZE_SIZE);
-		Write(dlf->payload,dlf->payloadSize);
-		Write(dlf->fcs, dlf->fcsSize);
+		Write(dlf->_pre,DLNK_PREAMBLE_SIZE);
+		Write(dlf->_ddir,DLNK_DIR_SIZE);
+		Write(dlf->_sdir,DLNK_DIR_SIZE);
+		Write(dlf->_dsize,DLNK_DSIZE_SIZE);
+		Write(dlf->_payload,dlf->_payloadSize);
+		Write(dlf->_fcs, dlf->_fcsSize);
 
 		//FlushIO();//Lo ideal seria FlushOutput, pero en algun lado hay algo que hace que se llene el buffer de entrada
 						  //y al final llega a bloquearse la comunicación... (TODO: comprobar qué es lo que hace que se llene el buffer de entrada)

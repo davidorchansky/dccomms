@@ -5,14 +5,14 @@ namespace dccomms {
 
 int TransportPDU::OverheadSize = 1;
 
-TransportPDU::TransportPDU(int msize, uint8_t * buffer, bool copybuf):
-    IPDU(msize, buffer, copybuf)
+TransportPDU::TransportPDU(uint32_t msize, uint8_t * buffer, bool copybuf):
+    Packet(msize, buffer, copybuf)
 {
     _Init();
 }
 
-TransportPDU::TransportPDU(int msize):
-    IPDU(msize)
+TransportPDU::TransportPDU(uint32_t msize):
+    Packet(msize)
 {
     _Init();
 }
@@ -49,27 +49,18 @@ uint8_t * TransportPDU::GetPayloadBuffer ()
    return _payload;
 }
 
+uint32_t TransportPDU::GetPayloadSize ()
+{
+   return _payloadSize;
+}
+
 void TransportPDU::UpdateBuffer (uint8_t *newBuffer)
 {
     _buffer = newBuffer;
     _InitPointers ();
 }
 
-uint8_t * TransportPDU::GetPayloadBuffer (int &size, bool copy)
-{
-    uint8_t * res;
-    if(!copy)
-        res = _payload;
-    else
-    {
-        res = new uint8_t[_bufferSize];
-        memcpy(res, _payload, _payloadSize);
-    }
-    size = _payloadSize;
-    return res;
-}
-
-TransportPDUPtr TransportPDU::BuildTransportPDU(int msize,
+TransportPDUPtr TransportPDU::BuildTransportPDU(uint32_t msize,
                                           uint8_t * buffer,
                                           bool copybuf
         )
@@ -79,7 +70,7 @@ TransportPDUPtr TransportPDU::BuildTransportPDU(int msize,
                 );
 }
 
-TransportPDUPtr TransportPDU::BuildTransportPDU(int msize
+TransportPDUPtr TransportPDU::BuildTransportPDU(uint32_t msize
         )
 {
     return TransportPDUPtr(

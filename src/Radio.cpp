@@ -155,14 +155,15 @@ void Radio::ReceiveBytes(void * buf, uint32_t size, uint8_t dirFrom, unsigned lo
 			{
 				Log->debug("Frame de radio correcto!");
 				//Log->debug(*dlfPtr);
-				uint16_t bytesToRead = (bytes + dlfPtr->payloadSize) <= size ? dlfPtr->payloadSize : size - bytes;
+				uint32_t bytesToRead = (bytes + dlfPtr->GetPayloadSize()) <= size ? dlfPtr->GetPayloadSize() : size - bytes;
 
+				auto payloadBuffer = dlfPtr->GetPayloadBuffer();
 				for(i=0; i<bytesToRead; i++)
 				{
-					*buffer = dlfPtr->payload[i];
+					*buffer = payloadBuffer[i];
 					buffer++;
 				}
-				bytes += dlfPtr->payloadSize;
+				bytes += dlfPtr->GetPayloadSize();
 			}
 			else
 			{
@@ -177,9 +178,10 @@ void Radio::ReceiveBytes(void * buf, uint32_t size, uint8_t dirFrom, unsigned lo
 			uint8_t * ptr = _rxBuffer;
 			_bytesInBuffer = bytesLeft <= _maxRxBufferSize ? bytesLeft : _maxRxBufferSize;
 			uint8_t * maxPtr = _rxBuffer + _bytesInBuffer;
+			auto payloadBuffer = dlfPtr->GetPayloadBuffer();
 			while(ptr != maxPtr)
 			{
-				*ptr = dlfPtr->payload[i++];
+				*ptr = payloadBuffer[i++];
 				ptr++;
 			}
 			_rxBufferLastPos = 0;
