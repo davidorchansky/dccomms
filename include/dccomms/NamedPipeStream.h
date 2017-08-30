@@ -26,65 +26,65 @@ namespace dccomms {
 #define DLS_INBUFFER_SIZE_FLUSH 200000
 
 
-class NamedPipeStream : public IStreamCommsDevice {
-public:
+  class NamedPipeStream : public IStreamCommsDevice {
+  public:
 
-	struct PortSettings
-	{
-        std::string file;
+    struct PortSettings
+    {
+      std::string file;
 
-		PortSettings()
-		{
-			file = "/tmp/radiorx";
-		}
+      PortSettings()
+      {
+        file = "/tmp/radiorx";
+      }
 
-		PortSettings(std::string f)
-		{
-			file = f;
-		}
-	};
+      PortSettings(std::string f)
+      {
+        file = f;
+      }
+    };
 
-	NamedPipeStream();
-	NamedPipeStream(const char *);
-	NamedPipeStream(NamedPipeStream::PortSettings);
-	bool Open();
-	void Close();
+    NamedPipeStream();
+    NamedPipeStream(const char *);
+    NamedPipeStream(NamedPipeStream::PortSettings);
+    bool Open();
+    void Close();
 
-	int Read(void *, uint32_t, unsigned long msTimeout=0);
-	int Write(const void *, uint32_t, uint32_t msTimeout=0);
+    int Read(void *, uint32_t, unsigned long msTimeout=0);
+    int Write(const void *, uint32_t, uint32_t msTimeout=0);
 
-	IStream & operator >> (uint8_t &);
-	IStream & operator >> (char &);
-	IStream & operator >> (uint16_t &);
-	IStream & operator >> (uint32_t &) ;
-	//Stream & operator << (uint8_t);
-	//Stream & operator << (const char * str);
-	int Available();
+    IStream & operator >> (uint8_t &);
+    IStream & operator >> (char &);
+    IStream & operator >> (uint16_t &);
+    IStream & operator >> (uint32_t &) ;
+    //Stream & operator << (uint8_t);
+    //Stream & operator << (const char * str);
+    int Available();
 
-	bool IsOpen();
-	//void TimeoutMode(bool);
-	void FlushInput();
-	void FlushOutput();
-	void FlushIO();
-	virtual bool BusyTransmitting();
+    bool IsOpen();
+    //void TimeoutMode(bool);
+    void FlushInput();
+    void FlushOutput();
+    void FlushIO();
+    virtual bool BusyTransmitting();
 
-	void SetTimeout(unsigned long ms);
+    void SetTimeout(unsigned long ms);
 
-	int GetBufferSize();
-	void SetBufferSize(int);
+    int GetBufferSize();
+    void SetBufferSize(int);
 
 
-protected:
-	PortSettings portSettings;
-	int fd;
+  protected:
+    PortSettings portSettings;
+    int fd;
     bool _open = false;
     char *  port;
-private:
+  private:
     int bufferSize = 0;
     char tmp[DLS_INBUFFER_SIZE_FLUSH];
 
 
-};
+  };
 
 } /* namespace radiotransmission */
 

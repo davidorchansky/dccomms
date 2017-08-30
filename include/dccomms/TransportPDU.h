@@ -6,20 +6,20 @@
 
 namespace dccomms {
 
-class TransportPDU;
+  class TransportPDU;
 
-typedef boost::shared_ptr<TransportPDU> TransportPDUPtr;
+  typedef boost::shared_ptr<TransportPDU> TransportPDUPtr;
 
-class TransportPDU : Packet
-{
-public:
+  class TransportPDU : Packet
+  {
+  public:
     static int OverheadSize;
     static TransportPDUPtr BuildTransportPDU(uint32_t msize,
-                                              uint8_t * buffer,
-                                              bool copybuf = false
-            );
+                                             uint8_t * buffer,
+                                             bool copybuf = false
+        );
     static TransportPDUPtr BuildTransportPDU(uint32_t msize
-            );
+                                             );
 
     TransportPDU(uint32_t msize, uint8_t * buffer, bool copybuf = false);
     TransportPDU(uint32_t msize);
@@ -30,15 +30,15 @@ public:
     uint8_t * GetPayloadBuffer();
     uint32_t GetPayloadSize();
 
-private:
+  private:
     uint8_t * _nseq,
-            * _payload;
+    * _payload;
 
     uint32_t _payloadSize;
 
     void _Init();
     void _InitPointers();
-};
+  };
 
 }
 

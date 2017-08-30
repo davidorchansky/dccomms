@@ -27,9 +27,9 @@ namespace dccomms{
     }
     virtual ~Packet();
   protected:
-      uint8_t * _buffer;
-      uint32_t _bufferSize;
-      bool _bufferCopy;
+    uint8_t * _buffer;
+    uint32_t _bufferSize;
+    bool _bufferCopy;
   };
 }
 #endif // PACKET_H

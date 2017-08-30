@@ -25,20 +25,20 @@ namespace dccomms {
 #define COMMS_EXCEPTION_DLNKLAYER_ERROR 7
 #define COMMS_EXCEPTION_NOTIMPLEMENTED 	8
 
-class CommsException: public exception{
-public:
-	CommsException(std::string msg, int cod);
-	virtual ~CommsException();
-	virtual const char* what() const throw()
-	{
-		return message.c_str();
-	}
-	int code;
-private:
-	std::string message;
+  class CommsException: public exception{
+  public:
+    CommsException(std::string msg, int cod);
+    virtual ~CommsException();
+    virtual const char* what() const throw()
+    {
+      return message.c_str();
+    }
+    int code;
+  private:
+    std::string message;
 
 
-};
+  };
 
 } /* namespace radiotransmission */
 

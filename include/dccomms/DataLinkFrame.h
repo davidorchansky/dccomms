@@ -65,12 +65,12 @@ namespace dccomms {
     void PayloadUpdated(unsigned int datasize);
     inline uint8_t * GetPayloadBuffer()
     {
-            return _payload;
+      return _payload;
     }
 
     inline uint32_t GetPayloadSize()
     {
-            return _payloadSize;
+      return _payloadSize;
     }
 
     void GetInfoFromBuffer(void *);

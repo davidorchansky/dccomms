@@ -3,10 +3,10 @@
 namespace dccomms {
 
 
-ICommsDevice::ICommsDevice()
-{
+  ICommsDevice::ICommsDevice()
+  {
 
-}
+  }
 
 }
 
