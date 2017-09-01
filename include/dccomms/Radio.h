@@ -10,7 +10,7 @@
 
 #include <dccomms/DataLinkFrame.h>
 #include <dccomms/ICommsLink.h>
-#include <Loggable.h>
+#include <cpplogging/Loggable.h>
 
 namespace dccomms
 {

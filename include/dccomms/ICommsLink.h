@@ -9,7 +9,7 @@
 #define INCLUDES_ICOMMSLINK_H_
 
 #include <dccomms/DataLinkFrame.h>
-#include <Loggable.h>
+#include <cpplogging/Loggable.h>
 
 using namespace cpplogging;
 namespace dccomms {

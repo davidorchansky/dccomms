@@ -46,7 +46,7 @@ namespace dccomms {
     Loggable::SetLogName(name);
     phyService.SetLogName(name +":CommsDeviceService");
   }
-  void CommsBridge::SetLogLevel(Loggable::LogLevel _level)
+  void CommsBridge::SetLogLevel(cpplogging::LogLevel _level)
   {
     Loggable::SetLogLevel(_level);
     phyService.SetLogLevel(_level);

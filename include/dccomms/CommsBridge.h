@@ -15,7 +15,7 @@
 #include <dccomms/Utils.h>
 #include <string>
 #include <mutex>
-#include <Loggable.h>
+#include <cpplogging/Loggable.h>
 #include <dccomms/TransportPDU.h>
 
 namespace dccomms {
@@ -35,7 +35,7 @@ namespace dccomms {
     //This method must be called before Start
     void SetNamespace(std::string nspace);
     virtual void SetLogName(std::string name);
-    virtual void SetLogLevel(Loggable::LogLevel);
+    virtual void SetLogLevel(cpplogging::LogLevel);
     virtual void FlushLog();
     virtual void FlushLogOn(LogLevel);
     virtual void LogToConsole(bool);
