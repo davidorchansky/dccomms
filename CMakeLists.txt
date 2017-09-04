@@ -1,6 +1,4 @@
 cmake_minimum_required (VERSION 3.5.1)
-project (dccomms CXX)
-
 
 set(CMAKE_VERBOSE_MAKEFILE ON)
 set(CMAKE_COLOR_MAKEFILE   ON)
@@ -10,6 +8,36 @@ if (WIN32)
   set(CMAKE_SHARED_LIBRARY_PREFIX "")
 endif ()
  
+SET(PROJECT_NAME_ORIG dccomms)
+message("Building ${PROJECT_NAME_ORIG}...")
+
+#BEGIN RESOLVE GIT REVISION
+#https://bravenewmethod.com/2017/07/14/git-revision-as-compiler-definition-in-build-with-cmake/
+message(STATUS "Resolving GIT Version...")
+set(_build_version "unknown")
+find_package(Git)
+if(GIT_FOUND)
+  execute_process(
+    COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    OUTPUT_VARIABLE _build_version
+    ERROR_QUIET
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+  message( STATUS "GIT hash: ${_build_version}")
+else()
+  message(STATUS "GIT not found")
+endif()
+string(TIMESTAMP _time_stamp)
+#END RESOLVE GIT REVISION
+
+string(TOUPPER ${PROJECT_NAME_ORIG} TMP)
+SET(PROJECT_NAME_GIT "${TMP}_${_build_version}")
+SET(${TMP}_GIT ${PROJECT_NAME_GIT} PARENT_SCOPE)
+
+project (${PROJECT_NAME_GIT} CXX)
+message(STATUS "PROJECT NAME: ${PROJECT_NAME}")
+
 ####### LOAD DEPENDENCIES ######
 
 SET(${PROJECT_NAME}_DEPS_DIR "deps/")
@@ -53,4 +81,4 @@ install(TARGETS ${PROJECT_NAME}
 	LIBRARY DESTINATION "lib"
 	)
 install(DIRECTORY "include/dccomms" DESTINATION "include")
-	
+message("End ${PROJECT_NAME_ORIG}")
