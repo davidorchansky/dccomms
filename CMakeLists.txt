@@ -46,10 +46,7 @@ message(STATUS "PROJECT NAME: ${PROJECT_NAME}")
 ####### LOAD DEPENDENCIES ######
 
 SET(${PROJECT_NAME}_DEPS_DIR "deps/")
-
-if (NOT TARGET cpplogging)
-	add_subdirectory(${${PROJECT_NAME}_DEPS_DIR}/cpplogging)
-endif()
+add_subdirectory(${${PROJECT_NAME}_DEPS_DIR}/cpplogging)
 
 ###### 
 
@@ -80,7 +77,7 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${${PROJECT_NAME}_CXX_COMPILE_FLAGS}")
 
 add_library(${PROJECT_NAME} SHARED ${${PROJECT_NAME}_CPP_FILES})
 target_include_directories(${PROJECT_NAME} PUBLIC ${${PROJECT_NAME}_INCLUDE_DIRS})
-target_link_libraries(${PROJECT_NAME} m pthread rt crypto cpplogging)
+target_link_libraries(${PROJECT_NAME} m pthread rt crypto ${CPPLOGGING_GIT})
 
 install(TARGETS ${PROJECT_NAME}
 	LIBRARY DESTINATION "lib"
