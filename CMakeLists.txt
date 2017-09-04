@@ -31,9 +31,10 @@ endif()
 string(TIMESTAMP _time_stamp)
 #END RESOLVE GIT REVISION
 
-string(TOUPPER ${PROJECT_NAME_ORIG} TMP)
-SET(PROJECT_NAME_GIT "${TMP}_${_build_version}")
-SET(${TMP}_GIT ${PROJECT_NAME_GIT} PARENT_SCOPE)
+SET(PROJECT_NAME_GIT "${PROJECT_NAME_ORIG}_${_build_version}")
+string(TOUPPER ${PROJECT_NAME_ORIG} TMP0)
+SET(TMP1 "${TMP0}_${_build_version}")
+SET(${TMP1}_GIT ${PROJECT_NAME_GIT} PARENT_SCOPE)
 
 if (TARGET ${PROJECT_NAME_GIT})
     message(WARNING "${PROJECT_NAME_GIT} has already been built!")
