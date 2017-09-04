@@ -35,6 +35,11 @@ string(TOUPPER ${PROJECT_NAME_ORIG} TMP)
 SET(PROJECT_NAME_GIT "${TMP}_${_build_version}")
 SET(${TMP}_GIT ${PROJECT_NAME_GIT} PARENT_SCOPE)
 
+if (TARGET ${PROJECT_NAME_GIT})
+    message(WARNING "${PROJECT_NAME_GIT} has already been built!")
+    return()
+endif()
+
 project (${PROJECT_NAME_GIT} CXX)
 message(STATUS "PROJECT NAME: ${PROJECT_NAME}")
 
