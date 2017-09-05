@@ -11,58 +11,57 @@
 #include <dccomms/IStreamCommsDevice.h>
 #include <string>
 
-//Cstyle
+// Cstyle
+#include <netdb.h>
+#include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
-#include <sys/types.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 namespace dccomms {
-  class TCPStream : public IStreamCommsDevice {
-  public:
-    TCPStream();
-    TCPStream(std::string serveraddr);
-    virtual ~TCPStream();
-    void CloseConnection();
-    void OpenConnection();
-    void SetServerAddr(std::string);
+class TCPStream : public IStreamCommsDevice {
+public:
+  TCPStream();
+  TCPStream(std::string serveraddr);
+  virtual ~TCPStream();
+  void CloseConnection();
+  void OpenConnection();
+  void SetServerAddr(std::string);
 
-    virtual int Read(void *, uint32_t, unsigned long msTimeout=0);
-    int Write(const void *, uint32_t, uint32_t msTimeout=0);
+  virtual int Read(void *, uint32_t, unsigned long msTimeout = 0);
+  int Write(const void *, uint32_t, uint32_t msTimeout = 0);
 
-    IStream & operator >> (uint8_t &);
-    IStream & operator >> (char &);
-    IStream & operator >> (uint16_t &);
-    IStream & operator >> (uint32_t &) ;
+  IStream &operator>>(uint8_t &);
+  IStream &operator>>(char &);
+  IStream &operator>>(uint16_t &);
+  IStream &operator>>(uint32_t &);
 
-    int Available();
+  int Available();
 
-    bool IsOpen();
-    //void TimeoutMode(bool);
-    void FlushInput();
-    void FlushOutput();
-    void FlushIO();
+  bool IsOpen();
+  // void TimeoutMode(bool);
+  void FlushInput();
+  void FlushOutput();
+  void FlushIO();
 
-    bool Open();
-    void Close();
+  bool Open();
+  void Close();
 
-    //-----
+  //-----
 
-  protected:
-    bool Connected();
-    bool Ready();
-    void ThrowExceptionIfErrorOnSocket();
-    int Recv(unsigned char *, int bytesLeft, bool block = true);
+protected:
+  bool Connected();
+  bool Ready();
+  void ThrowExceptionIfErrorOnSocket();
+  int Recv(unsigned char *, int bytesLeft, bool block = true);
 
-    int sockfd, portno;
-    std::string ip;
-    struct sockaddr_in device_addr;
-    struct hostent *device;
-
-  };
+  int sockfd, portno;
+  std::string ip;
+  struct sockaddr_in device_addr;
+  struct hostent *device;
+};
 }
 #endif /* INCLUDES_TCPSTREAM_H_ */
