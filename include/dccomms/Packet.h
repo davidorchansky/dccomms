@@ -26,6 +26,7 @@ protected:
   uint8_t *_buffer;
   uint32_t _bufferSize;
   bool _bufferCopy;
+  void _Alloc();
 };
 }
 #endif // PACKET_H
