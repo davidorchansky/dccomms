@@ -42,8 +42,8 @@ void DataLinkFrame::Init(DataLinkFrame::fcsType fcst) {
     break;
   }
   _overheadSize += _fcsSize;
-  _buffer = new uint8_t[_overheadSize + DLNK_MAX_PAYLOAD_SIZE];
-  _pre = _buffer;
+  InitBuffer(_overheadSize + DLNK_MAX_PAYLOAD_SIZE);
+  _pre = GetBuffer();
   _ddir = _pre + DLNK_PREAMBLE_SIZE;
   _sdir = _ddir + DLNK_DIR_SIZE;
   _dsize = (uint16_t *)(_sdir + DLNK_DIR_SIZE);
@@ -97,8 +97,7 @@ uint8_t *DataLinkFrame::GetFrameBits(void *dst) {
 }
 
 DataLinkFrame::~DataLinkFrame() {
-  if (_buffer != NULL)
-    delete _buffer;
+  //_buffer is deleted in parent destructor (Packet)
 }
 
 void DataLinkFrame::_calculateCRC() {
@@ -338,5 +337,7 @@ DataLinkFramePtr DataLinkFrame::Copy(DataLinkFramePtr src) {
   dlf->GetInfoFromBufferWithPreamble(src->GetFrameBuffer());
   return dlf;
 }
+
+void DataLinkFrame::BufferUpdated(){};
 
 } /* namespace radiotransmission */

@@ -10,19 +10,17 @@ class TransportPDU;
 
 typedef boost::shared_ptr<TransportPDU> TransportPDUPtr;
 
-class TransportPDU : Packet {
+class TransportPDU : public Packet {
 public:
   static int OverheadSize;
-  static TransportPDUPtr BuildTransportPDU(uint32_t msize, uint8_t *buffer,
-                                           bool copybuf = false);
-  static TransportPDUPtr BuildTransportPDU(uint32_t msize);
+  static TransportPDUPtr BuildTransportPDU(uint8_t *buffer, int size = 0);
 
-  TransportPDU(uint32_t msize, uint8_t *buffer, bool copybuf = false);
-  TransportPDU(uint32_t msize);
+  TransportPDU(uint8_t *buffer, int size = 0);
   uint8_t GetSeqNum();
   void SetSeqNum(uint8_t seq);
   void IncSeqNum();
-  void UpdateBuffer(uint8_t *newBuffer);
+
+  void BufferUpdated();
   uint8_t *GetPayloadBuffer();
   uint32_t GetPayloadSize();
 

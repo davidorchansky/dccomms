@@ -26,7 +26,7 @@ class DataLinkFrame;
 
 typedef boost::shared_ptr<DataLinkFrame> DataLinkFramePtr;
 
-class DataLinkFrame : Packet {
+class DataLinkFrame : public Packet {
   friend class IStreamCommsDevice;
 
 public:
@@ -46,7 +46,7 @@ public:
   uint8_t GetDesDir() { return *_ddir; }
   uint8_t GetSrcDir() { return *_sdir; }
   int GetFrameSize() const { return _frameSize; }
-  uint8_t *GetFrameBuffer() const { return _buffer; }
+  uint8_t *GetFrameBuffer() const { return GetBuffer(); }
   fcsType GetFcsType() const { return _fcstype; }
 
   void SetDesDir(uint8_t _ddir);
@@ -59,6 +59,7 @@ public:
                    );
 
   void PayloadUpdated(unsigned int datasize);
+  void BufferUpdated();
   inline uint8_t *GetPayloadBuffer() { return _payload; }
 
   inline uint32_t GetPayloadSize() { return _payloadSize; }
@@ -88,7 +89,6 @@ private:
   uint8_t *_pre, *_ddir, *_sdir, *_fcs;
   uint16_t *_dsize;
 
-  uint8_t *_buffer = NULL;
   uint16_t _overheadSize = 0;
 
   fcsType _fcstype;

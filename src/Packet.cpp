@@ -5,29 +5,41 @@
 
 namespace dccomms {
 
-Packet::Packet(uint32_t msize, uint8_t *buffer, bool copybuf) {
-  _bufferSize = msize;
-  _bufferCopy = copybuf;
-  if (!_bufferCopy) {
-    _buffer = buffer;
-  } else {
-    _Alloc();
-    memcpy(_buffer, buffer, msize);
+Packet::Packet(uint8_t *buffer, int size) { _UpdateBuffer(buffer, size); }
+
+Packet::Packet() {
+  _buffer = NULL;
+  _ownBuffer = true;
+}
+
+Packet::~Packet() { _DeleteBuffer(); }
+
+void Packet::_DeleteBuffer() {
+  if (_ownBuffer && _buffer) {
+    delete _buffer;
+    _buffer = NULL;
   }
 }
 
-Packet::Packet(uint32_t msize) {
-  _bufferCopy = false;
-  _bufferSize = msize;
-  _Alloc();
+void Packet::InitBuffer(int size) {
+  _DeleteBuffer();
+  _buffer = new uint8_t[size];
+  _ownBuffer = true;
 }
 
-void Packet::_Alloc() { _buffer = new uint8_t[_bufferSize]; }
+void Packet::_UpdateBuffer(uint8_t *buffer, int size) {
+  if (size > 0) {
+    _buffer = new uint8_t[size];
+    memcpy(_buffer, buffer, size);
+    _ownBuffer = true;
+  } else {
+    _buffer = buffer;
+    _ownBuffer = false;
+  }
+}
 
-Packet::Packet() {}
-
-Packet::~Packet() {
-  if (_bufferCopy)
-    delete _buffer;
+void Packet::UpdateBuffer(uint8_t *buffer, int size) {
+  _UpdateBuffer(buffer, size);
+  BufferUpdated();
 }
 }
