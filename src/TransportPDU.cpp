@@ -9,10 +9,7 @@ TransportPDU::TransportPDU(uint8_t *buffer, int size) : Packet(buffer, size) {
   _Init();
 }
 
-void TransportPDU::_Init() {
-  _InitPointers();
-  SetSeqNum(0);
-}
+void TransportPDU::_Init() { _InitPointers(); }
 
 void TransportPDU::_InitPointers() {
   _nseq = GetBuffer();
