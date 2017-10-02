@@ -17,7 +17,7 @@
 
 namespace dccomms {
 
-#define DLNK_PREAMBLE_SIZE 10
+#define DLNK_PREAMBLE_SIZE 2
 #define DLNK_DIR_SIZE 1
 #define DLNK_DSIZE_SIZE 2
 #define DLNK_MAX_PAYLOAD_SIZE 8000

@@ -12,8 +12,7 @@
 
 namespace dccomms {
 
-static const unsigned char _manchesterPre[DLNK_PREAMBLE_SIZE] = {
-    0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55};
+static const unsigned char _manchesterPre[DLNK_PREAMBLE_SIZE] = {0x55, 0x55};
 
 const unsigned char *DataLinkFrame::manchesterPre = _manchesterPre;
 
