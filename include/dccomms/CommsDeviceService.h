@@ -63,7 +63,7 @@ public:
   // Two instances of CommsDeviceService for the same purpose in the same
   // machine (for debug reasons) must have different namespaces
   // This method must be called before Start
-  void SetNamespace(std::string nspace);
+  void SetCommsDeviceId(std::string nspace);
 
   void WaitForFramesFromRxFifo();
   bool WaitForFramesFromRxFifo(unsigned int timeout);

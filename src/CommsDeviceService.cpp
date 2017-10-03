@@ -76,7 +76,7 @@ CommsDeviceService::CommsDeviceService(int _type,
   SetLogName("CommsDeviceService");
 }
 
-void CommsDeviceService::SetNamespace(std::string m) {
+void CommsDeviceService::SetCommsDeviceId(std::string m) {
   _namespace = m;
   SetQueuePrefix(_namespace);
 }

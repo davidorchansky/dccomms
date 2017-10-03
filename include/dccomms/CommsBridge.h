@@ -35,7 +35,7 @@ public:
   // Two instances of CommsBridge for the same purpose in the same machine (for
   // debug reasons) must have different namespaces
   // This method must be called before Start
-  void SetNamespace(std::string nspace);
+  void SetCommsDeviceId(std::string nspace);
   virtual void SetLogName(std::string name);
   virtual void SetLogLevel(cpplogging::LogLevel);
   virtual void FlushLog();

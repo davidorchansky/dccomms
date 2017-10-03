@@ -35,9 +35,9 @@ CommsBridge::CommsBridge(ICommsDevice *_device, int _baudrate,
 
 CommsBridge::~CommsBridge() { Stop(); }
 
-void CommsBridge::SetNamespace(std::string nspace) {
+void CommsBridge::SetCommsDeviceId(std::string nspace) {
   serv_namespace = nspace;
-  phyService.SetNamespace(serv_namespace);
+  phyService.SetCommsDeviceId(serv_namespace);
 }
 
 void CommsBridge::SetLogName(std::string name) {
