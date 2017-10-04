@@ -1,6 +1,7 @@
-#ifndef PACKET_H
-#define PACKET_H
+#ifndef DCCOMMS_PACKET_H
+#define DCCOMMS_PACKET_H
 
+#include <dccomms/IStream.h>
 #include <iostream>
 #include <memory>
 
@@ -11,7 +12,6 @@ typedef std::shared_ptr<Packet> PacketPtr;
 
 class Packet {
 public:
-  static PacketPtr BuildPacket();
   // if size > 0:
   //  - alloc own buffer of 'size' bytes length.
   //  - copy 'size' bytes from buffer to own buffer
@@ -21,7 +21,11 @@ public:
   virtual uint8_t *GetPayloadBuffer() = 0;
   virtual uint32_t GetPayloadSize() = 0;
   inline virtual uint8_t *GetBuffer() const { return _buffer; }
+  virtual int GetPacketSize() = 0;
   virtual ~Packet();
+
+  virtual void Read(IStream *comms) = 0;
+  virtual void Write(IStream *comms);
 
   // if size > 0:
   //  - alloc own buffer of 'size' bytes length.
@@ -39,4 +43,4 @@ private:
   void _UpdateBuffer(uint8_t *buffer, int size = 0);
 };
 }
-#endif // PACKET_H
+#endif // DCCOMMS_PACKET_H

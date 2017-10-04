@@ -5,8 +5,8 @@
  *      Author: diego
  */
 
-#ifndef INCLUDES_ICOMMSDEVICE_H_
-#define INCLUDES_ICOMMSDEVICE_H_
+#ifndef DCCOMMS_ISTREAMCOMMSDEVICE_H_
+#define DCCOMMS_ISTREAMCOMMSDEVICE_H_
 
 #include <dccomms/ICommsDevice.h>
 #include <dccomms/IStream.h>
@@ -18,8 +18,8 @@ public:
   IStreamCommsDevice();
   virtual ~IStreamCommsDevice();
 
-  virtual ICommsLink &operator>>(DataLinkFramePtr &dlf);
-  virtual ICommsLink &operator<<(const DataLinkFramePtr &dlf);
+  virtual ICommsLink &operator>>(PacketPtr dlf);
+  virtual ICommsLink &operator<<(PacketPtr dlf);
 
   virtual IStreamCommsDevice &operator<<(const char *str);
   virtual IStreamCommsDevice &operator<<(const std::string &);
@@ -30,4 +30,4 @@ public:
 
 } /* namespace dccomms */
 
-#endif /* INCLUDES_ICOMMSDEVICE_H_ */
+#endif /* DCCOMMS_ISTREAMCOMMSDEVICE_H_ */

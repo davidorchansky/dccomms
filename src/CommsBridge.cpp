@@ -17,11 +17,11 @@
 namespace dccomms {
 using namespace std;
 
-CommsBridge::CommsBridge(ICommsDevice *_device, int _baudrate,
-                         DataLinkFrame::fcsType chksum)
-    : phyService(IPHY_TYPE_PHY, chksum), txserv(this), rxserv(this) {
-  rxdlf = DataLinkFrame::BuildDataLinkFrame(chksum);
-  txdlf = DataLinkFrame::BuildDataLinkFrame(chksum);
+CommsBridge::CommsBridge(ICommsDevice *_device, IPacketBuilder &packetBuilder,
+                         int _baudrate)
+    : phyService(packetBuilder, IPHY_TYPE_PHY), txserv(this), rxserv(this) {
+  // rxdlf = DataLinkFrame::BuildDataLinkFrame(chksum);
+  // txdlf = DataLinkFrame::BuildDataLinkFrame(chksum);
   baudrate = _baudrate;
   device = _device;
   txserv.SetWork(&CommsBridge::TxWork);

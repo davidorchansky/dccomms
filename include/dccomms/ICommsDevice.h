@@ -1,5 +1,5 @@
-#ifndef ICOMMSDEVICE_H
-#define ICOMMSDEVICE_H
+#ifndef DCCOMMS_ICOMMSDEVICE_H
+#define DCCOMMS_ICOMMSDEVICE_H
 
 #include <dccomms/ICommsLink.h>
 
@@ -9,8 +9,8 @@ class ICommsDevice : public ICommsLink {
 public:
   ICommsDevice();
 
-  virtual ICommsLink &operator>>(DataLinkFramePtr &dlf) = 0;
-  virtual ICommsLink &operator<<(const DataLinkFramePtr &dlf) = 0;
+  virtual ICommsLink &operator>>(PacketPtr dlf) = 0;
+  virtual ICommsLink &operator<<(PacketPtr dlf) = 0;
 
   virtual ICommsDevice &operator<<(const char *str) = 0;
   virtual ICommsDevice &operator<<(const std::string &) = 0;
@@ -21,4 +21,4 @@ public:
 
 } /* namespace dccomms */
 
-#endif // ICOMMSDEVICE_H
+#endif // DCCOMMS_ICOMMSDEVICE_H

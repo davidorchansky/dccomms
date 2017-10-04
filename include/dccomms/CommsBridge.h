@@ -5,8 +5,8 @@
  *      Author: centelld
  */
 
-#ifndef COMMSTCP_H_
-#define COMMSTCP_H_
+#ifndef DCCOMMS_COMMSBRIDGE_H_
+#define DCCOMMS_COMMSBRIDGE_H_
 
 #include <cpplogging/Loggable.h>
 #include <dccomms/CommsDeviceService.h>
@@ -26,8 +26,7 @@ using namespace dccomms;
 
 class CommsBridge : public virtual Loggable {
 public:
-  CommsBridge(ICommsDevice *, int _baudrate = 2000,
-              DataLinkFrame::fcsType _chksum = DataLinkFrame::fcsType::crc32);
+  CommsBridge(ICommsDevice *, int _baudrate = 2000);
   virtual ~CommsBridge();
   virtual void Start();
   virtual void Stop();
@@ -41,7 +40,7 @@ public:
   virtual void FlushLog();
   virtual void FlushLogOn(LogLevel);
   virtual void LogToConsole(bool);
-  virtual void LogToFile(const string &filename);
+  virtual void LogToFile(const std::string &filename);
 
 protected:
   virtual void TxWork();
@@ -55,14 +54,14 @@ protected:
   double _byteTransmissionTime;        // milis
 
   std::string serv_namespace;
-  CommsDeviceService phyService;
-  DataLinkFramePtr txdlf;
-  DataLinkFramePtr rxdlf;
+  CommsDeviceService &phyService;
+  PacketPtr txdlf;
+  PacketPtr rxdlf;
   TransportPDUPtr txtrp, rxtrp;
 
   uint8_t obuf[MAX_ODATA_BUF];
 
-  mutex devicemutex;
+  std::mutex devicemutex;
   bool connected;
   bool transcurridoTiempoEnvio;
   int baudrate;
@@ -72,4 +71,4 @@ protected:
 };
 } /* namespace dcent */
 
-#endif /* COMMSTCP_H_ */
+#endif /* DCCOMMS_COMMSBRIDGE_H_ */

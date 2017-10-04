@@ -5,8 +5,8 @@
  *      Author: diego
  */
 
-#ifndef DATALINKSTREAM_H_
-#define DATALINKSTREAM_H_
+#ifndef DCCOMMS_NAMEDPIPESTREAM_H_
+#define DCCOMMS_NAMEDPIPESTREAM_H_
 
 #include <stdio.h> /* Standard input/output definitions */
 
@@ -77,4 +77,4 @@ private:
 
 } /* namespace radiotransmission */
 
-#endif /* SEDATALINKSTREAM_H_ */
+#endif /* DCCOMMS_NAMEDPIPESTREAM_H_ */

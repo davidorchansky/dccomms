@@ -5,8 +5,8 @@
  *      Author: diego
  */
 
-#ifndef SERIALPORTINTERFACE_H_
-#define SERIALPORTINTERFACE_H_
+#ifndef DCCOMMS_SERIALPORTINTERFACE_H_
+#define DCCOMMS_SERIALPORTINTERFACE_H_
 
 #include <dccomms/IStreamCommsDevice.h>
 #include <stdio.h> /* Standard input/output definitions */
@@ -104,4 +104,4 @@ protected:
 
 } /* namespace radiotransmission */
 
-#endif /* SERIALPORTINTERFACE_H_ */
+#endif /* DCCOMMS_SERIALPORTINTERFACE_H_ */

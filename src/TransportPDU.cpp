@@ -25,6 +25,7 @@ uint8_t *TransportPDU::GetPayloadBuffer() { return _payload; }
 
 uint32_t TransportPDU::GetPayloadSize() { return _payloadSize; }
 
+int TransportPDU::GetPacketSize() { return _payloadSize + OverheadSize; }
 void TransportPDU::BufferUpdated() { _InitPointers(); }
 
 TransportPDUPtr TransportPDU::BuildTransportPDU(uint8_t *buffer, int size) {

@@ -5,8 +5,8 @@
  *      Author: diego
  */
 
-#ifndef ARDUINO_H_
-#define ARDUINO_H_
+#ifndef DCCOMMS_ARDUINO_H_
+#define DCCOMMS_ARDUINO_H_
 
 #include <dccomms/SerialPortStream.h>
 
@@ -56,4 +56,4 @@ private:
 
 } /* namespace radiotransmission */
 
-#endif /* ARDUINO_H_ */
+#endif /* DCCOMMS_ARDUINO_H_ */

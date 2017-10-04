@@ -5,8 +5,8 @@
  *      Author: diego
  */
 
-#ifndef RADIO_H_
-#define RADIO_H_
+#ifndef DCCOMMS_RADIO_H_
+#define DCCOMMS_RADIO_H_
 
 #include <cpplogging/Loggable.h>
 #include <dccomms/DataLinkFrame.h>
@@ -49,4 +49,4 @@ private:
 };
 }
 
-#endif /* RADIO_H_ */
+#endif /* DCCOMMS_RADIO_H_ */

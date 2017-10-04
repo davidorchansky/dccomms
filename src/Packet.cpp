@@ -42,4 +42,8 @@ void Packet::UpdateBuffer(uint8_t *buffer, int size) {
   _UpdateBuffer(buffer, size);
   BufferUpdated();
 }
+
+void Packet::Write(IStream *comms) {
+  comms->Write(GetBuffer(), GetPacketSize());
+}
 }

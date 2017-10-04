@@ -5,8 +5,8 @@
  *      Author: diego
  */
 
-#ifndef BLOCKRADIOTRANSMITTER_H_
-#define BLOCKRADIOTRANSMITTER_H_
+#ifndef DCCOMMS_BLOCKRADIOTRANSMITTER_H_
+#define DCCOMMS_BLOCKRADIOTRANSMITTER_H_
 #include <dccomms/Radio.h>
 namespace dccomms {
 

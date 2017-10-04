@@ -5,8 +5,8 @@
  *      Author: diego
  */
 
-#ifndef DATALINKFRAME_H_
-#define DATALINKFRAME_H_
+#ifndef DCCOMMS_DATALINKFRAME_H_
+#define DCCOMMS_DATALINKFRAME_H_
 
 #include <boost/shared_ptr.hpp>
 #include <cstring>
@@ -24,7 +24,7 @@ namespace dccomms {
 
 class DataLinkFrame;
 
-typedef boost::shared_ptr<DataLinkFrame> DataLinkFramePtr;
+typedef std::shared_ptr<DataLinkFrame> DataLinkFramePtr;
 
 class DataLinkFrame : public Packet {
   friend class IStreamCommsDevice;
@@ -42,9 +42,10 @@ public:
   static DataLinkFramePtr Copy(DataLinkFramePtr src);
 
   virtual ~DataLinkFrame();
-
+  void Read(IStream *comms) {}
   uint8_t GetDesDir() { return *_ddir; }
   uint8_t GetSrcDir() { return *_sdir; }
+  inline int GetPacketSize() { return _frameSize; }
   int GetFrameSize() const { return _frameSize; }
   uint8_t *GetFrameBuffer() const { return GetBuffer(); }
   fcsType GetFcsType() const { return _fcstype; }
@@ -109,4 +110,4 @@ private:
 
 } /* namespace radiotransmission */
 
-#endif /* DATALINKFRAME_H_ */
+#endif /* DCCOMMS_DATALINKFRAME_H_ */

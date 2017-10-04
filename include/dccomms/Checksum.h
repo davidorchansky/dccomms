@@ -5,8 +5,8 @@
  *      Author: diego
  */
 
-#ifndef CHECKSUM_H_
-#define CHECKSUM_H_
+#ifndef DCCOMMS_CHECKSUM_H_
+#define DCCOMMS_CHECKSUM_H_
 
 #include <cstdint>
 #include <cstdio>
@@ -38,4 +38,4 @@ private:
 
 } /* namespace radiotransmission */
 
-#endif /* CHECKSUM_H_ */
+#endif /* DCCOMMS_CHECKSUM_H_ */

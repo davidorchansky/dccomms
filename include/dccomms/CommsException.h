@@ -5,8 +5,8 @@
  *      Author: diego
  */
 
-#ifndef RADIOEXCEPTION_H_
-#define RADIOEXCEPTION_H_
+#ifndef DCCOMMS_RADIOEXCEPTION_H_
+#define DCCOMMS_RADIOEXCEPTION_H_
 
 #include <cstdio>
 #include <exception>
@@ -37,4 +37,4 @@ private:
 
 } /* namespace radiotransmission */
 
-#endif /* RADIOEXCEPTION_H_ */
+#endif /* DCCOMMS_RADIOEXCEPTION_H_ */

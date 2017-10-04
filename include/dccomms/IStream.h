@@ -5,8 +5,8 @@
  *      Author: diego
  */
 
-#ifndef STREAM_H_
-#define STREAM_H_
+#ifndef DCCOMMS_STREAM_H_
+#define DCCOMMS_STREAM_H_
 
 #include <cstdint>
 #include <string>
@@ -51,4 +51,4 @@ private:
 
 } /* namespace radiotransmission */
 
-#endif /* STREAM_H_ */
+#endif /* DCCOMMS_STREAM_H_ */

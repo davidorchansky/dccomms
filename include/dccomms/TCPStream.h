@@ -5,8 +5,8 @@
  *      Author: diego
  */
 
-#ifndef INCLUDES_TCPSTREAM_H_
-#define INCLUDES_TCPSTREAM_H_
+#ifndef DCCOMMS_TCPSTREAM_H_
+#define DCCOMMS_TCPSTREAM_H_
 
 #include <dccomms/IStreamCommsDevice.h>
 #include <string>
@@ -64,4 +64,4 @@ protected:
   struct hostent *device;
 };
 }
-#endif /* INCLUDES_TCPSTREAM_H_ */
+#endif /* DCCOMMS_TCPSTREAM_H_ */

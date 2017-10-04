@@ -1,5 +1,5 @@
-#ifndef TRANSPORTPDU_H
-#define TRANSPORTPDU_H
+#ifndef DCCOMMS_TRANSPORTPDU_H
+#define DCCOMMS_TRANSPORTPDU_H
 #include <boost/shared_ptr.hpp>
 
 #include <dccomms/Packet.h>
@@ -23,6 +23,8 @@ public:
   void BufferUpdated();
   uint8_t *GetPayloadBuffer();
   uint32_t GetPayloadSize();
+  void Read(IStream *) {}
+  int GetPacketSize();
 
 private:
   uint8_t *_nseq, *_payload;
@@ -34,4 +36,4 @@ private:
 };
 }
 
-#endif // TRANSPORTPDU_H
+#endif // DCCOMMS_TRANSPORTPDU_H

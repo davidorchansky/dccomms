@@ -5,8 +5,8 @@
  *      Author: diego
  */
 
-#ifndef UTILS_H_
-#define UTILS_H_
+#ifndef DCCOMMS_UTILS_H_
+#define DCCOMMS_UTILS_H_
 #include <chrono>
 #include <cstdint>
 #include <initializer_list>
@@ -104,4 +104,4 @@ template <class T> void ServiceThread<T>::Work() {
 
 } /* namespace radiotransmission */
 
-#endif /* UTILS_H_ */
+#endif /* DCCOMMS_UTILS_H_ */
