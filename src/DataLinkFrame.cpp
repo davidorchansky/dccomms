@@ -337,6 +337,45 @@ DataLinkFramePtr DataLinkFrame::Copy(DataLinkFramePtr src) {
   return dlf;
 }
 
-void DataLinkFrame::BufferUpdated(){};
+void DataLinkFrame::BufferUpdated() { _calculateCRC(); }
+
+DataLinkFramePacketBuilder::DataLinkFramePacketBuilder(
+    DataLinkFrame::fcsType fcstype)
+    : _fcsType(fcstype){};
+
+PacketPtr DataLinkFramePacketBuilder::CreateFromBuffer(void *buffer) {
+  auto dlf = DataLinkFrame::BuildDataLinkFrame(_fcsType);
+  dlf->GetInfoFromBufferWithPreamble(buffer);
+  return dlf;
+}
+void DataLinkFrame::Read(IStream *comms) {
+  comms->WaitFor((const uint8_t *)_pre, DLNK_PREAMBLE_SIZE);
+
+  comms->Read(_ddir, DLNK_DIR_SIZE);
+  comms->Read(_sdir, DLNK_DIR_SIZE);
+
+  comms->Read((uint8_t *)_dsize, DLNK_DSIZE_SIZE);
+
+  if (_BigEndian) {
+    _payloadSize = *_dsize;
+  } else {
+    _payloadSize = ((*_dsize) << 8) | ((*_dsize) >> 8);
+  }
+
+  if (_payloadSize > DLNK_MAX_PAYLOAD_SIZE) {
+    throw CommsException(
+        std::string(
+            "DLNKLAYER_ERROR: El tamano del payload no puede ser mayor que ") +
+            std::to_string(DLNK_MAX_PAYLOAD_SIZE),
+        COMMS_EXCEPTION_DLNKLAYER_ERROR);
+  }
+
+  comms->Read(_payload, _payloadSize);
+
+  _fcs = ((uint8_t *)_payload) + _payloadSize;
+  comms->Read(_fcs, _fcsSize);
+
+  _frameSize = _overheadSize + _payloadSize;
+}
 
 } /* namespace radiotransmission */

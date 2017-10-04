@@ -12,6 +12,7 @@
 #include <cstring>
 #include <dccomms/CommsException.h>
 #include <dccomms/DataLinkFrame.h>
+#include <dccomms/IPacketBuilder.h>
 #include <dccomms/Packet.h>
 #include <ostream>
 
@@ -42,7 +43,7 @@ public:
   static DataLinkFramePtr Copy(DataLinkFramePtr src);
 
   virtual ~DataLinkFrame();
-  void Read(IStream *comms) {}
+  void Read(IStream *comms);
   uint8_t GetDesDir() { return *_ddir; }
   uint8_t GetSrcDir() { return *_sdir; }
   inline int GetPacketSize() { return _frameSize; }
@@ -106,6 +107,15 @@ private:
   void _SetPayloadSizeInBuffer(unsigned int datasize);
   bool _BigEndian;
   bool _dataIn = false;
+};
+
+class DataLinkFramePacketBuilder : public IPacketBuilder {
+public:
+  DataLinkFramePacketBuilder(DataLinkFrame::fcsType fcstype);
+  PacketPtr CreateFromBuffer(void *buffer);
+
+private:
+  DataLinkFrame::fcsType _fcsType;
 };
 
 } /* namespace radiotransmission */

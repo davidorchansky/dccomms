@@ -29,6 +29,7 @@ void Packet::InitBuffer(int size) {
 
 void Packet::_UpdateBuffer(uint8_t *buffer, int size) {
   if (size > 0) {
+    _DeleteBuffer();
     _buffer = new uint8_t[size];
     memcpy(_buffer, buffer, size);
     _ownBuffer = true;

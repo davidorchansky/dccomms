@@ -8,6 +8,7 @@
 #include <boost/algorithm/string.hpp>
 #include <dccomms/CommsBridge.h>
 #include <dccomms/CommsException.h>
+#include <dccomms/IPacketBuilder.h>
 #include <dccomms/Utils.h>
 #include <iostream>
 #include <string>
@@ -17,7 +18,7 @@
 namespace dccomms {
 using namespace std;
 
-CommsBridge::CommsBridge(ICommsDevice *_device, IPacketBuilder &packetBuilder,
+CommsBridge::CommsBridge(ICommsDevice *_device, PacketBuilderPtr packetBuilder,
                          int _baudrate)
     : phyService(packetBuilder, IPHY_TYPE_PHY), txserv(this), rxserv(this) {
   // rxdlf = DataLinkFrame::BuildDataLinkFrame(chksum);
