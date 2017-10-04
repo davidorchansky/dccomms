@@ -339,15 +339,6 @@ DataLinkFramePtr DataLinkFrame::Copy(DataLinkFramePtr src) {
 
 void DataLinkFrame::BufferUpdated() { _calculateCRC(); }
 
-DataLinkFramePacketBuilder::DataLinkFramePacketBuilder(
-    DataLinkFrame::fcsType fcstype)
-    : _fcsType(fcstype){};
-
-PacketPtr DataLinkFramePacketBuilder::CreateFromBuffer(void *buffer) {
-  auto dlf = DataLinkFrame::BuildDataLinkFrame(_fcsType);
-  dlf->GetInfoFromBufferWithPreamble(buffer);
-  return dlf;
-}
 void DataLinkFrame::Read(IStream *comms) {
   comms->WaitFor((const uint8_t *)_pre, DLNK_PREAMBLE_SIZE);
 
@@ -378,4 +369,17 @@ void DataLinkFrame::Read(IStream *comms) {
   _frameSize = _overheadSize + _payloadSize;
 }
 
+DataLinkFramePacketBuilder::DataLinkFramePacketBuilder(
+    DataLinkFrame::fcsType fcstype)
+    : _fcsType(fcstype){};
+
+PacketPtr DataLinkFramePacketBuilder::CreateFromBuffer(void *buffer) {
+  auto dlf = DataLinkFrame::BuildDataLinkFrame(_fcsType);
+  dlf->GetInfoFromBufferWithPreamble(buffer);
+  return dlf;
+}
+
+PacketPtr DataLinkFramePacketBuilder::Create() {
+  return DataLinkFrame::BuildDataLinkFrame(_fcsType);
+}
 } /* namespace radiotransmission */

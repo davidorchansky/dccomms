@@ -113,6 +113,7 @@ class DataLinkFramePacketBuilder : public IPacketBuilder {
 public:
   DataLinkFramePacketBuilder(DataLinkFrame::fcsType fcstype);
   PacketPtr CreateFromBuffer(void *buffer);
+  PacketPtr Create();
 
 private:
   DataLinkFrame::fcsType _fcsType;
