@@ -25,9 +25,9 @@ public:
   void SetPayload(void *pyload, int size);
 
   void CopyFromRawBuffer(void *buffer);
-  inline uint8_t *GetPayloadBuffer();
-  inline uint32_t GetPayloadSize();
-  inline int GetPacketSize();
+  uint8_t *GetPayloadBuffer();
+  uint32_t GetPayloadSize();
+  int GetPacketSize();
   void Read(IStream *comms);
 
 private:
