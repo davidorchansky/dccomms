@@ -18,12 +18,14 @@
 namespace dccomms {
 using namespace std;
 
-CommsBridge::CommsBridge(ICommsDevice *_device, PacketBuilderPtr packetBuilder,
-                         int _baudrate)
-    : phyService(packetBuilder, IPHY_TYPE_PHY), txserv(this), rxserv(this) {
-  _packetBuilder = packetBuilder;
-  rxdlf = _packetBuilder->Create();
-  txdlf = _packetBuilder->Create();
+CommsBridge::CommsBridge(ICommsDevice *_device,
+                         PacketBuilderPtr txPacketBuilder,
+                         PacketBuilderPtr rxPacketBuilder, int _baudrate)
+    : phyService(txPacketBuilder, IPHY_TYPE_PHY), txserv(this), rxserv(this) {
+  _txPacketBuilder = txPacketBuilder;
+  _rxPacketBuilder = rxPacketBuilder;
+  rxpkt = _rxPacketBuilder->Create();
+  txpkt = _txPacketBuilder->Create();
   baudrate = _baudrate;
   device = _device;
   txserv.SetWork(&CommsBridge::TxWork);
@@ -94,41 +96,35 @@ void CommsBridge::Stop() {
   device->Close();
 }
 
+bool CommsBridge::_PacketReceived() {
+  Log->debug("RX: Received packet without errors.");
+  return true;
+}
+
+bool CommsBridge::_TransmittingPacket() {
+  Log->debug("TX: Transmitting packet...");
+  return true;
+}
+
 void CommsBridge::RxWork() {
   Log->debug("RX: waiting for frame from the device...");
-  bool noerrors = ReceiveFrame();
-  //rxtrp->UpdateBuffer(rxdlf->GetPayloadBuffer());
+  bool noerrors = _ReceivePacket();
   if (noerrors) {
-    // PACKET OK
-//    Log->debug("RX {}<-{}: received frame without errors (Seq: {}) (FS: {}).",
-//               rxdlf->GetDesDir(), rxdlf->GetSrcDir(), rxtrp->GetSeqNum(),
-//               rxdlf->GetFrameSize());
     Log->debug("RX: delivering received frame to the upper layer...");
-    phyService << rxdlf;
+    phyService << rxpkt;
     Log->debug("RX: frame delivered to the upper layer");
-
-  } else {
-    // PACKET WITH ERRORS
-//    Log->warn("RX {}<-{}: received frame with errors. Frame will be discarded "
-//              "(Seq: {}) (FS: {}).",
-//              rxdlf->GetDesDir(), rxdlf->GetSrcDir(), rxtrp->GetSeqNum(),
-//              rxdlf->GetFrameSize());
   }
 }
 
-void CommsBridge::TransmitFrame() {
-//  txtrp->UpdateBuffer(txdlf->GetPayloadBuffer());
-//  Log->debug("TX {}->{}: transmitting frame... (Seq: {}) (FS: {}).",
-//             txdlf->GetSrcDir(), txdlf->GetDesDir(), txtrp->GetSeqNum(),
-//             txdlf->GetFrameSize());
-  *device << txdlf;
+void CommsBridge::_TransmitPacket() {
+  *device << txpkt;
   Log->debug("TX: frame transmitted");
 }
 
-bool CommsBridge::ReceiveFrame() {
+bool CommsBridge::_ReceivePacket() {
   try {
-    *device >> rxdlf;
-    return true;
+    *device >> rxpkt;
+    return _PacketReceived();
   } catch (CommsException &e) {
     std::string msg = e.what();
     switch (e.code) {
@@ -155,16 +151,16 @@ void CommsBridge::TxWork() {
     Log->debug("TX: frames available. Setting phylayer state BUSY");
     phyService.SetPhyLayerState(CommsDeviceService::BUSY);
     do {
-      phyService >> txdlf;
+      phyService >> txpkt;
       Log->debug("TX: FIFO size: {}", phyService.GetRxFifoSize());
 
-      if (true) {
+      if (_TransmittingPacket()) {
         // PACKET OK
         unsigned int elapsed = 0;
-        TransmitFrame();
+        _TransmitPacket();
         timer.Reset();
         if (baudrate > 0) {
-          unsigned int frameSize = txdlf->GetPacketSize ();
+          unsigned int frameSize = txpkt->GetPacketSize();
           _frameTransmissionTime = ceil(frameSize * _byteTransmissionTime);
           Log->debug("TX: estimated frame transmission time: {} ms (FS: {}).",
                      _frameTransmissionTime, frameSize);

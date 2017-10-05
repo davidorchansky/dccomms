@@ -21,11 +21,7 @@ static void ThrowDLinkLayerException(std::string msg) {
                        COMMS_EXCEPTION_DLNKLAYER_ERROR);
 }
 
-void DataLinkFrame::Init(DataLinkFrame::fcsType fcst) {
-  _overheadSize = DLNK_PREAMBLE_SIZE + DLNK_DIR_SIZE * 2 + DLNK_DSIZE_SIZE;
-
-  _BigEndian = DataLinkFrame::IsBigEndian();
-
+void DataLinkFrame::_SetFcsType(fcsType fcst) {
   _fcstype = fcst;
   switch (_fcstype) {
   case crc16:
@@ -40,8 +36,16 @@ void DataLinkFrame::Init(DataLinkFrame::fcsType fcst) {
     _fcsSize = 0;
     break;
   }
+}
+void DataLinkFrame::Init(DataLinkFrame::fcsType fcst) {
+  _overheadSize = DLNK_PREAMBLE_SIZE + DLNK_DIR_SIZE * 2 + DLNK_DSIZE_SIZE;
+
+  _BigEndian = DataLinkFrame::IsBigEndian();
+
+  _SetFcsType(fcst);
+
   _overheadSize += _fcsSize;
-  InitBuffer(_overheadSize + DLNK_MAX_PAYLOAD_SIZE);
+  _AllocBuffer(_overheadSize + DLNK_MAX_PAYLOAD_SIZE);
   _pre = GetBuffer();
   _ddir = _pre + DLNK_PREAMBLE_SIZE;
   _sdir = _ddir + DLNK_DIR_SIZE;
@@ -337,7 +341,9 @@ DataLinkFramePtr DataLinkFrame::Copy(DataLinkFramePtr src) {
   return dlf;
 }
 
-void DataLinkFrame::BufferUpdated() { _calculateCRC(); }
+void DataLinkFrame::CopyFromRawBuffer(void *buffer) {
+  GetInfoFromBufferWithPreamble(buffer);
+}
 
 void DataLinkFrame::Read(IStream *comms) {
   comms->WaitFor((const uint8_t *)_pre, DLNK_PREAMBLE_SIZE);

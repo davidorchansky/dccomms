@@ -13,18 +13,22 @@ typedef boost::shared_ptr<TransportPDU> TransportPDUPtr;
 class TransportPDU : public Packet {
 public:
   static int OverheadSize;
-  static TransportPDUPtr BuildTransportPDU(uint8_t *buffer, int size = 0);
+  static TransportPDUPtr BuildTransportPDU();
 
-  TransportPDU(uint8_t *buffer, int size = 0);
+  TransportPDU();
   uint8_t GetSeqNum();
   void SetSeqNum(uint8_t seq);
   void IncSeqNum();
 
+  void SetBuffer(void *);
   void BufferUpdated();
-  uint8_t *GetPayloadBuffer();
-  uint32_t GetPayloadSize();
-  void Read(IStream *) {}
-  int GetPacketSize();
+  void SetPayload(void *pyload, int size);
+
+  void CopyFromRawBuffer(void *buffer);
+  inline uint8_t *GetPayloadBuffer();
+  inline uint32_t GetPayloadSize();
+  inline int GetPacketSize();
+  void Read(IStream *comms);
 
 private:
   uint8_t *_nseq, *_payload;

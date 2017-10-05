@@ -40,12 +40,12 @@ IStreamCommsDevice &IStreamCommsDevice::operator<<(const std::string &str) {
   return *this;
 }
 
-ICommsLink &IStreamCommsDevice::operator>>(PacketPtr pkt) {
+ICommsLink &IStreamCommsDevice::operator>>(const PacketPtr &pkt) {
   pkt->Read(this);
   return *this;
 }
 
-ICommsLink &IStreamCommsDevice::operator<<(PacketPtr pkt) {
+ICommsLink &IStreamCommsDevice::operator<<(const PacketPtr &pkt) {
   pkt->Write(this);
   return *this;
 }

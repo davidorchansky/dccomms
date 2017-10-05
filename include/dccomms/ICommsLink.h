@@ -18,8 +18,8 @@ class ICommsLink : public virtual Loggable {
 public:
   ICommsLink();
   virtual ~ICommsLink();
-  virtual ICommsLink &operator<<(PacketPtr) = 0;
-  virtual ICommsLink &operator>>(PacketPtr) = 0;
+  virtual ICommsLink &operator<<(const PacketPtr &) = 0;
+  virtual ICommsLink &operator>>(const PacketPtr &) = 0;
   virtual bool BusyTransmitting();
   virtual void SetTimeout(unsigned long);
   virtual unsigned long GetTimeout();

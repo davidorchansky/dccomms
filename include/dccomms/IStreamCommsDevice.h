@@ -18,8 +18,8 @@ public:
   IStreamCommsDevice();
   virtual ~IStreamCommsDevice();
 
-  virtual ICommsLink &operator>>(PacketPtr dlf);
-  virtual ICommsLink &operator<<(PacketPtr dlf);
+  virtual ICommsLink &operator>>(const PacketPtr &dlf);
+  virtual ICommsLink &operator<<(const PacketPtr &dlf);
 
   virtual IStreamCommsDevice &operator<<(const char *str);
   virtual IStreamCommsDevice &operator<<(const std::string &);

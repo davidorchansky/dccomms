@@ -26,8 +26,8 @@ using namespace dccomms;
 
 class CommsBridge : public virtual Loggable {
 public:
-  CommsBridge(ICommsDevice *, PacketBuilderPtr packetBuilder,
-              int _baudrate = 2000);
+  CommsBridge(ICommsDevice *, PacketBuilderPtr txPacketBuilder,
+              PacketBuilderPtr rxPacketBuilder, int _baudrate = 2000);
   virtual ~CommsBridge();
   virtual void Start();
   virtual void Stop();
@@ -46,18 +46,22 @@ public:
 protected:
   virtual void TxWork();
   virtual void RxWork();
-  virtual void TransmitFrame();
-  virtual bool ReceiveFrame();
+  virtual void _TransmitPacket();
+  virtual bool _ReceivePacket();
   virtual bool TryToConnect();
   virtual bool TryToReconnect();
+
+  // Must return false if packet is not ok (errors in packet)
+  virtual bool _PacketReceived();
+  virtual bool _TransmittingPacket();
   Timer timer;
   unsigned int _frameTransmissionTime; // milis
   double _byteTransmissionTime;        // milis
 
   std::string serv_namespace;
   CommsDeviceService phyService;
-  PacketPtr txdlf;
-  PacketPtr rxdlf;
+  PacketPtr txpkt;
+  PacketPtr rxpkt;
 
   uint8_t obuf[MAX_ODATA_BUF];
 
@@ -68,7 +72,8 @@ protected:
   ICommsDevice *device;
 
   ServiceThread<CommsBridge> txserv, rxserv;
-  PacketBuilderPtr _packetBuilder;
+  PacketBuilderPtr _txPacketBuilder;
+  PacketBuilderPtr _rxPacketBuilder;
 };
 } /* namespace dcent */
 

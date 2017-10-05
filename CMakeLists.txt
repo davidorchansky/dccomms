@@ -56,7 +56,7 @@ file(GLOB ${PROJECT_NAME}_CPP_FILES
     ${SRCPATH}Arduino.cpp
     ${SRCPATH}BlockRadioTransmitter.cpp
     ${SRCPATH}Checksum.cpp
-    #${SRCPATH}CommsBridge.cpp
+    ${SRCPATH}CommsBridge.cpp
     ${SRCPATH}CommsDeviceService.cpp
     ${SRCPATH}CommsException.cpp
     ${SRCPATH}DataLinkFrame.cpp

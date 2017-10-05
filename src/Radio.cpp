@@ -136,7 +136,6 @@ void Radio::ReceiveBytes(void *buf, uint32_t size, uint8_t dirFrom,
   try {
     while (bytes < size) // Si faltan bytes, esperamos recibirlos
     {
-
       serial >> dlfPtr;
       // Log->debug(*dlfPtr);
       if (dlfPtr->checkFrame()) {

@@ -42,11 +42,10 @@ public:
                                              );
   static DataLinkFramePtr Copy(DataLinkFramePtr src);
 
-  virtual ~DataLinkFrame();
-  void Read(IStream *comms);
+  ~DataLinkFrame();
   uint8_t GetDesDir() { return *_ddir; }
   uint8_t GetSrcDir() { return *_sdir; }
-  inline int GetPacketSize() { return _frameSize; }
+
   int GetFrameSize() const { return _frameSize; }
   uint8_t *GetFrameBuffer() const { return GetBuffer(); }
   fcsType GetFcsType() const { return _fcstype; }
@@ -61,10 +60,6 @@ public:
                    );
 
   void PayloadUpdated(unsigned int datasize);
-  void BufferUpdated();
-  inline uint8_t *GetPayloadBuffer() { return _payload; }
-
-  inline uint32_t GetPayloadSize() { return _payloadSize; }
 
   void GetInfoFromBuffer(void *);
   void GetInfoFromBufferWithPreamble(void *o);
@@ -77,6 +72,13 @@ public:
   static bool IsBigEndian();
   static const unsigned char *manchesterPre;
 
+  void CopyFromRawBuffer(void *buffer);
+  inline uint8_t *GetPayloadBuffer() { return _payload; }
+  inline uint32_t GetPayloadSize() { return _payloadSize; }
+  inline int GetPacketSize() { return _frameSize; }
+  void Read(IStream *comms);
+  inline bool PacketIsOk() { return checkFrame(); }
+
 private:
   DataLinkFrame(fcsType fcst);
   DataLinkFrame(uint8_t,   // destination dir
@@ -87,6 +89,7 @@ private:
                 );
 
   void Init(DataLinkFrame::fcsType fcst);
+  void _SetFcsType(fcsType fcst);
 
   uint8_t *_pre, *_ddir, *_sdir, *_fcs;
   uint16_t *_dsize;

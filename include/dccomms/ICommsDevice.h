@@ -9,8 +9,8 @@ class ICommsDevice : public ICommsLink {
 public:
   ICommsDevice();
 
-  virtual ICommsLink &operator>>(PacketPtr dlf) = 0;
-  virtual ICommsLink &operator<<(PacketPtr dlf) = 0;
+  virtual ICommsLink &operator>>(const PacketPtr &dlf) = 0;
+  virtual ICommsLink &operator<<(const PacketPtr &dlf) = 0;
 
   virtual ICommsDevice &operator<<(const char *str) = 0;
   virtual ICommsDevice &operator<<(const std::string &) = 0;
