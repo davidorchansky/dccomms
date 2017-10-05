@@ -8,11 +8,13 @@
 #ifndef DCCOMMS_UTILS_H_
 #define DCCOMMS_UTILS_H_
 #include <chrono>
+#include <cstdarg>
 #include <cstdint>
 #include <initializer_list>
 #include <iostream>
 #include <string>
 #include <thread>
+#include <vector>
 
 namespace dccomms {
 
@@ -102,6 +104,13 @@ template <class T> void ServiceThread<T>::Work() {
   terminated = true;
 }
 
+template <typename T> using Ptr = std::shared_ptr<T>;
+
+template <typename T, typename... Targs>
+static Ptr<T> CreateObject(Targs... Fargs) {
+  Ptr<T> ptr(new T(Fargs...));
+  return ptr;
+}
 } /* namespace radiotransmission */
 
 #endif /* DCCOMMS_UTILS_H_ */
