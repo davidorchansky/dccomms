@@ -32,6 +32,11 @@ public:
   virtual void Start();
   virtual void Stop();
 
+  void SetTransmitingPacketCb(std::function<void(const PacketPtr &)> cb);
+  void
+  SetReceivedPacketWithoutErrorsCb(std::function<void(const PacketPtr &)> cb);
+  void SetReceivedPacketWithErrorsCb(std::function<void(const PacketPtr &)> cb);
+
   // Two instances of CommsBridge for the same purpose in the same machine (for
   // debug reasons) must have different namespaces
   // This method must be called before Start
@@ -43,6 +48,10 @@ public:
   virtual void LogToConsole(bool);
   virtual void LogToFile(const std::string &filename);
 
+private:
+  std::function<void(const PacketPtr &)> _PacketReceivedWithoutErrorsCb,
+      _PacketReceivedWithErrorsCb, _TransmittingPacketCb;
+
 protected:
   virtual void TxWork();
   virtual void RxWork();
@@ -51,9 +60,6 @@ protected:
   virtual bool TryToConnect();
   virtual bool TryToReconnect();
 
-  // Must return false if packet is not ok (errors in packet)
-  virtual bool _PacketReceived();
-  virtual bool _TransmittingPacket();
   Timer timer;
   unsigned int _frameTransmissionTime; // milis
   double _byteTransmissionTime;        // milis

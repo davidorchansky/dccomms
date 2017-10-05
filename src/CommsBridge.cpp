@@ -33,9 +33,19 @@ CommsBridge::CommsBridge(ICommsDevice *_device,
   serv_namespace = "";
   connected = false;
   SetLogName("CommsBridge");
+  _PacketReceivedWithoutErrorsCb = [](const PacketPtr &) {};
+  _PacketReceivedWithErrorsCb = [](const PacketPtr &) {};
+  _TransmittingPacketCb = [](const PacketPtr &) {};
 }
 
 CommsBridge::~CommsBridge() { Stop(); }
+
+void CommsBridge::SetTransmitingPacketCb(
+    std::function<void(const PacketPtr &)> cb) {}
+void CommsBridge::SetReceivedPacketWithoutErrorsCb(
+    std::function<void(const PacketPtr &)> cb) {}
+void CommsBridge::SetReceivedPacketWithErrorsCb(
+    std::function<void(const PacketPtr &)> cb) {}
 
 void CommsBridge::SetCommsDeviceId(std::string nspace) {
   serv_namespace = nspace;
@@ -96,23 +106,16 @@ void CommsBridge::Stop() {
   device->Close();
 }
 
-bool CommsBridge::_PacketReceived() {
-  Log->debug("RX: Received packet without errors.");
-  return true;
-}
-
-bool CommsBridge::_TransmittingPacket() {
-  Log->debug("TX: Transmitting packet...");
-  return true;
-}
-
 void CommsBridge::RxWork() {
   Log->debug("RX: waiting for frame from the device...");
   bool noerrors = _ReceivePacket();
   if (noerrors) {
+    _PacketReceivedWithoutErrorsCb(rxpkt);
     Log->debug("RX: delivering received frame to the upper layer...");
     phyService << rxpkt;
     Log->debug("RX: frame delivered to the upper layer");
+  } else {
+    _PacketReceivedWithErrorsCb(rxpkt);
   }
 }
 
@@ -154,6 +157,7 @@ void CommsBridge::TxWork() {
       phyService >> txpkt;
       Log->debug("TX: FIFO size: {}", phyService.GetRxFifoSize());
 
+      _TransmittingPacketCb(txpkt);
       if (txpkt->PacketIsOk()) {
         // PACKET OK
         unsigned int elapsed = 0;
