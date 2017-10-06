@@ -8,7 +8,12 @@
 #ifndef DCCOMMS_
 #define DCCOMMS_
 
-#include <dccomms/Utils.h>
+#include <dccomms/Checksum.h>
 #include <dccomms/CommsBridge.h>
+#include <dccomms/CommsDeviceService.h>
+#include <dccomms/DataLinkFrame.h>
+#include <dccomms/SerialPortStream.h>
+#include <dccomms/TCPStream.h>
+#include <dccomms/Utils.h>
 
 #endif /* DCCOMMS_UTILS_H_ */
