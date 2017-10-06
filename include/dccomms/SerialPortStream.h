@@ -76,6 +76,13 @@ public:
   int Read(void *, uint32_t, unsigned long msTimeout = 0);
   int Write(const void *, uint32_t, uint32_t msTimeout = 0);
 
+  virtual ICommsLink &operator>>(const PacketPtr &dlf) {
+    return IStreamCommsDevice::operator>>(dlf);
+  }
+  virtual ICommsLink &operator<<(const PacketPtr &dlf) {
+    return IStreamCommsDevice::operator<<(dlf);
+  }
+
   IStream &operator>>(uint8_t &);
   IStream &operator>>(char &);
   IStream &operator>>(uint16_t &);
