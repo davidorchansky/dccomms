@@ -27,10 +27,13 @@ using namespace dccomms;
 class CommsBridge : public virtual Loggable {
 public:
   CommsBridge(ICommsDevice *, PacketBuilderPtr txPacketBuilder,
-              PacketBuilderPtr rxPacketBuilder, int _baudrate = 2000);
+              PacketBuilderPtr rxPacketBuilder, int _baudrate = 0);
   virtual ~CommsBridge();
   virtual void Start();
   virtual void Stop();
+
+  inline PacketPtr GetTxPacket() { return txpkt; }
+  inline PacketPtr GetRxPacket() { return rxpkt; }
 
   void SetTransmitingPacketCb(std::function<void(const PacketPtr &)> cb);
   void

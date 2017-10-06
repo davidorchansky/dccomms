@@ -329,7 +329,7 @@ void CommsDeviceService::PushNewFrame(PacketPtr dlf) {
 
 ICommsLink &CommsDeviceService::operator>>(const PacketPtr &dlf) {
   PacketPtr npkt = GetNextPacket();
-  dlf->CopyFromRawBuffer(dlf->GetBuffer());
+  dlf->CopyFromRawBuffer(npkt->GetBuffer());
   return *this;
 }
 
@@ -456,7 +456,7 @@ void CommsDeviceService::ServiceMessage::BuildCmdStateMsg(
 }
 
 PacketPtr CommsDeviceService::ServiceMessage::GetPacket() const {
-  return PacketPtr();
+  return _pktBuilder->CreateFromBuffer(payload);
 }
 
 CommsDeviceService::ServiceThread::ServiceThread(CommsDeviceService *parent) {

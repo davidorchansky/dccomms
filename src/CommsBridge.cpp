@@ -41,11 +41,17 @@ CommsBridge::CommsBridge(ICommsDevice *_device,
 CommsBridge::~CommsBridge() { Stop(); }
 
 void CommsBridge::SetTransmitingPacketCb(
-    std::function<void(const PacketPtr &)> cb) {}
+    std::function<void(const PacketPtr &)> cb) {
+  _TransmittingPacketCb = cb;
+}
 void CommsBridge::SetReceivedPacketWithoutErrorsCb(
-    std::function<void(const PacketPtr &)> cb) {}
+    std::function<void(const PacketPtr &)> cb) {
+  _PacketReceivedWithoutErrorsCb = cb;
+}
 void CommsBridge::SetReceivedPacketWithErrorsCb(
-    std::function<void(const PacketPtr &)> cb) {}
+    std::function<void(const PacketPtr &)> cb) {
+  _PacketReceivedWithErrorsCb = cb;
+}
 
 void CommsBridge::SetCommsDeviceId(std::string nspace) {
   serv_namespace = nspace;
