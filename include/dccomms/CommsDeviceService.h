@@ -37,8 +37,8 @@ public:
                      int maxframesize = 7000);
   virtual ~CommsDeviceService();
 
-  virtual CommsDevice &operator<<(const PacketPtr &);
-  virtual CommsDevice &operator>>(const PacketPtr &);
+  virtual void ReadPacket(const PacketPtr &);
+  virtual void WritePacket(const PacketPtr &);
 
   virtual void Start();
   virtual void Stop();

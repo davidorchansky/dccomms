@@ -34,13 +34,6 @@ public:
   virtual int Read(void *, uint32_t, unsigned long msTimeout = 0);
   int Write(const void *, uint32_t, uint32_t msTimeout = 0);
 
-  virtual CommsDevice &operator>>(const PacketPtr &dlf) {
-    return StreamCommsDevice::operator>>(dlf);
-  }
-  virtual CommsDevice &operator<<(const PacketPtr &dlf) {
-    return StreamCommsDevice::operator<<(dlf);
-  }
-
   void ReadUint8(uint8_t &);
   void ReadChar(char &);
   void ReadUint16(uint16_t &);

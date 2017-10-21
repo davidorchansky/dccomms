@@ -11,8 +11,11 @@ class CommsDevice : public virtual Loggable {
 public:
   CommsDevice();
 
-  virtual CommsDevice &operator>>(const PacketPtr &dlf) = 0;
-  virtual CommsDevice &operator<<(const PacketPtr &dlf) = 0;
+  friend CommsDevice &operator>>(CommsDevice &, const PacketPtr &dlf);
+  friend CommsDevice &operator<<(CommsDevice &, const PacketPtr &dlf);
+
+  virtual void ReadPacket(const PacketPtr &) = 0;
+  virtual void WritePacket(const PacketPtr &) = 0;
 
   virtual bool BusyTransmitting();
   virtual void SetTimeout(unsigned long);

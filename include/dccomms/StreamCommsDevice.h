@@ -18,8 +18,8 @@ public:
   StreamCommsDevice();
   virtual ~StreamCommsDevice();
 
-  virtual CommsDevice &operator>>(const PacketPtr &dlf);
-  virtual CommsDevice &operator<<(const PacketPtr &dlf);
+  virtual void ReadPacket(const PacketPtr &);
+  virtual void WritePacket(const PacketPtr &);
 };
 
 } /* namespace dccomms */

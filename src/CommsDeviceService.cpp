@@ -248,7 +248,7 @@ void CommsDeviceService::ClearInputQueue() {
   SetNonblockFlag(curflag, RX_MQ);
 }
 
-CommsDevice &CommsDeviceService::operator<<(const PacketPtr &dlf) {
+void CommsDeviceService::WritePacket(const PacketPtr &dlf) {
   txmsg.BuildPacketMsg(dlf);
   if (type == IPHY_TYPE_DLINK) {
     // the frame is directed from de dlink layer to the phy layer, so we set the
@@ -257,8 +257,6 @@ CommsDevice &CommsDeviceService::operator<<(const PacketPtr &dlf) {
     _SetPhyLayerState(BUSY);
   }
   SendMsg(txmsg);
-
-  return *this; // nunca llegara aqui
 }
 
 void CommsDeviceService::SendMsg(const ServiceMessage &msg) {
@@ -327,10 +325,9 @@ void CommsDeviceService::PushNewFrame(PacketPtr dlf) {
   rxfifo_mutex.unlock();
 }
 
-CommsDevice &CommsDeviceService::operator>>(const PacketPtr &dlf) {
+void CommsDeviceService::ReadPacket(const PacketPtr &dlf) {
   PacketPtr npkt = GetNextPacket();
   dlf->CopyFromRawBuffer(npkt->GetBuffer());
-  return *this;
 }
 
 void CommsDeviceService::_SetPhyLayerState(const PhyState &state) {
