@@ -2,7 +2,7 @@
 #define DCCOMMS_COMMSDEVICESERVICE_H_
 
 #include <condition_variable>
-#include <dccomms/ICommsLink.h>
+#include <dccomms/CommsDevice.h>
 #include <dccomms/IPacketBuilder.h>
 #include <dccomms/Packet.h>
 #include <fcntl.h> /* Defines O_* constants */
@@ -22,7 +22,7 @@ class CommsDeviceService;
 
 typedef std::shared_ptr<CommsDeviceService> CommsDeviceServicePtr;
 
-class CommsDeviceService : public ICommsLink {
+class CommsDeviceService : public CommsDevice {
 public:
   enum PhyState { BUSY = 0, READY };
 
@@ -37,8 +37,8 @@ public:
                      int maxframesize = 7000);
   virtual ~CommsDeviceService();
 
-  virtual ICommsLink &operator<<(const PacketPtr &);
-  virtual ICommsLink &operator>>(const PacketPtr &);
+  virtual CommsDevice &operator<<(const PacketPtr &);
+  virtual CommsDevice &operator>>(const PacketPtr &);
 
   virtual void Start();
   virtual void Stop();

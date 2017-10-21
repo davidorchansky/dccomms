@@ -11,15 +11,15 @@
 
 namespace dccomms {
 
-IStream::IStream() {
+Stream::Stream() {
   // TODO Auto-generated constructor stub
 }
 
-IStream::~IStream() {
+Stream::~Stream() {
   // TODO Auto-generated destructor stub
 }
 
-void IStream::WaitFor(const uint8_t *expected, uint32_t size) {
+void Stream::WaitFor(const uint8_t *expected, uint32_t size) {
   const uint8_t *ptr = expected;
   const uint8_t *max = expected + size;
   uint8_t c;
@@ -32,7 +32,7 @@ void IStream::WaitFor(const uint8_t *expected, uint32_t size) {
   }
 }
 
-int IStream::ReadInt(int &num, char &nextByte) {
+int Stream::ReadInt(int &num, char &nextByte) {
   int n = 0; // number of [0-9] read
   char *ptr = buffer;
 
@@ -56,7 +56,7 @@ int IStream::ReadInt(int &num, char &nextByte) {
   return -1;
 }
 
-int IStream::ReadUInt(int &num, char &nextByte) {
+int Stream::ReadUInt(int &num, char &nextByte) {
   int n = 0; // number of [0-9] read
   char *ptr = buffer;
 
@@ -75,7 +75,7 @@ int IStream::ReadUInt(int &num, char &nextByte) {
   return -1;
 }
 
-int IStream::ReadUntil(uint8_t *dst, const uint8_t *finalPattern,
+int Stream::ReadUntil(uint8_t *dst, const uint8_t *finalPattern,
                        int finalPatternLength, int maxLength) {
   uint8_t *cdptr = dst, *edptr = dst + maxLength;
 
@@ -120,17 +120,17 @@ Stream & Stream::operator >> (uint8_t &byte)
 
 }
 */
-IStream &IStream::operator<<(const std::string &str) {
+Stream &Stream::operator<<(const std::string &str) {
   *this << str.c_str();
   return *this;
 }
 
-IStream &IStream::operator<<(uint8_t byte) {
+Stream &Stream::operator<<(uint8_t byte) {
   Write(&byte, sizeof(uint8_t));
   return *this;
 }
 
-IStream &IStream::operator<<(const char *str) {
+Stream &Stream::operator<<(const char *str) {
   int n = strlen(str);
   Write(str, n);
   return *this;

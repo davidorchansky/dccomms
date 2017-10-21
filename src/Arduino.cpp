@@ -10,8 +10,8 @@
 #include <cstring>
 #include <dccomms/Arduino.h>
 #include <dccomms/CommsException.h>
-#include <dccomms/IStream.h>
 #include <dccomms/SerialPortStream.h>
+#include <dccomms/Stream.h>
 #include <exception>
 #include <iostream>
 #include <thread>
@@ -116,7 +116,7 @@ bool Arduino::TryReconnect() {
   return false;
 }
 
-bool Arduino::_checkDevice(IStream *s, const char *h, const char *r,
+bool Arduino::_checkDevice(Stream *s, const char *h, const char *r,
                            unsigned long long m) {
   unsigned int replySize = strlen(r);
   // char* buffer = malloc(replySize);

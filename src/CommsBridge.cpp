@@ -18,8 +18,7 @@
 namespace dccomms {
 using namespace std;
 
-CommsBridge::CommsBridge(ICommsDevice *_device,
-                         PacketBuilderPtr txPacketBuilder,
+CommsBridge::CommsBridge(CommsDevice *_device, PacketBuilderPtr txPacketBuilder,
                          PacketBuilderPtr rxPacketBuilder, int _baudrate)
     : phyService(txPacketBuilder, IPHY_TYPE_PHY), txserv(this), rxserv(this) {
   _txPacketBuilder = txPacketBuilder;

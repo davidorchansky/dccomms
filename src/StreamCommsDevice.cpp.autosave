@@ -18,34 +18,22 @@ IStreamCommsDevice::~IStreamCommsDevice() {
   // TODO Auto-generated destructor stub
 }
 
-bool IStreamCommsDevice::Open() {
-  // TODO Auto-generated destructor stub
-  throw CommsException("Operator not implemented",
-                       COMMS_EXCEPTION_NOTIMPLEMENTED);
-}
-
-void IStreamCommsDevice::Close() {
-  // TODO Auto-generated destructor stub
-  throw CommsException("Operator not implemented",
-                       COMMS_EXCEPTION_NOTIMPLEMENTED);
-}
-
 IStreamCommsDevice &IStreamCommsDevice::operator<<(const char *str) {
-  IStream::operator<<(str);
+  Stream::operator<<(str);
   return *this;
 }
 
 IStreamCommsDevice &IStreamCommsDevice::operator<<(const std::string &str) {
-  IStream::operator<<(str);
+  Stream::operator<<(str);
   return *this;
 }
 
-ICommsLink &IStreamCommsDevice::operator>>(const PacketPtr &pkt) {
+CommsDevice &IStreamCommsDevice::operator>>(const PacketPtr &pkt) {
   pkt->Read(this);
   return *this;
 }
 
-ICommsLink &IStreamCommsDevice::operator<<(const PacketPtr &pkt) {
+CommsDevice &IStreamCommsDevice::operator<<(const PacketPtr &pkt) {
   pkt->Write(this);
   return *this;
 }

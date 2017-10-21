@@ -61,7 +61,6 @@ file(GLOB ${PROJECT_NAME}_CPP_FILES
     ${SRCPATH}CommsException.cpp
     ${SRCPATH}DataLinkFrame.cpp
     ${SRCPATH}ICommsDevice.cpp
-    ${SRCPATH}ICommsLink.cpp
     ${SRCPATH}IStream.cpp
     ${SRCPATH}IStreamCommsDevice.cpp
     ${SRCPATH}NamedPipeStream.cpp

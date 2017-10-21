@@ -1,7 +1,7 @@
 #ifndef DCCOMMS_PACKET_H
 #define DCCOMMS_PACKET_H
 
-#include <dccomms/IStream.h>
+#include <dccomms/Stream.h>
 #include <iostream>
 #include <memory>
 
@@ -20,10 +20,10 @@ public:
   virtual uint8_t *GetPayloadBuffer() = 0;
   virtual uint32_t GetPayloadSize() = 0;
   virtual int GetPacketSize() = 0;
-  virtual void Read(IStream *comms) = 0;
+  virtual void Read(Stream *comms) = 0;
 
   virtual bool PacketIsOk();
-  virtual void Write(IStream *comms);
+  virtual void Write(Stream *comms);
 
 protected:
   void _AllocBuffer(int size);

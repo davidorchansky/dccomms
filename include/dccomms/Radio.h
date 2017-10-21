@@ -9,11 +9,11 @@
 #define DCCOMMS_RADIO_H_
 
 #include <cpplogging/Loggable.h>
+#include <dccomms/CommsDevice.h>
 #include <dccomms/DataLinkFrame.h>
-#include <dccomms/ICommsLink.h>
 
 namespace dccomms {
-class Radio : public Loggable {
+class Radio : public cpplogging::Loggable {
 public:
   enum fcsType {
     crc16 = DataLinkFrame::crc16,
@@ -22,7 +22,7 @@ public:
   };
 
   ~Radio();
-  Radio(unsigned char dir, ICommsLink &, fcsType fcst = fcsType::crc32,
+  Radio(unsigned char dir, CommsDevice &, fcsType fcst = fcsType::crc32,
         uint32_t maxRxBufferSize = 5000);
   void SendBytes(const void *, uint32_t size, uint8_t dirTo = 255,
                  uint32_t packetSize = 1000, unsigned long ms = 0);
@@ -33,7 +33,7 @@ public:
   int TotalErrors = 0;
 
 private:
-  ICommsLink &serial;
+  CommsDevice &serial;
   unsigned char dir;
 
   uint32_t _maxRxBufferSize;

@@ -197,22 +197,22 @@ int NamedPipeStream::Available() {
 
 bool NamedPipeStream::IsOpen() { return _open; }
 
-IStream &NamedPipeStream::operator>>(uint8_t &byte) {
+Stream &NamedPipeStream::operator>>(uint8_t &byte) {
   read(fd, &byte, sizeof(uint8_t));
   return *this;
 }
 
-IStream &NamedPipeStream::operator>>(char &byte) {
+Stream &NamedPipeStream::operator>>(char &byte) {
   read(fd, &byte, sizeof(uint8_t));
   return *this;
 }
 
-IStream &NamedPipeStream::operator>>(uint16_t &data16) {
+Stream &NamedPipeStream::operator>>(uint16_t &data16) {
   read(fd, &data16, sizeof(uint16_t));
   return *this;
 }
 
-IStream &NamedPipeStream::operator>>(uint32_t &data32) {
+Stream &NamedPipeStream::operator>>(uint32_t &data32) {
   read(fd, &data32, sizeof(uint32_t));
   return *this;
 }

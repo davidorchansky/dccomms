@@ -12,7 +12,7 @@
 
 #include <string>
 
-#include <dccomms/IStreamCommsDevice.h>
+#include <dccomms/StreamCommsDevice.h>
 #include <errno.h>   /* Error number definitions */
 #include <fcntl.h>   /* File control definitions */
 #include <termios.h> /* POSIX terminal control definitions */
@@ -25,7 +25,7 @@ namespace dccomms {
 #define DLS_INBUFFER_SIZE 10000
 #define DLS_INBUFFER_SIZE_FLUSH 200000
 
-class NamedPipeStream : public IStreamCommsDevice {
+class NamedPipeStream : public StreamCommsDevice {
 public:
   struct PortSettings {
     std::string file;
@@ -44,16 +44,16 @@ public:
   int Read(void *, uint32_t, unsigned long msTimeout = 0);
   int Write(const void *, uint32_t, uint32_t msTimeout = 0);
 
-  virtual ICommsLink &operator>>(const PacketPtr &dlf) {
-    return IStreamCommsDevice::operator>>(dlf);
+  virtual CommsDevice &operator>>(const PacketPtr &dlf) {
+    return StreamCommsDevice::operator>>(dlf);
   }
-  virtual ICommsLink &operator<<(const PacketPtr &dlf) {
-    return IStreamCommsDevice::operator<<(dlf);
+  virtual CommsDevice &operator<<(const PacketPtr &dlf) {
+    return StreamCommsDevice::operator<<(dlf);
   }
-  IStream &operator>>(uint8_t &);
-  IStream &operator>>(char &);
-  IStream &operator>>(uint16_t &);
-  IStream &operator>>(uint32_t &);
+  Stream &operator>>(uint8_t &);
+  Stream &operator>>(char &);
+  Stream &operator>>(uint16_t &);
+  Stream &operator>>(uint32_t &);
   // Stream & operator << (uint8_t);
   // Stream & operator << (const char * str);
   int Available();

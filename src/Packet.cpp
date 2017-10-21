@@ -25,7 +25,7 @@ void Packet::_AllocBuffer(int size) {
   _ownBuffer = true;
 }
 
-void Packet::Write(IStream *comms) {
+void Packet::Write(Stream *comms) {
   comms->Write(GetBuffer(), GetPacketSize());
 }
 

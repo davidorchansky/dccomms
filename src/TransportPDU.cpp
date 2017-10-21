@@ -25,7 +25,7 @@ void TransportPDU::CopyFromRawBuffer(void *buffer) {}
 inline uint8_t *TransportPDU::GetPayloadBuffer() { return _payload; }
 inline uint32_t TransportPDU::GetPayloadSize() { return _payloadSize; }
 inline int TransportPDU::GetPacketSize() { return _payloadSize + OverheadSize; }
-void TransportPDU::Read(IStream *comms) {}
+void TransportPDU::Read(Stream *comms) {}
 
 void TransportPDU::SetPayload(void *payload, int size) {
   _payloadSize = size;

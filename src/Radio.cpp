@@ -9,14 +9,13 @@
 #include <dccomms/Arduino.h>
 #include <dccomms/CommsException.h>
 #include <dccomms/DataLinkFrame.h>
-#include <dccomms/ICommsLink.h>
 #include <dccomms/Radio.h>
 #include <iostream>
 #include <thread> // std::this_thread::sleep_for
 
 using namespace dccomms;
 
-Radio::Radio(unsigned char d, ICommsLink &s, Radio::fcsType fcst,
+Radio::Radio(unsigned char d, CommsDevice &s, Radio::fcsType fcst,
              uint32_t maxRxBufferSize)
     : serial(s), dir(d) {
   _maxRxBufferSize = maxRxBufferSize;

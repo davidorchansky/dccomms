@@ -9,8 +9,8 @@
 #define DCCOMMS_COMMSBRIDGE_H_
 
 #include <cpplogging/Loggable.h>
+#include <dccomms/CommsDevice.h>
 #include <dccomms/CommsDeviceService.h>
-#include <dccomms/ICommsDevice.h>
 #include <dccomms/TransportPDU.h>
 #include <dccomms/Utils.h>
 #include <iostream>
@@ -23,10 +23,11 @@ namespace dccomms {
 #define MAX_ODATA_BUF 4096
 
 using namespace dccomms;
+using namespace cpplogging;
 
 class CommsBridge : public virtual Loggable {
 public:
-  CommsBridge(ICommsDevice *, PacketBuilderPtr txPacketBuilder,
+  CommsBridge(CommsDevice *, PacketBuilderPtr txPacketBuilder,
               PacketBuilderPtr rxPacketBuilder, int _baudrate = 0);
   virtual ~CommsBridge();
   virtual void Start();
@@ -78,7 +79,7 @@ protected:
   bool connected;
   bool transcurridoTiempoEnvio;
   int baudrate;
-  ICommsDevice *device;
+  CommsDevice *device;
 
   ServiceThread<CommsBridge> txserv, rxserv;
   PacketBuilderPtr _txPacketBuilder;

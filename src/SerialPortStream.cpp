@@ -327,28 +327,28 @@ int SerialPortStream::Available() {
 
 bool SerialPortStream::IsOpen() { return _open; }
 
-IStream &SerialPortStream::operator>>(uint8_t &byte) {
+Stream &SerialPortStream::operator>>(uint8_t &byte) {
   fcntl(fd, F_SETFL, 0);
   read(fd, &byte, sizeof(uint8_t));
   fcntl(fd, F_SETFL, FNDELAY);
   return *this;
 }
 
-IStream &SerialPortStream::operator>>(char &byte) {
+Stream &SerialPortStream::operator>>(char &byte) {
   fcntl(fd, F_SETFL, 0);
   read(fd, &byte, sizeof(uint8_t));
   fcntl(fd, F_SETFL, FNDELAY);
   return *this;
 }
 
-IStream &SerialPortStream::operator>>(uint16_t &data16) {
+Stream &SerialPortStream::operator>>(uint16_t &data16) {
   fcntl(fd, F_SETFL, 0);
   read(fd, &data16, sizeof(uint16_t));
   fcntl(fd, F_SETFL, FNDELAY);
   return *this;
 }
 
-IStream &SerialPortStream::operator>>(uint32_t &data32) {
+Stream &SerialPortStream::operator>>(uint32_t &data32) {
   fcntl(fd, F_SETFL, 0);
   read(fd, &data32, sizeof(uint32_t));
   fcntl(fd, F_SETFL, FNDELAY);

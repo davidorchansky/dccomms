@@ -76,7 +76,7 @@ public:
   inline uint8_t *GetPayloadBuffer() { return _payload; }
   inline uint32_t GetPayloadSize() { return _payloadSize; }
   inline int GetPacketSize() { return _frameSize; }
-  void Read(IStream *comms);
+  void Read(Stream *comms);
   inline bool PacketIsOk() { return checkFrame(); }
 
 private:

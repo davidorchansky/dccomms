@@ -50,7 +50,7 @@ public:
   Arduino::BaudRate baud;
 
 private:
-  static bool _checkDevice(IStream *s, const char *h, const char *r,
+  static bool _checkDevice(Stream *s, const char *h, const char *r,
                            unsigned long long m = 0);
 };
 

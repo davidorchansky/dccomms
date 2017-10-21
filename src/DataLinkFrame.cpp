@@ -345,7 +345,7 @@ void DataLinkFrame::CopyFromRawBuffer(void *buffer) {
   GetInfoFromBufferWithPreamble(buffer);
 }
 
-void DataLinkFrame::Read(IStream *comms) {
+void DataLinkFrame::Read(Stream *comms) {
   comms->WaitFor((const uint8_t *)_pre, DLNK_PREAMBLE_SIZE);
 
   comms->Read(_ddir, DLNK_DIR_SIZE);
