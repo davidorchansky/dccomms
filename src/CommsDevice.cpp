@@ -1,5 +1,5 @@
+#include <dccomms/CommsDevice.h>
 #include <dccomms/CommsException.h>
-#include <dccomms/ICommsDevice.h>
 
 namespace dccomms {
 

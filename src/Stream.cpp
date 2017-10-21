@@ -6,7 +6,7 @@
  */
 
 #include <cstring>
-#include <dccomms/IStream.h>
+#include <dccomms/Stream.h>
 #include <iostream>
 
 namespace dccomms {
@@ -76,7 +76,7 @@ int Stream::ReadUInt(int &num, char &nextByte) {
 }
 
 int Stream::ReadUntil(uint8_t *dst, const uint8_t *finalPattern,
-                       int finalPatternLength, int maxLength) {
+                      int finalPatternLength, int maxLength) {
   uint8_t *cdptr = dst, *edptr = dst + maxLength;
 
   const uint8_t *cfpptr = finalPattern,

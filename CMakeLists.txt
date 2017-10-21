@@ -60,9 +60,9 @@ file(GLOB ${PROJECT_NAME}_CPP_FILES
     ${SRCPATH}CommsDeviceService.cpp
     ${SRCPATH}CommsException.cpp
     ${SRCPATH}DataLinkFrame.cpp
-    ${SRCPATH}ICommsDevice.cpp
-    ${SRCPATH}IStream.cpp
-    ${SRCPATH}IStreamCommsDevice.cpp
+    ${SRCPATH}CommsDevice.cpp
+    ${SRCPATH}Stream.cpp
+    ${SRCPATH}StreamCommsDevice.cpp
     ${SRCPATH}NamedPipeStream.cpp
     ${SRCPATH}Packet.cpp
     ${SRCPATH}Radio.cpp

@@ -6,34 +6,34 @@
  */
 
 #include <dccomms/CommsException.h>
-#include <dccomms/IStreamCommsDevice.h>
+#include <dccomms/StreamCommsDevice.h>
 
 namespace dccomms {
 
-IStreamCommsDevice::IStreamCommsDevice() {
+StreamCommsDevice::StreamCommsDevice() {
   // TODO Auto-generated constructor stub
 }
 
-IStreamCommsDevice::~IStreamCommsDevice() {
+StreamCommsDevice::~StreamCommsDevice() {
   // TODO Auto-generated destructor stub
 }
 
-IStreamCommsDevice &IStreamCommsDevice::operator<<(const char *str) {
-  IStream::operator<<(str);
+StreamCommsDevice &StreamCommsDevice::operator<<(const char *str) {
+  Stream::operator<<(str);
   return *this;
 }
 
-IStreamCommsDevice &IStreamCommsDevice::operator<<(const std::string &str) {
-  IStream::operator<<(str);
+StreamCommsDevice &StreamCommsDevice::operator<<(const std::string &str) {
+  Stream::operator<<(str);
   return *this;
 }
 
-CommsDevice &IStreamCommsDevice::operator>>(const PacketPtr &pkt) {
+CommsDevice &StreamCommsDevice::operator>>(const PacketPtr &pkt) {
   pkt->Read(this);
   return *this;
 }
 
-CommsDevice &IStreamCommsDevice::operator<<(const PacketPtr &pkt) {
+CommsDevice &StreamCommsDevice::operator<<(const PacketPtr &pkt) {
   pkt->Write(this);
   return *this;
 }
