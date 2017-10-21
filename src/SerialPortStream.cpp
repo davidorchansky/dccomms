@@ -327,32 +327,28 @@ int SerialPortStream::Available() {
 
 bool SerialPortStream::IsOpen() { return _open; }
 
-Stream &SerialPortStream::operator>>(uint8_t &byte) {
+void SerialPortStream::ReadUint8(uint8_t &byte) {
   fcntl(fd, F_SETFL, 0);
   read(fd, &byte, sizeof(uint8_t));
   fcntl(fd, F_SETFL, FNDELAY);
-  return *this;
 }
 
-Stream &SerialPortStream::operator>>(char &byte) {
+void SerialPortStream::ReadChar(char &byte) {
   fcntl(fd, F_SETFL, 0);
   read(fd, &byte, sizeof(uint8_t));
   fcntl(fd, F_SETFL, FNDELAY);
-  return *this;
 }
 
-Stream &SerialPortStream::operator>>(uint16_t &data16) {
+void SerialPortStream::ReadUint16(uint16_t &data16) {
   fcntl(fd, F_SETFL, 0);
   read(fd, &data16, sizeof(uint16_t));
   fcntl(fd, F_SETFL, FNDELAY);
-  return *this;
 }
 
-Stream &SerialPortStream::operator>>(uint32_t &data32) {
+void SerialPortStream::ReadUint32(uint32_t &data32) {
   fcntl(fd, F_SETFL, 0);
   read(fd, &data32, sizeof(uint32_t));
   fcntl(fd, F_SETFL, FNDELAY);
-  return *this;
 }
 
 } /* namespace radiotransmission */

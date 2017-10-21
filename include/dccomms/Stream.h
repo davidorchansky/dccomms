@@ -21,11 +21,23 @@ public:
   virtual int Read(void *, uint32_t, unsigned long msTimeout = 0) = 0;
   virtual int Write(const void *, uint32_t, uint32_t msTimeout = 0) = 0;
 
-  virtual Stream &operator>>(uint8_t &) = 0;
-  virtual Stream &operator>>(char &) = 0;
-  virtual Stream &operator>>(uint16_t &) = 0;
-  virtual Stream &operator>>(uint32_t &) = 0;
-  virtual Stream &operator<<(uint8_t);
+  virtual void ReadUint8(uint8_t &) = 0;
+  virtual void ReadChar(char &) = 0;
+  virtual void ReadUint16(uint16_t &) = 0;
+  virtual void ReadUint32(uint32_t &) = 0;
+  virtual void WriteUint8(uint8_t);
+
+  virtual void WriteCString(const char *str);
+  virtual void WriteString(const std::string &str);
+
+  friend Stream &operator>>(Stream &, uint8_t &);
+  friend Stream &operator>>(Stream &, char &);
+  friend Stream &operator>>(Stream &, uint16_t &);
+  friend Stream &operator>>(Stream &, uint32_t &);
+  friend Stream &operator<<(Stream &, uint8_t);
+
+  friend Stream &operator<<(Stream &, const char *str);
+  friend Stream &operator<<(Stream &, const std::string &str);
 
   virtual int Available() = 0;
 
@@ -39,8 +51,6 @@ public:
   void WaitFor(const uint8_t *expected, uint32_t size);
   int ReadInt(int &num, char &nextByte);
   int ReadUInt(int &num, char &nextByte);
-  Stream &operator<<(const char *str);
-  Stream &operator<<(const std::string &str);
 
   int ReadUntil(uint8_t *dst, const uint8_t *finalPattern,
                 int finalPatternLength, int maxLength);

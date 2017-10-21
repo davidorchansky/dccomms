@@ -97,43 +97,51 @@ int Stream::ReadUntil(uint8_t *dst, const uint8_t *finalPattern,
   return cdptr - dst;
 }
 
-/*
-int Stream::Read(uint8_t * buf, uint32_t size, uint32_t to)
-{
+void Stream::WriteUint8(uint8_t byte) { Write(&byte, sizeof(uint8_t)); }
 
-
+void Stream::WriteString(const std::string &str) {
+  int n = str.size();
+  Write(str.c_str(), n);
 }
 
-int Stream::Write(const uint8_t * buf, uint32_t size, uint32_t to)
-{
-
-
-}
-int Stream::Available()
-{
-
-}
-
-
-Stream & Stream::operator >> (uint8_t &byte)
-{
-
-}
-*/
-Stream &Stream::operator<<(const std::string &str) {
-  *this << str.c_str();
-  return *this;
-}
-
-Stream &Stream::operator<<(uint8_t byte) {
-  Write(&byte, sizeof(uint8_t));
-  return *this;
-}
-
-Stream &Stream::operator<<(const char *str) {
+void Stream::WriteCString(const char *str) {
   int n = strlen(str);
   Write(str, n);
-  return *this;
+}
+
+Stream &operator>>(Stream &s, uint8_t &d) {
+  s.WriteUint8(d);
+  return s;
+}
+
+Stream &operator>>(Stream &s, char &d) {
+  s.ReadChar(d);
+  return s;
+}
+
+Stream &operator>>(Stream &s, uint16_t &d) {
+  s.ReadUint16(d);
+  return s;
+}
+
+Stream &operator>>(Stream &s, uint32_t &d) {
+  s.ReadUint32(d);
+  return s;
+}
+
+Stream &operator<<(Stream &s, uint8_t d) {
+  s.WriteUint8(d);
+  return s;
+}
+
+Stream &operator<<(Stream &stream, const std::string &str) {
+  stream.WriteString(str);
+  return stream;
+}
+
+Stream &operator<<(Stream &stream, const char *str) {
+  stream.WriteCString(str);
+  return stream;
 }
 
 } /* namespace radiotransmission */

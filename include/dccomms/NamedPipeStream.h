@@ -50,12 +50,11 @@ public:
   virtual CommsDevice &operator<<(const PacketPtr &dlf) {
     return StreamCommsDevice::operator<<(dlf);
   }
-  Stream &operator>>(uint8_t &);
-  Stream &operator>>(char &);
-  Stream &operator>>(uint16_t &);
-  Stream &operator>>(uint32_t &);
-  // Stream & operator << (uint8_t);
-  // Stream & operator << (const char * str);
+
+  void ReadUint8(uint8_t &);
+  void ReadChar(char &);
+  void ReadUint16(uint16_t &);
+  void ReadUint32(uint32_t &);
   int Available();
 
   bool IsOpen();

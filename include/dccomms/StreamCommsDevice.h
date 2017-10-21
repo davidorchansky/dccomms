@@ -20,9 +20,6 @@ public:
 
   virtual CommsDevice &operator>>(const PacketPtr &dlf);
   virtual CommsDevice &operator<<(const PacketPtr &dlf);
-
-  virtual StreamCommsDevice &operator<<(const char *str);
-  virtual StreamCommsDevice &operator<<(const std::string &);
 };
 
 } /* namespace dccomms */

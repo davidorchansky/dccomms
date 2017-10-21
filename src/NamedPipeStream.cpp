@@ -197,23 +197,17 @@ int NamedPipeStream::Available() {
 
 bool NamedPipeStream::IsOpen() { return _open; }
 
-Stream &NamedPipeStream::operator>>(uint8_t &byte) {
+void NamedPipeStream::ReadUint8(uint8_t &byte) {
   read(fd, &byte, sizeof(uint8_t));
-  return *this;
 }
 
-Stream &NamedPipeStream::operator>>(char &byte) {
-  read(fd, &byte, sizeof(uint8_t));
-  return *this;
-}
+void NamedPipeStream::ReadChar(char &byte) { read(fd, &byte, sizeof(uint8_t)); }
 
-Stream &NamedPipeStream::operator>>(uint16_t &data16) {
+void NamedPipeStream::ReadUint16(uint16_t &data16) {
   read(fd, &data16, sizeof(uint16_t));
-  return *this;
 }
 
-Stream &NamedPipeStream::operator>>(uint32_t &data32) {
+void NamedPipeStream::ReadUint32(uint32_t &data32) {
   read(fd, &data32, sizeof(uint32_t));
-  return *this;
 }
 } /* namespace radiotransmission */

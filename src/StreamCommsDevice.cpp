@@ -18,16 +18,6 @@ StreamCommsDevice::~StreamCommsDevice() {
   // TODO Auto-generated destructor stub
 }
 
-StreamCommsDevice &StreamCommsDevice::operator<<(const char *str) {
-  Stream::operator<<(str);
-  return *this;
-}
-
-StreamCommsDevice &StreamCommsDevice::operator<<(const std::string &str) {
-  Stream::operator<<(str);
-  return *this;
-}
-
 CommsDevice &StreamCommsDevice::operator>>(const PacketPtr &pkt) {
   pkt->Read(this);
   return *this;
