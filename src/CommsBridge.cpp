@@ -20,7 +20,7 @@ using namespace std;
 
 CommsBridge::CommsBridge(CommsDevice *_device, PacketBuilderPtr txPacketBuilder,
                          PacketBuilderPtr rxPacketBuilder, int _baudrate)
-    : phyService(txPacketBuilder, IPHY_TYPE_PHY), txserv(this), rxserv(this) {
+    : phyService(txPacketBuilder, CommsDeviceService::IPHY_TYPE_PHY), txserv(this), rxserv(this) {
   _txPacketBuilder = txPacketBuilder;
   _rxPacketBuilder = rxPacketBuilder;
   rxpkt = _rxPacketBuilder->Create();

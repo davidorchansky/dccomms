@@ -15,15 +15,13 @@
 
 namespace dccomms {
 
-#define IPHY_TYPE_DLINK 0
-#define IPHY_TYPE_PHY 1
-
 class CommsDeviceService;
 
 typedef std::shared_ptr<CommsDeviceService> CommsDeviceServicePtr;
 
 class CommsDeviceService : public CommsDevice {
 public:
+  enum CommsDeviceServiceType { IPHY_TYPE_DLINK = 0, IPHY_TYPE_PHY };
   enum PhyState { BUSY = 0, READY };
 
   static CommsDeviceServicePtr

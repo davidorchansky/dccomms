@@ -40,6 +40,15 @@ public:
                                              uint8_t *, // data
                                              fcsType    // fcstype
                                              );
+
+  DataLinkFrame(fcsType fcst);
+  DataLinkFrame(uint8_t,   // destination dir
+                uint8_t,   // source dir
+                uint16_t,  // data size
+                uint8_t *, // data
+                fcsType    // fcstype
+                );
+
   static DataLinkFramePtr Copy(DataLinkFramePtr src);
 
   ~DataLinkFrame();
@@ -80,14 +89,6 @@ public:
   inline bool PacketIsOk() { return checkFrame(); }
 
 private:
-  DataLinkFrame(fcsType fcst);
-  DataLinkFrame(uint8_t,   // destination dir
-                uint8_t,   // source dir
-                uint16_t,  // data size
-                uint8_t *, // data
-                fcsType    // fcstype
-                );
-
   void Init(DataLinkFrame::fcsType fcst);
   void _SetFcsType(fcsType fcst);
 

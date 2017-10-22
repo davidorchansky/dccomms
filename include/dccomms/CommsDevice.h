@@ -3,16 +3,23 @@
 
 #include <cpplogging/cpplogging.h>
 #include <dccomms/Packet.h>
+#include <dccomms/Utils.h>
 
 namespace dccomms {
 
 using namespace cpplogging;
+
+class CommsDevice;
+
 class CommsDevice : public virtual Loggable {
 public:
   CommsDevice();
 
   friend CommsDevice &operator>>(CommsDevice &, const PacketPtr &dlf);
   friend CommsDevice &operator<<(CommsDevice &, const PacketPtr &dlf);
+
+  friend Ptr<CommsDevice> operator>>(Ptr<CommsDevice>, const PacketPtr &dlf);
+  friend Ptr<CommsDevice> operator<<(Ptr<CommsDevice>, const PacketPtr &dlf);
 
   virtual void ReadPacket(const PacketPtr &) = 0;
   virtual void WritePacket(const PacketPtr &) = 0;
