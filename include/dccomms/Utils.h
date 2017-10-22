@@ -107,7 +107,7 @@ template <class T> void ServiceThread<T>::Work() {
 template <typename T> using Ptr = std::shared_ptr<T>;
 
 template <typename T, typename... Targs>
-static Ptr<T> CreateObject(Targs... Fargs) {
+static Ptr<T> CreateObject(Targs &&... Fargs) {
   Ptr<T> ptr(new T(Fargs...));
   return ptr;
 }
