@@ -48,7 +48,7 @@ public:
   virtual void SetLogName(std::string name);
   virtual void SetLogLevel(cpplogging::LogLevel);
   virtual void FlushLog();
-  virtual void FlushLogOn(LogLevel);
+  virtual void FlushLogOn(cpplogging::LogLevel);
   virtual void LogToConsole(bool);
   virtual void LogToFile(const std::string &filename);
 
