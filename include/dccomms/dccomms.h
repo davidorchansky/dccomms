@@ -12,7 +12,6 @@
 #include <dccomms/CommsBridge.h>
 #include <dccomms/CommsDeviceService.h>
 #include <dccomms/DataLinkFrame.h>
-#include <dccomms/SerialPortStream.h>
 #include <dccomms/TCPStream.h>
 #include <dccomms/Utils.h>
 
