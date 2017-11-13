@@ -388,4 +388,5 @@ PacketPtr DataLinkFramePacketBuilder::CreateFromBuffer(void *buffer) {
 PacketPtr DataLinkFramePacketBuilder::Create() {
   return DataLinkFrame::BuildDataLinkFrame(_fcsType);
 }
+
 } /* namespace radiotransmission */

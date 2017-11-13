@@ -52,8 +52,8 @@ public:
   static DataLinkFramePtr Copy(DataLinkFramePtr src);
 
   ~DataLinkFrame();
-  uint8_t GetDesDir() { return *_ddir; }
-  uint8_t GetSrcDir() { return *_sdir; }
+  inline uint8_t GetDesDir() { return *_ddir; }
+  inline uint8_t GetSrcDir() { return *_sdir; }
 
   int GetFrameSize() const { return _frameSize; }
   uint8_t *GetFrameBuffer() const { return GetBuffer(); }
@@ -87,6 +87,10 @@ public:
   inline int GetPacketSize() { return _frameSize; }
   void Read(Stream *comms);
   inline bool PacketIsOk() { return checkFrame(); }
+
+  inline uint32_t GetDestAddr() { return GetDesDir(); }
+  inline uint32_t GetSrcAddr() { return GetSrcDir(); }
+  inline bool IsBroadcast() { return GetDestAddr() == 255; }
 
 private:
   void Init(DataLinkFrame::fcsType fcst);

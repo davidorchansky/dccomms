@@ -25,6 +25,9 @@ public:
 
   virtual bool PacketIsOk();
   virtual void Write(Stream *comms);
+  virtual bool IsBroadcast() { return true; }
+  virtual uint32_t GetDestAddr() { return 0; }
+  virtual uint32_t GetSrcAddr() { return 0; }
 
 protected:
   void _AllocBuffer(int size);
