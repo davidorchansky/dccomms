@@ -29,6 +29,7 @@ public:
   uint32_t GetPayloadSize();
   int GetPacketSize();
   void Read(Stream *comms);
+  void PayloadUpdated(uint32_t payloadSize) { _payloadSize = payloadSize; }
 
 private:
   uint8_t *_nseq, *_payload;
