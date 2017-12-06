@@ -65,6 +65,7 @@ CommsDeviceService::CommsDeviceService(PacketBuilderPtr pb, int _type,
   qprefix = "";
   type = _type;
   SetLogName("CommsDeviceService");
+  service.SetWork(&CommsDeviceService::Work);
 }
 
 void CommsDeviceService::SetCommsDeviceId(std::string m) {
@@ -139,11 +140,9 @@ void CommsDeviceService::Init(int _type, struct mq_attr attr, int perm) {
 }
 
 CommsDeviceService::~CommsDeviceService() {
-  // TODO Auto-generated destructor stub
+  service.Stop();
   mq_close(rxmqid);
   mq_close(txmqid);
-  mq_unlink(txmqname.c_str());
-  mq_unlink(rxmqname.c_str());
 }
 
 void CommsDeviceService::UpdateMQAttr() {
@@ -267,14 +266,20 @@ void CommsDeviceService::SendMsg(const ServiceMessage &msg) {
   }
 }
 
-void CommsDeviceService::ReceiveMsg(ServiceMessage &msg) {
-  if (mq_receive(rxmqid, (char *)msg.GetBuffer(), msg.GetMaxSize(), NULL) ==
-      -1) {
-    ThrowPhyLayerException(
-        std::string("Error(") + std::to_string(errno) +
-        std::string(
-            "): Error interno: fallo al intentar recibir algun mensaje"));
+bool CommsDeviceService::ReceiveMsg(ServiceMessage &msg) {
+  struct timespec tm;
+  clock_gettime(CLOCK_REALTIME, &tm);
+  tm.tv_sec += 2;
+  if (mq_timedreceive(rxmqid, (char *)msg.GetBuffer(), msg.GetMaxSize(), NULL,
+                      &tm) == -1) {
+    if (errno != ETIMEDOUT)
+      ThrowPhyLayerException(
+          std::string("Error(") + std::to_string(errno) +
+          std::string(
+              "): Error interno: fallo al intentar recibir algun mensaje"));
+    return false;
   }
+  return true;
 }
 
 void CommsDeviceService::WaitForFramesFromRxFifo() {
@@ -456,26 +461,6 @@ PacketPtr CommsDeviceService::ServiceMessage::GetPacket() const {
   return _pktBuilder->CreateFromBuffer(payload);
 }
 
-CommsDeviceService::ServiceThread::ServiceThread(CommsDeviceService *parent) {
-  mcontinue = true;
-  terminated = false;
-  started = false;
-  physervice = parent;
-}
-
-CommsDeviceService::ServiceThread::~ServiceThread() { this->Stop(); }
-
-void CommsDeviceService::ServiceThread::Start() {
-  thread = std::thread(&ServiceThread::Work, this);
-  started = true;
-}
-
-void CommsDeviceService::ServiceThread::Stop() { mcontinue = false; }
-
-bool CommsDeviceService::ServiceThread::IsRunning() {
-  return started && !terminated;
-}
-
 void CommsDeviceService::SaveFrameFromMsg(const ServiceMessage &msg) {
   PushNewFrame(msg.GetPacket());
 }
@@ -488,34 +473,30 @@ void CommsDeviceService::SendPhyLayerState() {
   SendPhyLayerState(_GetPhyLayerState());
 }
 
-void CommsDeviceService::ServiceThread::Work() {
-  while (mcontinue) {
-    physervice->Log->debug("Esperando mensaje...");
-    physervice->ReceiveMsg(physervice->rxmsg);
-    switch (physervice->rxmsg.GetMsgType()) {
+void CommsDeviceService::Work() {
+  Log->debug("Esperando mensaje...");
+  if (ReceiveMsg(rxmsg)) {
+    switch (rxmsg.GetMsgType()) {
     case ServiceMessage::FRAME:
-      if (physervice->type == IPHY_TYPE_DLINK)
-        physervice->Log->debug("Received frame from the physical layer");
+      if (type == IPHY_TYPE_DLINK)
+        Log->debug("Received frame from the physical layer");
       else
-        physervice->Log->debug("Received frame from the D-Link layer");
+        Log->debug("Received frame from the D-Link layer");
 
-      physervice->SaveFrameFromMsg(physervice->rxmsg);
+      SaveFrameFromMsg(rxmsg);
       break;
     case ServiceMessage::CMD_STATE:
-      physervice->Log->debug("Recibido mensaje de estado de la capa fisica");
-      physervice->SavePhyStateFromMsg(physervice->rxmsg);
+      Log->debug("Recibido mensaje de estado de la capa fisica");
+      SavePhyStateFromMsg(rxmsg);
       break;
     case ServiceMessage::REQ_STATE:
-      physervice->Log->debug("Recibida peticion de estado de la capa fisica");
-      physervice->SendPhyLayerState();
+      Log->debug("Recibida peticion de estado de la capa fisica");
+      SendPhyLayerState();
       break;
     default:
       break;
     }
-    // std::this_thread::sleep_for(std::chrono::seconds(2));
   }
-  physervice->Log->debug("Terminando...");
-  terminated = true;
 }
 
 } /* namespace radiotransmission */

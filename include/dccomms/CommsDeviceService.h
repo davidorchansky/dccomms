@@ -5,6 +5,7 @@
 #include <dccomms/CommsDevice.h>
 #include <dccomms/IPacketBuilder.h>
 #include <dccomms/Packet.h>
+#include <dccomms/Utils.h>
 #include <fcntl.h> /* Defines O_* constants */
 #include <memory>
 #include <mqueue.h>
@@ -124,26 +125,8 @@ private:
     PacketBuilderPtr _pktBuilder;
   };
 
-  class ServiceThread {
-    // En C++11 una clase anidada puede acceder a los metodos de la "enclosing"
-    // class
-  public:
-    ServiceThread(CommsDeviceService *);
-    ~ServiceThread();
-    bool IsRunning();
-    void Start();
-    void Stop();
-    void Work();
-
-  private:
-    std::thread thread;
-    bool mcontinue;
-    bool terminated;
-    bool started;
-    CommsDeviceService *physervice;
-  };
-
-  void ReceiveMsg(ServiceMessage &);
+  void Work();
+  bool ReceiveMsg(ServiceMessage &);
   void SendMsg(const ServiceMessage &);
 
   void SavePhyStateFromMsg(const ServiceMessage &);
@@ -171,7 +154,7 @@ private:
   // Concretamente, rxmsg y replymsg se tratan en un ServiceThread, y txmsg en
   // el main thread
   ServiceMessage rxmsg, txmsg, replymsg;
-  ServiceThread service;
+  ServiceThread<CommsDeviceService> service;
 };
 
 } /* namespace radiotransmission */

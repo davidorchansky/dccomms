@@ -70,28 +70,41 @@ public:
   void SetWork(void (T::*f)(void)) { _work = f; }
 
 private:
+  void Init();
   std::thread thread;
   bool mcontinue;
-  bool terminated;
+  bool terminated, joined;
   bool started;
   T *comms;
 };
 
 template <class T> ServiceThread<T>::ServiceThread(T *parent) {
-  mcontinue = true;
-  terminated = false;
-  started = false;
+  Init();
   comms = parent;
 }
 
 template <class T> ServiceThread<T>::~ServiceThread() { this->Stop(); }
 
+template <class T> void ServiceThread<T>::Init() {
+  mcontinue = true;
+  terminated = false;
+  started = false;
+  joined = false;
+}
+
 template <class T> void ServiceThread<T>::Start() {
+  Init();
   thread = std::thread(&ServiceThread::Work, this);
   started = true;
 }
 
-template <class T> void ServiceThread<T>::Stop() { mcontinue = false; }
+template <class T> void ServiceThread<T>::Stop() {
+  mcontinue = false;
+  if (!joined) {
+    thread.join();
+    joined = true;
+  }
+}
 
 template <class T> bool ServiceThread<T>::IsRunning() {
   return started && !terminated;
