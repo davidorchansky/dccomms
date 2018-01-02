@@ -34,6 +34,8 @@ public:
 
   CommsDeviceService(PacketBuilderPtr pb, int iphytype = IPHY_TYPE_DLINK,
                      int maxframesize = 7000);
+
+  void SetMaxQueueSize(uint32_t size);
   virtual ~CommsDeviceService();
 
   virtual void ReadPacket(const PacketPtr &);
@@ -146,7 +148,7 @@ private:
   int comperm;
   std::string qprefix;
 
-  unsigned int maxmsgsize;
+  unsigned int maxmsgsize, maxQueueSize, rxQueueSize;
 
   PhyState phyState;
 

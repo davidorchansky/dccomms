@@ -64,6 +64,8 @@ CommsDeviceService::CommsDeviceService(PacketBuilderPtr pb, int _type,
   comperm = 0777;
   qprefix = "";
   type = _type;
+  maxQueueSize = 40000;
+  rxQueueSize = 0;
   SetLogName("CommsDeviceService");
   service.SetWork(&CommsDeviceService::Work);
 }
@@ -72,6 +74,8 @@ void CommsDeviceService::SetCommsDeviceId(std::string m) {
   _namespace = m;
   SetQueuePrefix(_namespace);
 }
+
+void CommsDeviceService::SetMaxQueueSize(uint32_t size) { maxQueueSize = size; }
 
 void CommsDeviceService::Init(int _type, struct mq_attr attr, int perm) {
   type = _type;
@@ -314,17 +318,21 @@ PacketPtr CommsDeviceService::GetNextPacket() {
     rxfifo_cond.wait(lock);
   }
   PacketPtr dlf = rxfifo.front();
+  auto size = dlf->GetPacketSize();
   rxfifo.pop();
-
-  // unique_lock destryctor unlocks automatically rxfifo_mutex
-
+  rxQueueSize -= size;
+  // unique_lock destructor unlocks automatically rxfifo_mutex
   return dlf;
 }
 
 void CommsDeviceService::PushNewFrame(PacketPtr dlf) {
   rxfifo_mutex.lock();
-
-  rxfifo.push(dlf);
+  auto size = dlf->GetPacketSize();
+  if (size + rxQueueSize <= maxQueueSize) {
+    rxQueueSize += size;
+    rxfifo.push(dlf);
+  } else
+    Log->warn("Rx queue full. Packet dropped");
 
   rxfifo_cond.notify_one();
   rxfifo_mutex.unlock();
@@ -395,7 +403,7 @@ void CommsDeviceService::SetPhyLayerState(const PhyState &state) {
 unsigned int CommsDeviceService::GetRxFifoSize() {
   unsigned int size;
   rxfifo_mutex.lock();
-  size = rxfifo.size();
+  size = rxQueueSize;
   rxfifo_mutex.unlock();
   return size;
 }
