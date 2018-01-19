@@ -36,6 +36,7 @@ public:
                      int maxframesize = 7000);
 
   void SetMaxQueueSize(uint32_t size);
+  uint32_t GetMaxQueueSize();
   virtual ~CommsDeviceService();
 
   virtual void ReadPacket(const PacketPtr &);

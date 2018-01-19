@@ -77,6 +77,8 @@ void CommsDeviceService::SetCommsDeviceId(std::string m) {
 
 void CommsDeviceService::SetMaxQueueSize(uint32_t size) { maxQueueSize = size; }
 
+uint32_t CommsDeviceService::GetMaxQueueSize() { return maxQueueSize; }
+
 void CommsDeviceService::Init(int _type, struct mq_attr attr, int perm) {
   type = _type;
   txmqname = "/" + qprefix;
