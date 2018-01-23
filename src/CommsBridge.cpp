@@ -116,12 +116,12 @@ void CommsBridge::RxWork() {
   bool noerrors = _ReceivePacket();
   if (noerrors) {
     _PacketReceivedWithoutErrorsCb(rxpkt);
-    Log->debug("RX: delivering received frame to the upper layer...");
-    phyService << rxpkt;
-    Log->debug("RX: frame delivered to the upper layer");
   } else {
     _PacketReceivedWithErrorsCb(rxpkt);
   }
+  Log->debug("RX: delivering received frame to the upper layer...");
+  phyService << rxpkt;
+  Log->debug("RX: frame delivered to the upper layer");
 }
 
 void CommsBridge::_TransmitPacket() {
