@@ -122,6 +122,7 @@ public:
   DataLinkFramePacketBuilder(DataLinkFrame::fcsType fcstype);
   PacketPtr CreateFromBuffer(void *buffer);
   PacketPtr Create();
+  std::string GetName();
 
 private:
   DataLinkFrame::fcsType _fcsType;

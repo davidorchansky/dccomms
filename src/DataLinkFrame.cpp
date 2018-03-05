@@ -389,4 +389,8 @@ PacketPtr DataLinkFramePacketBuilder::Create() {
   return DataLinkFrame::BuildDataLinkFrame(_fcsType);
 }
 
+std::string DataLinkFramePacketBuilder::GetName() {
+  return "DataLinkFrameBuilder";
+}
+
 } /* namespace radiotransmission */
