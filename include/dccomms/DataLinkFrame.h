@@ -122,12 +122,17 @@ public:
   DataLinkFramePacketBuilder(DataLinkFrame::fcsType fcstype);
   PacketPtr CreateFromBuffer(void *buffer);
   PacketPtr Create();
-  std::string GetName();
 
 private:
   DataLinkFrame::fcsType _fcsType;
 };
 
+class DataLinkFrameBuilderCRC16 : public DataLinkFramePacketBuilder {
+public:
+  DataLinkFrameBuilderCRC16()
+      : DataLinkFramePacketBuilder(DataLinkFrame::fcsType::crc16) {}
+  std::string GetName() { return "DataLinkFrameBuilderCRC16"; }
+};
 } /* namespace radiotransmission */
 
 #endif /* DCCOMMS_DATALINKFRAME_H_ */

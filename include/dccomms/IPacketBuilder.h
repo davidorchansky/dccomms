@@ -12,7 +12,7 @@ class IPacketBuilder {
 public:
   virtual PacketPtr CreateFromBuffer(void *) = 0;
   virtual PacketPtr Create() = 0;
-  virtual std::string GetName() = 0;
+  virtual std::string GetName() { return ""; }
 };
 }
 #endif // DCCOMMS_PACKET_H

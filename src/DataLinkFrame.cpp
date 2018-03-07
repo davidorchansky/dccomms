@@ -9,6 +9,7 @@
 #include <cstring>
 #include <dccomms/Checksum.h>
 #include <dccomms/DataLinkFrame.h>
+#include <class_loader/multi_library_class_loader.h>
 
 namespace dccomms {
 
@@ -389,8 +390,6 @@ PacketPtr DataLinkFramePacketBuilder::Create() {
   return DataLinkFrame::BuildDataLinkFrame(_fcsType);
 }
 
-std::string DataLinkFramePacketBuilder::GetName() {
-  return "DataLinkFrameBuilder";
-}
+CLASS_LOADER_REGISTER_CLASS(DataLinkFrameBuilderCRC16, DataLinkFramePacketBuilder)
 
 } /* namespace radiotransmission */
