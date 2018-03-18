@@ -25,6 +25,14 @@ void Packet::_AllocBuffer(int size) {
   _ownBuffer = true;
 }
 
+uint32_t Packet::SetPayload(uint8_t *data) {
+  uint32_t psize = GetPayloadSize();
+  uint8_t * pb = GetPayloadBuffer();
+  memcpy(pb, data, psize);
+  PayloadUpdated(psize);
+  return psize;
+}
+
 void Packet::Write(Stream *comms) {
   comms->Write(GetBuffer(), GetPacketSize());
 }

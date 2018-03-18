@@ -178,6 +178,14 @@ void DataLinkFrame::PayloadUpdated(unsigned int datasize) {
   _calculateCRC();
 }
 
+uint32_t DataLinkFrame::SetPayload (uint8_t *data, uint32_t psize)
+{
+  uint32_t bytesWritten = psize <= DLNK_MAX_PAYLOAD_SIZE ? psize : DLNK_MAX_PAYLOAD_SIZE;
+  memcpy(_payload, data, bytesWritten);
+  PayloadUpdated(bytesWritten);
+  return bytesWritten;
+}
+
 void DataLinkFrame::UpdateFrame(uint8_t ddir,   // destination dir
                                 uint8_t sdir,   // source dir
                                 uint16_t dsize, // data size
@@ -185,8 +193,7 @@ void DataLinkFrame::UpdateFrame(uint8_t ddir,   // destination dir
                                 ) {
   *_ddir = ddir;
   *_sdir = sdir;
-  memcpy(_payload, data, dsize);
-  PayloadUpdated(dsize);
+  SetPayload(data, dsize);
 }
 
 void DataLinkFrame::SetSrcDir(uint8_t sdir) {

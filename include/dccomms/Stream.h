@@ -10,9 +10,12 @@
 
 #include <cstdint>
 #include <string>
+#include <memory>
 
 namespace dccomms {
 
+class Stream;
+typedef std::shared_ptr<Stream> StreamPtr;
 class Stream {
 public:
   Stream();
@@ -21,10 +24,10 @@ public:
   virtual int Read(void *, uint32_t, unsigned long msTimeout = 0) = 0;
   virtual int Write(const void *, uint32_t, uint32_t msTimeout = 0) = 0;
 
-  virtual void ReadUint8(uint8_t &) = 0;
-  virtual void ReadChar(char &) = 0;
-  virtual void ReadUint16(uint16_t &) = 0;
-  virtual void ReadUint32(uint32_t &) = 0;
+  virtual void ReadUint8(uint8_t &);
+  virtual void ReadChar(char &);
+  virtual void ReadUint16(uint16_t &);
+  virtual void ReadUint32(uint32_t &);
   virtual void WriteUint8(uint8_t);
 
   virtual void WriteCString(const char *str);
@@ -38,6 +41,15 @@ public:
 
   friend Stream &operator<<(Stream &, const char *str);
   friend Stream &operator<<(Stream &, const std::string &str);
+
+  friend StreamPtr &operator>>(StreamPtr &, uint8_t &);
+  friend StreamPtr &operator>>(StreamPtr &, char &);
+  friend StreamPtr &operator>>(StreamPtr &, uint16_t &);
+  friend StreamPtr &operator>>(StreamPtr &, uint32_t &);
+  friend StreamPtr &operator<<(StreamPtr &, uint8_t);
+
+  friend StreamPtr &operator<<(StreamPtr &, const char *str);
+  friend StreamPtr &operator<<(StreamPtr &, const std::string &str);
 
   virtual int Available() = 0;
 

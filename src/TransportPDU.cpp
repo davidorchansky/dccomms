@@ -27,9 +27,10 @@ inline uint32_t TransportPDU::GetPayloadSize() { return _payloadSize; }
 inline int TransportPDU::GetPacketSize() { return _payloadSize + OverheadSize; }
 void TransportPDU::Read(Stream *comms) {}
 
-void TransportPDU::SetPayload(void *payload, int size) {
+uint32_t TransportPDU::SetPayload(uint8_t *payload, uint32_t size) {
   _payloadSize = size;
   memcpy(_payload, payload, _payloadSize);
+  return _payloadSize;
 }
 void TransportPDU::BufferUpdated() { _InitPointers(); }
 void TransportPDU::SetBuffer(void *buffer) {

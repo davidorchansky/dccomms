@@ -22,7 +22,7 @@ public:
 
   void SetBuffer(void *);
   void BufferUpdated();
-  void SetPayload(void *pyload, int size);
+  uint32_t SetPayload(uint8_t *pyload, uint32_t size);
 
   void CopyFromRawBuffer(void *buffer);
   uint8_t *GetPayloadBuffer();

@@ -21,13 +21,26 @@ public:
   virtual uint32_t GetPayloadSize() = 0;
   virtual int GetPacketSize() = 0;
   virtual void Read(Stream *comms) = 0;
-  virtual void PayloadUpdated(uint32_t payloadSize) = 0;
+
+  // This method could update the FCS or attributes of the subclass
+  virtual void PayloadUpdated(uint32_t payloadSize = 0) = 0;
+
+  // This method calls SetPayload(data, GetPayloadSize()) and
+  // PayloadUpdated(GetPayloadSize())
+  // Then returns the number of bytes written
+  virtual uint32_t SetPayload(uint8_t *data);
+
+  // It tries to set datasize bytes in the payload buffer and returns the number
+  // of bytes written
+  virtual uint32_t SetPayload(uint8_t *data, uint32_t datasize) = 0;
 
   virtual bool PacketIsOk();
   virtual void Write(Stream *comms);
   virtual bool IsBroadcast() { return true; }
   virtual uint32_t GetDestAddr() { return 0; }
   virtual uint32_t GetSrcAddr() { return 0; }
+  virtual void SetDestAddr(uint32_t ddir){}
+  virtual void SetSrcAddr(uint32_t sdir){}
 
 protected:
   void _AllocBuffer(int size);

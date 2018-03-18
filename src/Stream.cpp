@@ -144,4 +144,48 @@ Stream &operator<<(Stream &stream, const char *str) {
   return stream;
 }
 
+void Stream::ReadUint8(uint8_t &b) { Read(&b, 1); }
+void Stream::ReadChar(char &b) {
+  uint8_t d;
+  ReadUint8(d);
+  b = d;
+}
+void Stream::ReadUint16(uint16_t &d) { Read(&d, 2); }
+void Stream::ReadUint32(uint32_t &d) { Read(&d, 4); }
+
+StreamPtr &operator>>(StreamPtr &s, uint8_t &d) {
+  s->WriteUint8(d);
+  return s;
+}
+
+StreamPtr &operator>>(StreamPtr &s, char &d) {
+  s->ReadChar(d);
+  return s;
+}
+
+StreamPtr &operator>>(StreamPtr &s, uint16_t &d) {
+  s->ReadUint16(d);
+  return s;
+}
+
+StreamPtr &operator>>(StreamPtr &s, uint32_t &d) {
+  s->ReadUint32(d);
+  return s;
+}
+
+StreamPtr &operator<<(StreamPtr &s, uint8_t d) {
+  s->WriteUint8(d);
+  return s;
+}
+
+StreamPtr &operator<<(StreamPtr &stream, const std::string &str) {
+  stream->WriteString(str);
+  return stream;
+}
+
+StreamPtr &operator<<(StreamPtr &stream, const char *str) {
+  stream->WriteCString(str);
+  return stream;
+}
+
 } /* namespace radiotransmission */

@@ -76,6 +76,7 @@ file(GLOB ${PROJECT_NAME}_CPP_FILES
     ${SRCPATH}TCPStream.cpp
     ${SRCPATH}TransportPDU.cpp
     ${SRCPATH}Utils.cpp
+    ${SRCPATH}CommsDeviceSocket.cpp
     )
 
 message("DEPS: ${${CLASS_LOADER_GIT}_LIBRARIES}")
