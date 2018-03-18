@@ -60,7 +60,7 @@ public:
   fcsType GetFcsType() const { return _fcstype; }
 
   virtual void SetDestAddr(uint32_t ddir) { SetDesDir(ddir); }
-  virtual void SetSrcAddr(uint32_t sdir) { SetDesDir(sdir); }
+  virtual void SetSrcAddr(uint32_t sdir) { SetSrcDir(sdir); }
   void SetDesDir(uint8_t _ddir);
   void SetSrcDir(uint8_t _sdir);
 

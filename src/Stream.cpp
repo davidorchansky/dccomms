@@ -109,6 +109,7 @@ void Stream::WriteCString(const char *str) {
   Write(str, n);
 }
 
+
 Stream &operator>>(Stream &s, uint8_t &d) {
   s.WriteUint8(d);
   return s;
@@ -153,37 +154,37 @@ void Stream::ReadChar(char &b) {
 void Stream::ReadUint16(uint16_t &d) { Read(&d, 2); }
 void Stream::ReadUint32(uint32_t &d) { Read(&d, 4); }
 
-StreamPtr &operator>>(StreamPtr &s, uint8_t &d) {
+StreamPtr operator>>(StreamPtr s, uint8_t &d) {
   s->WriteUint8(d);
   return s;
 }
 
-StreamPtr &operator>>(StreamPtr &s, char &d) {
+StreamPtr operator>>(StreamPtr s, char &d) {
   s->ReadChar(d);
   return s;
 }
 
-StreamPtr &operator>>(StreamPtr &s, uint16_t &d) {
+StreamPtr operator>>(StreamPtr s, uint16_t &d) {
   s->ReadUint16(d);
   return s;
 }
 
-StreamPtr &operator>>(StreamPtr &s, uint32_t &d) {
+StreamPtr operator>>(StreamPtr s, uint32_t &d) {
   s->ReadUint32(d);
   return s;
 }
 
-StreamPtr &operator<<(StreamPtr &s, uint8_t d) {
+StreamPtr operator<<(StreamPtr s, uint8_t d) {
   s->WriteUint8(d);
   return s;
 }
 
-StreamPtr &operator<<(StreamPtr &stream, const std::string &str) {
+StreamPtr operator<<(StreamPtr stream, const std::string &str) {
   stream->WriteString(str);
   return stream;
 }
 
-StreamPtr &operator<<(StreamPtr &stream, const char *str) {
+StreamPtr operator<<(StreamPtr stream, const char *str) {
   stream->WriteCString(str);
   return stream;
 }

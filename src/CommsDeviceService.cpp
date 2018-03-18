@@ -68,6 +68,7 @@ CommsDeviceService::CommsDeviceService(PacketBuilderPtr pb, int _type,
   rxQueueSize = 0;
   SetLogName("CommsDeviceService");
   service.SetWork(&CommsDeviceService::Work);
+  SetLogLevel(cpplogging::off);
 }
 
 void CommsDeviceService::SetCommsDeviceId(std::string m) {

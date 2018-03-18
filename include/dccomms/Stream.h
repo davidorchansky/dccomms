@@ -9,8 +9,8 @@
 #define DCCOMMS_STREAM_H_
 
 #include <cstdint>
-#include <string>
 #include <memory>
+#include <string>
 
 namespace dccomms {
 
@@ -42,14 +42,14 @@ public:
   friend Stream &operator<<(Stream &, const char *str);
   friend Stream &operator<<(Stream &, const std::string &str);
 
-  friend StreamPtr &operator>>(StreamPtr &, uint8_t &);
-  friend StreamPtr &operator>>(StreamPtr &, char &);
-  friend StreamPtr &operator>>(StreamPtr &, uint16_t &);
-  friend StreamPtr &operator>>(StreamPtr &, uint32_t &);
-  friend StreamPtr &operator<<(StreamPtr &, uint8_t);
+  friend StreamPtr operator>>(StreamPtr , uint8_t &);
+  friend StreamPtr operator>>(StreamPtr , char &);
+  friend StreamPtr operator>>(StreamPtr , uint16_t &);
+  friend StreamPtr operator>>(StreamPtr , uint32_t &);
+  friend StreamPtr operator<<(StreamPtr , uint8_t);
 
-  friend StreamPtr &operator<<(StreamPtr &, const char *str);
-  friend StreamPtr &operator<<(StreamPtr &, const std::string &str);
+  friend StreamPtr operator<<(StreamPtr , const char *str);
+  friend StreamPtr operator<<(StreamPtr , const std::string &str);
 
   virtual int Available() = 0;
 

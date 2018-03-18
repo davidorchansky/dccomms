@@ -24,10 +24,11 @@ public:
 
   void SetCommsDevice(Ptr<CommsDevice> dev);
   void SetPacketBuilder(PacketBuilderPtr pb);
-  void Send(const void *, uint32_t size, uint32_t dirTo = 255,
-            uint32_t packetSize = 1000, unsigned long ms = 0);
+  void Send(const void *, uint32_t size, unsigned long ms = 0);
   void Recv(void *, uint32_t size, unsigned long ms = 10000);
-  inline void SetDefaultDestAddr(uint32_t dst) { _defaultDestAddr = dst; }
+  inline void SetDestAddr(uint32_t dst) { _defaultDestAddr = dst; }
+  inline void SetPayloadSize(uint32_t dst) { _packetSize = dst; }
+  inline void EnableWaitForDeviceReady(bool v) { _waitForDevice = v;}
 
   // Stream methods to implement
   int Read(void *, uint32_t, unsigned long msTimeout = 0);
@@ -45,7 +46,7 @@ private:
                          uint32_t dst);
 
   Ptr<CommsDevice> _device;
-  unsigned char _addr;
+  uint32_t _addr, _packetSize;
   PacketBuilderPtr _packetBuilder;
 
   uint32_t _maxRxBufferSize;
@@ -54,6 +55,7 @@ private:
   uint32_t _rxBufferLastPos;
   uint32_t _bytesInBuffer = 0;
   uint32_t _defaultDestAddr;
+  bool _waitForDevice = false;
 
   void _DecreaseBytesInBuffer();
   void _IncreaseBytesInBuffer();

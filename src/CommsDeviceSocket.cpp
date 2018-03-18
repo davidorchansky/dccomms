@@ -25,7 +25,10 @@ CommsDeviceSocket::CommsDeviceSocket(uint32_t d, uint32_t maxRxBufferSize)
   TotalErrors = 0;
 
   // FCSType = (DataLinkFrame::fcsType) fcst;
-  SetLogName("Radio");
+  SetLogName("CommsDeviceSocket");
+  SetLogLevel(cpplogging::off);
+  SetPayloadSize(1000);
+  EnableWaitForDeviceReady(false);
 }
 
 CommsDeviceSocket::~CommsDeviceSocket() {
@@ -48,46 +51,44 @@ PacketPtr CommsDeviceSocket::_BuildPacket(uint8_t *buffer, uint32_t dataSize,
   return packet;
 }
 
-void CommsDeviceSocket::Send(const void *buf, uint32_t size, uint32_t dirTo,
-                             uint32_t packetSize, unsigned long ms) {
+void CommsDeviceSocket::Send(const void *buf, uint32_t size, unsigned long ms) {
   uint8_t *buffer = (uint8_t *)buf;
-  uint32_t numPackets = size / packetSize;
+  uint32_t numPackets = size / _packetSize;
   uint32_t np;
   for (np = 1; np < numPackets; np++) {
-    while (_device->BusyTransmitting())
+    while (_waitForDevice && _device->BusyTransmitting())
       ;
 
-    PacketPtr dlfPtr = _BuildPacket(buffer, packetSize, _addr, dirTo);
+    PacketPtr dlfPtr =
+        _BuildPacket(buffer, _packetSize, _addr, _defaultDestAddr);
 
-    Log->debug("Enviando paquete...");
-    // Log->debug(*dlfPtr);
+    Log->debug("Sending packet...");
 
     _device << dlfPtr;
-    buffer += packetSize;
+    buffer += _packetSize;
     std::this_thread::sleep_for(std::chrono::milliseconds(ms));
   }
   if (numPackets > 0) {
-    while (_device->BusyTransmitting())
+    while (_waitForDevice && _device->BusyTransmitting())
       ;
-    PacketPtr dlfPtr = _BuildPacket(buffer, packetSize, _addr, dirTo);
+    PacketPtr dlfPtr =
+        _BuildPacket(buffer, _packetSize, _addr, _defaultDestAddr);
 
-    Log->debug("Enviando paquete...");
-    // Log->debug(*dlfPtr);
+    Log->debug("Sending packet...");
 
     _device << dlfPtr;
-    buffer += packetSize;
+    buffer += _packetSize;
   }
 
-  uint32_t bytesLeft = size % packetSize;
+  uint32_t bytesLeft = size % _packetSize;
   if (bytesLeft) {
-    while (_device->BusyTransmitting())
+    while (_waitForDevice && _device->BusyTransmitting())
       ;
     if (numPackets > 0)
       std::this_thread::sleep_for(std::chrono::milliseconds(ms));
-    PacketPtr dlfPtr = _BuildPacket(buffer, bytesLeft, _addr, dirTo);
+    PacketPtr dlfPtr = _BuildPacket(buffer, bytesLeft, _addr, _defaultDestAddr);
 
-    Log->debug("Enviando paquete...");
-    // Log->debug(*dlfPtr);
+    Log->debug("Sending packet...");
 
     _device << dlfPtr;
   }
@@ -115,7 +116,7 @@ void CommsDeviceSocket::Recv(void *buf, uint32_t size, unsigned long ms) {
   unsigned long currentTimeout = _device->GetTimeout();
   _device->SetTimeout(ms >= 0 ? ms : 0);
 
-  if (_bytesInBuffer) // SI hay bytes en buffer, los leemos primero
+  if (_bytesInBuffer) // If bytes in buffer: read them
   {
     while (bytes < size && _bytesInBuffer) {
       *buffer = _rxBuffer[_rxBufferFirstPos];
@@ -126,13 +127,11 @@ void CommsDeviceSocket::Recv(void *buf, uint32_t size, unsigned long ms) {
   }
 
   try {
-    while (bytes < size) // Si faltan bytes, esperamos recibirlos
+    while (bytes < size) // If more bytes needed, wait for them
     {
       _device >> dlfPtr;
-      // Log->debug(*dlfPtr);
       if (dlfPtr->PacketIsOk()) {
-        Log->debug("Frame de radio correcto!");
-        // Log->debug(*dlfPtr);
+        Log->debug("Frame received without errors!");
         uint32_t bytesToRead = (bytes + dlfPtr->GetPayloadSize()) <= size
                                    ? dlfPtr->GetPayloadSize()
                                    : size - bytes;
@@ -145,11 +144,10 @@ void CommsDeviceSocket::Recv(void *buf, uint32_t size, unsigned long ms) {
         bytes += dlfPtr->GetPayloadSize();
       } else {
         TotalErrors += 1;
-        Log->error("Error en frame de radio (Total Errors: {})", TotalErrors);
+        Log->error("Error in packet (Total Errors: {})", TotalErrors);
       }
     }
-    if (bytes > size) // Si hemos recibido más de los que necesitamos, los
-                      // guardamos en el buffer
+    if (bytes > size) // If we have received more bytes save them
     {
       uint32_t bytesLeft = bytes - size;
       uint8_t *ptr = _rxBuffer;
@@ -172,13 +170,13 @@ void CommsDeviceSocket::Recv(void *buf, uint32_t size, unsigned long ms) {
     _device->SetTimeout(currentTimeout);
     throw;
   } catch (std::exception &e) {
-    std::cerr << "Excepcion no esperada" << std::endl << std::flush;
+    std::cerr << "Unexpected exception" << std::endl << std::flush;
     _rxBufferLastPos = 0;
     _rxBufferFirstPos = 0;
     _device->SetTimeout(currentTimeout);
 
   } catch (int &e) {
-    std::cerr << "Excepcion no esperada" << std::endl << std::flush;
+    std::cerr << "Unexpected exception" << std::endl << std::flush;
     _rxBufferLastPos = 0;
     _rxBufferFirstPos = 0;
     _device->SetTimeout(currentTimeout);
@@ -192,7 +190,7 @@ int CommsDeviceSocket::Read(void *buff, uint32_t size,
 }
 int CommsDeviceSocket::Write(const void *buff, uint32_t size,
                              uint32_t msTimeout) {
-  Send(buff, size, _defaultDestAddr, 1000, msTimeout);
+  Send(buff, size, msTimeout);
   return size;
 }
 
