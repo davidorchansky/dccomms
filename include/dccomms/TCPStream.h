@@ -34,11 +34,6 @@ public:
   virtual int Read(void *, uint32_t, unsigned long msTimeout = 0);
   int Write(const void *, uint32_t, uint32_t msTimeout = 0);
 
-  void ReadUint8(uint8_t &);
-  void ReadChar(char &);
-  void ReadUint16(uint16_t &);
-  void ReadUint32(uint32_t &);
-
   int Available();
 
   bool IsOpen();

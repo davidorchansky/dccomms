@@ -2,7 +2,7 @@
 #define DCCOMMS_COMMSDEVICESERVICE_H_
 
 #include <condition_variable>
-#include <dccomms/CommsDevice.h>
+#include <dccomms/StreamCommsDevice.h>
 #include <dccomms/IPacketBuilder.h>
 #include <dccomms/Packet.h>
 #include <dccomms/Utils.h>
@@ -20,7 +20,7 @@ class CommsDeviceService;
 
 typedef std::shared_ptr<CommsDeviceService> CommsDeviceServicePtr;
 
-class CommsDeviceService : public CommsDevice {
+class CommsDeviceService : public StreamCommsDevice {
 public:
   enum CommsDeviceServiceType { IPHY_TYPE_DLINK = 0, IPHY_TYPE_PHY };
   enum PhyState { BUSY = 0, READY };
@@ -64,6 +64,17 @@ public:
   bool WaitForFramesFromRxFifo(unsigned int timeout);
   void WaitForDeviceReadyToTransmit();
   int type;
+
+  //Implemented Stream methods:
+  virtual int Available();
+  virtual bool IsOpen();
+
+  //TODO: implement the missing Stream methods:
+  virtual int Read(void *, uint32_t, unsigned long msTimeout = 0);
+  virtual int Write(const void *, uint32_t, uint32_t msTimeout = 0);
+  virtual void FlushInput();
+  virtual void FlushOutput();
+  virtual void FlushIO();
 
 private:
   std::string _namespace;
@@ -158,6 +169,7 @@ private:
   // el main thread
   ServiceMessage rxmsg, txmsg, replymsg;
   ServiceThread<CommsDeviceService> service;
+  bool _started;
 };
 
 } /* namespace radiotransmission */

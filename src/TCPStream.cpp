@@ -257,28 +257,4 @@ bool TCPStream::IsOpen() {
   throw CommsException("bool TCPStream::IsOpen() Not implemented",
                        COMMS_EXCEPTION_NOTIMPLEMENTED);
 }
-
-void TCPStream::ReadUint8(uint8_t &byte) {
-  throw CommsException(
-      "IStream & TCPStream::operator >> (uint8_t & byte ) not implemented",
-      COMMS_EXCEPTION_NOTIMPLEMENTED);
-}
-
-void TCPStream::ReadChar(char &byte) {
-  throw CommsException("IStream & TCPStream::operator >> (char & byte ) "
-                       "Operator not implemented",
-                       COMMS_EXCEPTION_NOTIMPLEMENTED);
-}
-
-void TCPStream::ReadUint16(uint16_t &data16) {
-  throw CommsException(
-      "IStream & TCPStream::operator >> (uint16_t & data16 ) not implemented",
-      COMMS_EXCEPTION_NOTIMPLEMENTED);
-}
-
-void TCPStream::ReadUint32(uint32_t &data32) {
-  throw CommsException("IStream & TCPStream::operator >> (uint32_t & data32 ) "
-                       "Operator not implemented",
-                       COMMS_EXCEPTION_NOTIMPLEMENTED);
-}
 }

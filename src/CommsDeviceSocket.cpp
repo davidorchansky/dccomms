@@ -36,10 +36,13 @@ CommsDeviceSocket::~CommsDeviceSocket() {
     delete _rxBuffer;
 }
 
-void CommsDeviceSocket::SetCommsDevice(Ptr<CommsDevice> dev) { _device = dev; }
+void CommsDeviceSocket::SetStreamCommsDevice(Ptr<StreamCommsDevice> dev) {
+  _device = dev;
+}
 
 void CommsDeviceSocket::SetPacketBuilder(PacketBuilderPtr pb) {
   _packetBuilder = pb;
+  _packet = pb->Create();
 }
 
 PacketPtr CommsDeviceSocket::_BuildPacket(uint8_t *buffer, uint32_t dataSize,
@@ -51,7 +54,7 @@ PacketPtr CommsDeviceSocket::_BuildPacket(uint8_t *buffer, uint32_t dataSize,
   return packet;
 }
 
-void CommsDeviceSocket::Send(const void *buf, uint32_t size, unsigned long ms) {
+void CommsDeviceSocket::Send(const void *buf, uint32_t size) {
   uint8_t *buffer = (uint8_t *)buf;
   uint32_t numPackets = size / _packetSize;
   uint32_t np;
@@ -66,7 +69,6 @@ void CommsDeviceSocket::Send(const void *buf, uint32_t size, unsigned long ms) {
 
     _device << dlfPtr;
     buffer += _packetSize;
-    std::this_thread::sleep_for(std::chrono::milliseconds(ms));
   }
   if (numPackets > 0) {
     while (_waitForDevice && _device->BusyTransmitting())
@@ -84,8 +86,6 @@ void CommsDeviceSocket::Send(const void *buf, uint32_t size, unsigned long ms) {
   if (bytesLeft) {
     while (_waitForDevice && _device->BusyTransmitting())
       ;
-    if (numPackets > 0)
-      std::this_thread::sleep_for(std::chrono::milliseconds(ms));
     PacketPtr dlfPtr = _BuildPacket(buffer, bytesLeft, _addr, _defaultDestAddr);
 
     Log->debug("Sending packet...");
@@ -108,13 +108,10 @@ void CommsDeviceSocket::_DecreaseBytesInBuffer() {
   }
 }
 
-void CommsDeviceSocket::Recv(void *buf, uint32_t size, unsigned long ms) {
+uint32_t CommsDeviceSocket::Recv(void *buf, uint32_t size, unsigned long ms) {
   uint8_t *buffer = (uint8_t *)buf;
   uint32_t bytes = 0;
-  PacketPtr dlfPtr = _packetBuilder->Create();
   uint16_t i;
-  unsigned long currentTimeout = _device->GetTimeout();
-  _device->SetTimeout(ms >= 0 ? ms : 0);
 
   if (_bytesInBuffer) // If bytes in buffer: read them
   {
@@ -125,62 +122,49 @@ void CommsDeviceSocket::Recv(void *buf, uint32_t size, unsigned long ms) {
       bytes++;
     }
   }
-
   try {
-    while (bytes < size) // If more bytes needed, wait for them
+    _device->SetTimeout(ms);
+    while (bytes < size &&
+           (_device->Available() > 0 || ms == 0)) // If more bytes needed, wait for them
     {
-      _device >> dlfPtr;
-      if (dlfPtr->PacketIsOk()) {
+      _device >> _packet;
+      if (_packet->PacketIsOk()) {
         Log->debug("Frame received without errors!");
-        uint32_t bytesToRead = (bytes + dlfPtr->GetPayloadSize()) <= size
-                                   ? dlfPtr->GetPayloadSize()
+        uint32_t bytesToRead = (bytes + _packet->GetPayloadSize()) <= size
+                                   ? _packet->GetPayloadSize()
                                    : size - bytes;
 
-        auto payloadBuffer = dlfPtr->GetPayloadBuffer();
+        auto payloadBuffer = _packet->GetPayloadBuffer();
         for (i = 0; i < bytesToRead; i++) {
           *buffer = payloadBuffer[i];
           buffer++;
         }
-        bytes += dlfPtr->GetPayloadSize();
+        bytes += _packet->GetPayloadSize();
       } else {
         TotalErrors += 1;
         Log->error("Error in packet (Total Errors: {})", TotalErrors);
       }
     }
-    if (bytes > size) // If we have received more bytes save them
-    {
-      uint32_t bytesLeft = bytes - size;
-      uint8_t *ptr = _rxBuffer;
-      _bytesInBuffer =
-          bytesLeft <= _maxRxBufferSize ? bytesLeft : _maxRxBufferSize;
-      uint8_t *maxPtr = _rxBuffer + _bytesInBuffer;
-      auto payloadBuffer = dlfPtr->GetPayloadBuffer();
-      while (ptr != maxPtr) {
-        *ptr = payloadBuffer[i++];
-        ptr++;
-      }
-      _rxBufferLastPos = 0;
-      _rxBufferFirstPos = 0;
-    }
-
-    _device->SetTimeout(currentTimeout);
   } catch (CommsException &e) {
-    _rxBufferLastPos = 0;
-    _rxBufferFirstPos = 0;
-    _device->SetTimeout(currentTimeout);
-    throw;
-  } catch (std::exception &e) {
-    std::cerr << "Unexpected exception" << std::endl << std::flush;
-    _rxBufferLastPos = 0;
-    _rxBufferFirstPos = 0;
-    _device->SetTimeout(currentTimeout);
-
-  } catch (int &e) {
-    std::cerr << "Unexpected exception" << std::endl << std::flush;
-    _rxBufferLastPos = 0;
-    _rxBufferFirstPos = 0;
-    _device->SetTimeout(currentTimeout);
+    Log->debug("Timeout when waiting for the next packet");
   }
+  if (bytes > size) // If we have received more bytes save them
+  {
+    uint32_t bytesLeft = bytes - size;
+    uint8_t *ptr = _rxBuffer;
+    _bytesInBuffer =
+        bytesLeft <= _maxRxBufferSize ? bytesLeft : _maxRxBufferSize;
+    uint8_t *maxPtr = _rxBuffer + _bytesInBuffer;
+    auto payloadBuffer = _packet->GetPayloadBuffer();
+    while (ptr != maxPtr) {
+      *ptr = payloadBuffer[i++];
+      ptr++;
+    }
+    _rxBufferLastPos = 0;
+    _rxBufferFirstPos = 0;
+  }
+
+  return bytes;
 }
 
 int CommsDeviceSocket::Read(void *buff, uint32_t size,
@@ -190,13 +174,43 @@ int CommsDeviceSocket::Read(void *buff, uint32_t size,
 }
 int CommsDeviceSocket::Write(const void *buff, uint32_t size,
                              uint32_t msTimeout) {
-  Send(buff, size, msTimeout);
+  Send(buff, size);
   return size;
 }
 
-int CommsDeviceSocket::Available() { return _bytesInBuffer; }
-bool CommsDeviceSocket::IsOpen() { return true; }
-void CommsDeviceSocket::FlushInput() {}
-void CommsDeviceSocket::FlushOutput() {}
-void CommsDeviceSocket::FlushIO() {}
+void CommsDeviceSocket::_GetNextPayloadBytes() {
+  _device >> _packet;
+  if (_packet->PacketIsOk()) {
+    Log->debug("Frame received without errors!");
+    uint32_t bytesToRead = _packet->GetPayloadSize();
+    auto payloadBuffer = _packet->GetPayloadBuffer();
+    for (int i = 0; i < bytesToRead; i++) {
+      _rxBuffer[_rxBufferLastPos] = payloadBuffer[i];
+      _IncreaseBytesInBuffer();
+    }
+  } else {
+    TotalErrors += 1;
+    Log->error("Error in packet (Total Errors: {})", TotalErrors);
+  }
+}
+
+int CommsDeviceSocket::Available() {
+  while (_device->Available()) {
+    _GetNextPayloadBytes();
+  }
+  return _bytesInBuffer;
+}
+bool CommsDeviceSocket::IsOpen() { return _device->IsOpen(); }
+void CommsDeviceSocket::FlushInput() {
+  throw CommsException("void CommsDeviceSocket::FlushInput() Not implemented",
+                       COMMS_EXCEPTION_NOTIMPLEMENTED);
+}
+void CommsDeviceSocket::FlushOutput() {
+  throw CommsException("void CommsDeviceSocket::FlushOutput() Not implemented",
+                       COMMS_EXCEPTION_NOTIMPLEMENTED);
+}
+void CommsDeviceSocket::FlushIO() {
+  throw CommsException("void CommsDeviceSocket::FlushIO() Not implemented",
+                       COMMS_EXCEPTION_NOTIMPLEMENTED);
+}
 }

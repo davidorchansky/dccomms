@@ -69,6 +69,8 @@ CommsDeviceService::CommsDeviceService(PacketBuilderPtr pb, int _type,
   SetLogName("CommsDeviceService");
   service.SetWork(&CommsDeviceService::Work);
   SetLogLevel(cpplogging::off);
+  _started = false;
+  _timeout = 0;
 }
 
 void CommsDeviceService::SetCommsDeviceId(std::string m) {
@@ -318,7 +320,15 @@ void CommsDeviceService::WaitForDeviceReadyToTransmit() {
 PacketPtr CommsDeviceService::GetNextPacket() {
   std::unique_lock<std::mutex> lock(rxfifo_mutex);
   while (rxfifo.empty()) {
-    rxfifo_cond.wait(lock);
+    if (_timeout <= 0)
+      rxfifo_cond.wait(lock);
+    else {
+      auto status = rxfifo_cond.wait_for(lock, std::chrono::milliseconds(_timeout));
+      if (status == std::cv_status::timeout) {
+        throw CommsException("Timeout waiting for the next packet",
+                             COMMS_EXCEPTION_TIMEOUT);
+      }
+    }
   }
   PacketPtr dlf = rxfifo.front();
   auto size = dlf->GetPacketSize();
@@ -421,9 +431,13 @@ void CommsDeviceService::Start() {
   } else {
     ReqPhyLayerState();
   }
+  _started = true;
 }
 
-void CommsDeviceService::Stop() { service.Stop(); }
+void CommsDeviceService::Stop() {
+  service.Stop();
+  _started = false;
+}
 
 CommsDeviceService::ServiceMessage::ServiceMessage(PacketBuilderPtr pb) {
   _pktBuilder = pb;
@@ -510,4 +524,32 @@ void CommsDeviceService::Work() {
   }
 }
 
+int CommsDeviceService::Available() {
+  //TODO: return the payload bytes in the rx fifo instead
+  return GetRxFifoSize();
+}
+
+bool CommsDeviceService::IsOpen() { return _started; }
+
+int CommsDeviceService::Read(void *, uint32_t, unsigned long msTimeout) {
+  throw CommsException("int CommsDeviceService::Read() Not implemented",
+                       COMMS_EXCEPTION_NOTIMPLEMENTED);
+}
+int CommsDeviceService::Write(const void *, uint32_t, uint32_t msTimeout) {
+  throw CommsException("int CommsDeviceService::Write() Not implemented",
+                       COMMS_EXCEPTION_NOTIMPLEMENTED);
+}
+
+void CommsDeviceService::FlushInput() {
+  throw CommsException("void CommsDeviceService::FlushInput() Not implemented",
+                       COMMS_EXCEPTION_NOTIMPLEMENTED);
+}
+void CommsDeviceService::FlushOutput() {
+  throw CommsException("void CommsDeviceService::FlushOutput() Not implemented",
+                       COMMS_EXCEPTION_NOTIMPLEMENTED);
+}
+void CommsDeviceService::FlushIO() {
+  throw CommsException("void CommsDeviceService::FlushIO() Not implemented",
+                       COMMS_EXCEPTION_NOTIMPLEMENTED);
+}
 } /* namespace radiotransmission */
