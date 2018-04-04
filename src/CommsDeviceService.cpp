@@ -323,7 +323,8 @@ PacketPtr CommsDeviceService::GetNextPacket() {
     if (_timeout <= 0)
       rxfifo_cond.wait(lock);
     else {
-      auto status = rxfifo_cond.wait_for(lock, std::chrono::milliseconds(_timeout));
+      auto status =
+          rxfifo_cond.wait_for(lock, std::chrono::milliseconds(_timeout));
       if (status == std::cv_status::timeout) {
         throw CommsException("Timeout waiting for the next packet",
                              COMMS_EXCEPTION_TIMEOUT);
@@ -507,8 +508,13 @@ void CommsDeviceService::Work() {
         Log->debug("Received frame from the physical layer");
       else
         Log->debug("Received frame from the D-Link layer");
+      try {
+        SaveFrameFromMsg(rxmsg);
+      } catch (exception e) {
+        Log->critical("Exception when saving packet from message queue: {}",
+                      e.what());
+      }
 
-      SaveFrameFromMsg(rxmsg);
       break;
     case ServiceMessage::CMD_STATE:
       Log->debug("Recibido mensaje de estado de la capa fisica");
@@ -525,7 +531,7 @@ void CommsDeviceService::Work() {
 }
 
 int CommsDeviceService::Available() {
-  //TODO: return the payload bytes in the rx fifo instead
+  // TODO: return the payload bytes in the rx fifo instead
   return GetRxFifoSize();
 }
 
