@@ -17,9 +17,9 @@ namespace dccomms {
 
 #define MSG_OVERHEAD_SIZE 1
 
-static void ThrowPhyLayerException(std::string msg) {
-  throw CommsException("PHYLAYER EXCEPTION: " + msg,
-                       COMMS_EXCEPTION_PHYLAYER_ERROR);
+static void ThrowServiceException(std::string msg,
+                                  int error = COMMS_EXCEPTION_UNKNOWN_ERROR) {
+  throw CommsException("COMMS SERVICE EXCEPTION: " + msg, error);
 }
 
 std::string GetMQErrorMsg(int e) {
@@ -98,7 +98,7 @@ void CommsDeviceService::Init(int _type, struct mq_attr attr, int perm) {
     _SetPhyLayerState(PhyState::BUSY);
     break;
   default:
-    ThrowPhyLayerException("Tipo de interfaz con la capa fisica incorrecto");
+    ThrowServiceException("Wrong interface", COMMS_EXCEPTION_CONFIG_ERROR);
   }
 
   txattr = attr;
@@ -113,20 +113,16 @@ void CommsDeviceService::Init(int _type, struct mq_attr attr, int perm) {
   std::string emsg;
   if (txmqid == -1) {
     emsg = GetMQErrorMsg(errno);
-    ThrowPhyLayerException(
+    ThrowServiceException(
         std::string("Error(") + std::to_string(errno) +
-        std::string(
-            "): Error al abrir/crear la cola para envio de mensajes: ") +
-        emsg);
+        std::string("): Error opening/closing the tx message queue: ") + emsg);
   }
   rxmqid = mq_open(rxmqname.c_str(), openops | O_RDONLY, perm, &rxattr);
   if (rxmqid == -1) {
     emsg = GetMQErrorMsg(errno);
-    ThrowPhyLayerException(
+    ThrowServiceException(
         std::string("Error(") + std::to_string(errno) +
-        std::string(
-            "): Error al abrir/crear la cola para recepcion de mensajes") +
-        emsg);
+        std::string("): Error opening/closing the rx message queue: ") + emsg);
   }
   umask(omask);
 
@@ -152,15 +148,13 @@ CommsDeviceService::~CommsDeviceService() { Stop(); }
 
 void CommsDeviceService::UpdateMQAttr() {
   if (mq_getattr(txmqid, &txattr) == -1)
-    ThrowPhyLayerException(
-        std::string("Error(") + std::to_string(errno) +
-        std::string("): Error interno: no ha sido posible obtener los "
-                    "atributos de la cola de mensajes tx"));
+    ThrowServiceException(std::string("Error(") + std::to_string(errno) +
+                          std::string("): Internal error: unable to get the tx "
+                                      "message queue's attributes"));
   if (mq_getattr(rxmqid, &rxattr) == -1)
-    ThrowPhyLayerException(
-        std::string("Error(") + std::to_string(errno) +
-        std::string("): Error interno: no ha sido posible obtener los "
-                    "atributos de la cola de mensajes rx"));
+    ThrowServiceException(std::string("Error(") + std::to_string(errno) +
+                          std::string("): Internal error: unable to get the rx "
+                                      "message queue's attributes"));
 }
 
 struct mq_attr *CommsDeviceService::GetMQAttr(int mq) {
@@ -176,7 +170,7 @@ struct mq_attr *CommsDeviceService::GetMQAttr(int mq) {
     attr = &rxattr;
     break;
   default:
-    ThrowPhyLayerException("Error interno: la cola de mensajes no existe");
+    ThrowServiceException("Internal error: message queue does not exist");
   }
   return attr;
 }
@@ -188,7 +182,7 @@ mqd_t CommsDeviceService::GetMQId(int mq) {
   case RX_MQ:
     return rxmqid;
   default:
-    ThrowPhyLayerException("Error interno: la cola de mensajes no existe");
+    ThrowServiceException("Internal error: message queue does not exist");
   }
   return 0; // nunca llegara aqui
 }
@@ -201,7 +195,7 @@ void CommsDeviceService::ShowMQAttr(std::ostream &o, int mq) {
   o << " - # of messages currently on queue:\t" << attr->mq_curmsgs
     << std::endl;
   o << " - O_NONBLOCK:\t"
-    << (attr->mq_flags & O_NONBLOCK ? "activado" : "desactivado") << std::endl;
+    << (attr->mq_flags & O_NONBLOCK ? "enabled" : "disabled") << std::endl;
 }
 
 long CommsDeviceService::GetMaxMsgOnQueue(int mq) {
@@ -233,10 +227,10 @@ void CommsDeviceService::SetNonblockFlag(bool v, int mq) {
     attr->mq_flags &= ~O_NONBLOCK;
 
   if (mq_setattr(id, attr, NULL) == -1) {
-    ThrowPhyLayerException(
+    ThrowServiceException(
         std::string("Error(") + std::to_string(errno) +
-        std::string("): Error interno: no ha sido posible establecer los "
-                    "atributos de la cola de mensajes"));
+        std::string(
+            "): Internal error: unable to set the message queue's attributes"));
   }
 }
 
@@ -257,7 +251,7 @@ void CommsDeviceService::WritePacket(const PacketPtr &dlf) {
   if (type == IPHY_TYPE_DLINK) {
     // the frame is directed from de dlink layer to the phy layer, so we set the
     // phy layer state to BUSY
-    Log->debug("Seteando manualmente el estado de 'OCUPADO'");
+    Log->debug("Setting 'BUSY' state manually");
     _SetPhyLayerState(BUSY);
   }
   SendMsg(txmsg);
@@ -266,9 +260,15 @@ void CommsDeviceService::WritePacket(const PacketPtr &dlf) {
 void CommsDeviceService::SendMsg(const ServiceMessage &msg) {
   if (mq_send(txmqid, (char *)msg.GetBuffer(), msg.GetSize(), 0) == -1) {
     if (_started)
-      ThrowPhyLayerException(
+      ThrowServiceException(
           std::string("Error(") + std::to_string(errno) +
-          std::string("): Error interno: no se ha podido enviar el mensaje"));
+          std::string("): Internal error: unable to send the message"));
+    else
+      ThrowServiceException(
+          std::string("Error(") + std::to_string(errno) +
+              std::string("): fail trying to send a "
+                          "message (service has been stopped)"),
+          COMMS_EXCEPTION_STOPPED);
   }
 }
 
@@ -278,11 +278,18 @@ bool CommsDeviceService::ReceiveMsg(ServiceMessage &msg) {
   tm.tv_sec += 2;
   if (mq_timedreceive(rxmqid, (char *)msg.GetBuffer(), msg.GetMaxSize(), NULL,
                       &tm) == -1) {
-    if (errno != ETIMEDOUT && _started)
-      ThrowPhyLayerException(
-          std::string("Error(") + std::to_string(errno) +
-          std::string(
-              "): Error interno: fallo al intentar recibir algun mensaje"));
+    if (errno != ETIMEDOUT) {
+      if (_started)
+        ThrowServiceException(
+            std::string("Error(") + std::to_string(errno) +
+            std::string("): Internal error: fail trying to receive a message"));
+      else
+        ThrowServiceException(
+            std::string("Error(") + std::to_string(errno) +
+                std::string("): fail trying to receive a "
+                            "message (service has been stopped)"),
+            COMMS_EXCEPTION_STOPPED);
+    }
     return false;
   }
   return true;
@@ -292,6 +299,12 @@ void CommsDeviceService::WaitForFramesFromRxFifo() {
   std::unique_lock<std::mutex> lock(rxfifo_mutex);
   while (rxfifo.empty()) {
     rxfifo_cond.wait(lock);
+    if (!_started)
+      ThrowServiceException(
+          std::string("Error(") + std::to_string(errno) +
+              std::string("): fail trying to receive a "
+                          "packet (service has been stopped)"),
+          COMMS_EXCEPTION_STOPPED);
   }
 }
 
@@ -300,6 +313,12 @@ bool CommsDeviceService::WaitForFramesFromRxFifo(unsigned int timeout) {
   while (rxfifo.empty()) {
     auto status =
         rxfifo_cond.wait_for(lock, std::chrono::milliseconds(timeout));
+    if (!_started)
+      ThrowServiceException(
+          std::string("Error(") + std::to_string(errno) +
+              std::string("): fail trying to receive a "
+                          "packet (service has been stopped)"),
+          COMMS_EXCEPTION_STOPPED);
     if (status == std::cv_status::timeout) {
       return false;
     }
@@ -311,17 +330,30 @@ void CommsDeviceService::WaitForDeviceReadyToTransmit() {
   std::unique_lock<std::mutex> lock(phyState_mutex);
   while (phyState == PhyState::BUSY) {
     phyState_cond.wait(lock);
+    if (!_started)
+      ThrowServiceException(
+          std::string("Error(") + std::to_string(errno) +
+              std::string("): service has been stopped)"),
+          COMMS_EXCEPTION_STOPPED);
   }
 }
 
 PacketPtr CommsDeviceService::GetNextPacket() {
   std::unique_lock<std::mutex> lock(rxfifo_mutex);
   while (rxfifo.empty()) {
-    if (_timeout <= 0)
+    if (_timeout <= 0) {
       rxfifo_cond.wait(lock);
-    else {
+      ThrowServiceException(
+          std::string("Error(") + std::to_string(errno) +
+              std::string("): service has been stopped)"),
+          COMMS_EXCEPTION_STOPPED);
+    } else {
       auto status =
           rxfifo_cond.wait_for(lock, std::chrono::milliseconds(_timeout));
+      ThrowServiceException(
+          std::string("Error(") + std::to_string(errno) +
+              std::string("): service has been stopped)"),
+          COMMS_EXCEPTION_STOPPED);
       if (status == std::cv_status::timeout) {
         throw CommsException("Timeout waiting for the next packet",
                              COMMS_EXCEPTION_TIMEOUT);
@@ -381,32 +413,32 @@ void CommsDeviceService::SendPhyLayerState(const PhyState &state) {
   SendMsg(replymsg);
   switch (state) {
   case PhyState::BUSY:
-    Log->debug("Enviado estado OCUPADO");
+    Log->debug("Sending BUSY state");
     break;
   case PhyState::READY:
-    Log->debug("Enviado estado LISTO");
+    Log->debug("Sending READY state");
     break;
   default:
-    Log->critical("ERROR GRAVE: ENVIADO ESTADO IMPOSIBLE!!");
+    Log->critical("Internal ERROR: SENDING IMPOSSIBLE STATE!!");
   }
 }
 
 bool CommsDeviceService::BusyTransmitting() {
   if (type != IPHY_TYPE_DLINK)
-    ThrowPhyLayerException("Method call not allowed");
+    ThrowServiceException("Method call not allowed");
   return _GetPhyLayerState() == PhyState::BUSY;
 }
 
 void CommsDeviceService::ReqPhyLayerState() {
   if (type != IPHY_TYPE_DLINK)
-    ThrowPhyLayerException("Method call not allowed");
+    ThrowServiceException("Method call not allowed");
   txmsg.BuildReqStateMsg();
   SendMsg(txmsg);
 }
 
 void CommsDeviceService::SetPhyLayerState(const PhyState &state) {
   if (type != IPHY_TYPE_PHY)
-    ThrowPhyLayerException("Method call not allowed");
+    ThrowServiceException("Method call not allowed");
   _SetPhyLayerState(state);
   SendPhyLayerState();
 }
@@ -437,6 +469,8 @@ void CommsDeviceService::Stop() {
   service.Stop();
   mq_close(rxmqid);
   mq_close(txmqid);
+  rxfifo_cond.notify_all();
+  phyState_cond.notify_all();
 }
 
 CommsDeviceService::ServiceMessage::ServiceMessage(PacketBuilderPtr pb) {
@@ -465,8 +499,8 @@ void CommsDeviceService::ServiceMessage::BuildPacketMsg(const PacketPtr &dlf) {
     size = frsize + MSG_OVERHEAD_SIZE;
   } else {
     *type = (uint8_t)MsgType::NOTBUILT;
-    ThrowPhyLayerException(
-        "Error interno: la trama no cabe en el formato de mensaje de la cola");
+    ThrowServiceException(
+        "Internal error: the packet does not fit in the queue message format");
   }
 }
 
@@ -516,11 +550,11 @@ void CommsDeviceService::Work() {
 
       break;
     case ServiceMessage::CMD_STATE:
-      Log->debug("Recibido mensaje de estado de la capa fisica");
+      Log->debug("State message received from the lower layer");
       SavePhyStateFromMsg(rxmsg);
       break;
     case ServiceMessage::REQ_STATE:
-      Log->debug("Recibida peticion de estado de la capa fisica");
+      Log->debug("Received state request from the lower layer");
       SendPhyLayerState();
       break;
     default:

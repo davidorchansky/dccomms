@@ -23,6 +23,9 @@ namespace dccomms {
 #define COMMS_EXCEPTION_PHYLAYER_ERROR 6
 #define COMMS_EXCEPTION_DLNKLAYER_ERROR 7
 #define COMMS_EXCEPTION_NOTIMPLEMENTED 8
+#define COMMS_EXCEPTION_CLOSED 9
+#define COMMS_EXCEPTION_STOPPED 10
+#define COMMS_EXCEPTION_CONFIG_ERROR 11
 
 class CommsException : public exception {
 public:
