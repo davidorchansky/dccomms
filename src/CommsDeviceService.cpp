@@ -148,11 +148,7 @@ void CommsDeviceService::Init(int _type, struct mq_attr attr, int perm) {
   replymsg.Init(maxmsgsize);
 }
 
-CommsDeviceService::~CommsDeviceService() {
-  service.Stop();
-  mq_close(rxmqid);
-  mq_close(txmqid);
-}
+CommsDeviceService::~CommsDeviceService() { Stop(); }
 
 void CommsDeviceService::UpdateMQAttr() {
   if (mq_getattr(txmqid, &txattr) == -1)
@@ -269,9 +265,10 @@ void CommsDeviceService::WritePacket(const PacketPtr &dlf) {
 
 void CommsDeviceService::SendMsg(const ServiceMessage &msg) {
   if (mq_send(txmqid, (char *)msg.GetBuffer(), msg.GetSize(), 0) == -1) {
-    ThrowPhyLayerException(
-        std::string("Error(") + std::to_string(errno) +
-        std::string("): Error interno: no se ha podido enviar el mensaje"));
+    if (_started)
+      ThrowPhyLayerException(
+          std::string("Error(") + std::to_string(errno) +
+          std::string("): Error interno: no se ha podido enviar el mensaje"));
   }
 }
 
@@ -281,7 +278,7 @@ bool CommsDeviceService::ReceiveMsg(ServiceMessage &msg) {
   tm.tv_sec += 2;
   if (mq_timedreceive(rxmqid, (char *)msg.GetBuffer(), msg.GetMaxSize(), NULL,
                       &tm) == -1) {
-    if (errno != ETIMEDOUT)
+    if (errno != ETIMEDOUT && _started)
       ThrowPhyLayerException(
           std::string("Error(") + std::to_string(errno) +
           std::string(
@@ -436,8 +433,10 @@ void CommsDeviceService::Start() {
 }
 
 void CommsDeviceService::Stop() {
-  service.Stop();
   _started = false;
+  service.Stop();
+  mq_close(rxmqid);
+  mq_close(txmqid);
 }
 
 CommsDeviceService::ServiceMessage::ServiceMessage(PacketBuilderPtr pb) {
