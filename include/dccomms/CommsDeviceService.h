@@ -37,6 +37,7 @@ public:
 
   void SetMaxQueueSize(uint32_t size);
   uint32_t GetMaxQueueSize();
+  void SetBlockingTransmission(bool v);
   virtual ~CommsDeviceService();
 
   virtual void ReadPacket(const PacketPtr &);
@@ -75,6 +76,7 @@ public:
   virtual void FlushInput();
   virtual void FlushOutput();
   virtual void FlushIO();
+
 
 private:
   std::string _namespace;
@@ -170,6 +172,7 @@ private:
   ServiceMessage rxmsg, txmsg, replymsg;
   ServiceThread<CommsDeviceService> service;
   bool _started;
+  bool _blockingTx;
 };
 
 } /* namespace radiotransmission */

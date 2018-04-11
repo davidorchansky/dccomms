@@ -126,7 +126,7 @@ void CommsDeviceService::Init(int _type, struct mq_attr attr, int perm) {
   }
   umask(omask);
 
-  SetNonblockFlag(false, TX_MQ);
+  SetBlockingTransmission(false);
   SetNonblockFlag(false, RX_MQ);
 
   ClearInputQueue();
@@ -218,6 +218,12 @@ bool CommsDeviceService::GetNonblockFlag(int mq) {
   return attr->mq_flags & O_NONBLOCK;
 }
 
+void CommsDeviceService::SetBlockingTransmission(bool v) {
+  _blockingTx = v;
+  if(_started)
+    SetNonblockFlag(!v, TX_MQ);
+}
+
 void CommsDeviceService::SetNonblockFlag(bool v, int mq) {
   struct mq_attr *attr = GetMQAttr(mq);
   mqd_t id = GetMQId(mq);
@@ -258,12 +264,14 @@ void CommsDeviceService::WritePacket(const PacketPtr &dlf) {
 }
 
 void CommsDeviceService::SendMsg(const ServiceMessage &msg) {
+  ////http://man7.org/linux/man-pages/man3/mq_send.3.html
   if (mq_send(txmqid, (char *)msg.GetBuffer(), msg.GetSize(), 0) == -1) {
-    if (_started)
-      ThrowServiceException(
-          std::string("Error(") + std::to_string(errno) +
-          std::string("): Internal error: unable to send the message"));
-    else
+    if (_started) {
+      if (_blockingTx)
+        ThrowServiceException(
+            std::string("Error(") + std::to_string(errno) +
+            std::string("): Internal error: unable to send the message"));
+    } else
       ThrowServiceException(
           std::string("Error(") + std::to_string(errno) +
               std::string("): fail trying to send a "
@@ -331,10 +339,9 @@ void CommsDeviceService::WaitForDeviceReadyToTransmit() {
   while (phyState == PhyState::BUSY) {
     phyState_cond.wait(lock);
     if (!_started)
-      ThrowServiceException(
-          std::string("Error(") + std::to_string(errno) +
-              std::string("): service has been stopped)"),
-          COMMS_EXCEPTION_STOPPED);
+      ThrowServiceException(std::string("Error(") + std::to_string(errno) +
+                                std::string("): service has been stopped)"),
+                            COMMS_EXCEPTION_STOPPED);
   }
 }
 
@@ -343,17 +350,15 @@ PacketPtr CommsDeviceService::GetNextPacket() {
   while (rxfifo.empty()) {
     if (_timeout <= 0) {
       rxfifo_cond.wait(lock);
-      ThrowServiceException(
-          std::string("Error(") + std::to_string(errno) +
-              std::string("): service has been stopped)"),
-          COMMS_EXCEPTION_STOPPED);
+      ThrowServiceException(std::string("Error(") + std::to_string(errno) +
+                                std::string("): service has been stopped)"),
+                            COMMS_EXCEPTION_STOPPED);
     } else {
       auto status =
           rxfifo_cond.wait_for(lock, std::chrono::milliseconds(_timeout));
-      ThrowServiceException(
-          std::string("Error(") + std::to_string(errno) +
-              std::string("): service has been stopped)"),
-          COMMS_EXCEPTION_STOPPED);
+      ThrowServiceException(std::string("Error(") + std::to_string(errno) +
+                                std::string("): service has been stopped)"),
+                            COMMS_EXCEPTION_STOPPED);
       if (status == std::cv_status::timeout) {
         throw CommsException("Timeout waiting for the next packet",
                              COMMS_EXCEPTION_TIMEOUT);
@@ -452,7 +457,6 @@ unsigned int CommsDeviceService::GetRxFifoSize() {
 }
 
 void CommsDeviceService::Start() {
-
   Init(type, comattr, comperm);
   service.Start();
   if (type == IPHY_TYPE_PHY) {
@@ -461,6 +465,7 @@ void CommsDeviceService::Start() {
   } else {
     ReqPhyLayerState();
   }
+  SetNonblockFlag(!_blockingTx, TX_MQ);
   _started = true;
 }
 
