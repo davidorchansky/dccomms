@@ -350,9 +350,6 @@ PacketPtr CommsDeviceService::GetNextPacket() {
   while (rxfifo.empty()) {
     if (_timeout <= 0) {
       rxfifo_cond.wait(lock);
-      ThrowServiceException(std::string("Error(") + std::to_string(errno) +
-                                std::string("): service has been stopped)"),
-                            COMMS_EXCEPTION_STOPPED);
     } else {
       auto status =
           rxfifo_cond.wait_for(lock, std::chrono::milliseconds(_timeout));
