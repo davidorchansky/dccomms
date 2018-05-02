@@ -59,12 +59,12 @@ std::string GetMQErrorMsg(int e) {
 CommsDeviceService::CommsDeviceService(PacketBuilderPtr pb, int _type,
                                        int maxframesize)
     : service(this), rxmsg(pb), txmsg(pb), replymsg(pb) {
-  comattr.mq_maxmsg = 10;
+  comattr.mq_maxmsg = UINT32_MAX;
   comattr.mq_msgsize = maxframesize + MSG_OVERHEAD_SIZE;
   comperm = 0777;
   qprefix = "";
   type = _type;
-  maxQueueSize = 40000;
+  maxQueueSize = UINT16_MAX;
   rxQueueSize = 0;
   SetLogName("CommsDeviceService");
   service.SetWork(&CommsDeviceService::Work);
@@ -220,7 +220,7 @@ bool CommsDeviceService::GetNonblockFlag(int mq) {
 
 void CommsDeviceService::SetBlockingTransmission(bool v) {
   _blockingTx = v;
-  if(_started)
+  if (_started)
     SetNonblockFlag(!v, TX_MQ);
 }
 
