@@ -64,7 +64,7 @@ CommsDeviceService::CommsDeviceService(PacketBuilderPtr pb, int _type,
   comperm = 0777;
   qprefix = "";
   type = _type;
-  maxQueueSize = UINT16_MAX;
+  maxQueueSize = UINT32_MAX;
   rxQueueSize = 0;
   SetLogName("CommsDeviceService");
   service.SetWork(&CommsDeviceService::Work);
@@ -376,8 +376,9 @@ void CommsDeviceService::PushNewFrame(PacketPtr dlf) {
   if (size + rxQueueSize <= maxQueueSize) {
     rxQueueSize += size;
     rxfifo.push(dlf);
-  } else
+  } else {
     Log->warn("Rx queue full. Packet dropped");
+  }
 
   rxfifo_cond.notify_one();
   rxfifo_mutex.unlock();
