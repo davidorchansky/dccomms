@@ -27,13 +27,13 @@ public:
 
   static CommsDeviceServicePtr
   BuildCommsDeviceService(PacketBuilderPtr pb, int iphytype = IPHY_TYPE_DLINK,
-                          int maxframesize = 7000) {
+                          int maxframesize = 8192) {
     return CommsDeviceServicePtr(
         new CommsDeviceService(pb, iphytype, maxframesize));
   }
 
   CommsDeviceService(PacketBuilderPtr pb, int iphytype = IPHY_TYPE_DLINK,
-                     int maxframesize = 7000);
+                     int maxframesize = 8192);
 
   void SetMaxQueueSize(uint32_t size);
   uint32_t GetMaxQueueSize();

@@ -59,7 +59,7 @@ std::string GetMQErrorMsg(int e) {
 CommsDeviceService::CommsDeviceService(PacketBuilderPtr pb, int _type,
                                        int maxframesize)
     : service(this), rxmsg(pb), txmsg(pb), replymsg(pb) {
-  comattr.mq_maxmsg = UINT32_MAX;
+  comattr.mq_maxmsg = 10;
   comattr.mq_msgsize = maxframesize + MSG_OVERHEAD_SIZE;
   comperm = 0777;
   qprefix = "";
@@ -126,7 +126,7 @@ void CommsDeviceService::Init(int _type, struct mq_attr attr, int perm) {
   }
   umask(omask);
 
-  SetBlockingTransmission(false);
+  SetBlockingTransmission(true);
   SetNonblockFlag(false, RX_MQ);
 
   ClearInputQueue();
