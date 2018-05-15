@@ -4,3 +4,6 @@
 [submodule "deps/class_loader"]
 	path = deps/class_loader
 	url = https://github.com/dcentelles/class_loader
+[submodule "deps/cpputils"]
+	path = deps/cpputils
+	url = https://github.com/dcentelles/cpputils.git
