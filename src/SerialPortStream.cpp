@@ -32,17 +32,15 @@
 namespace dccomms {
 
 SerialPortStream::SerialPortStream() {}
-SerialPortStream::SerialPortStream(const std::string & p) {
-  port = p;
-}
+SerialPortStream::SerialPortStream(const std::string &p) { port = p; }
 
-SerialPortStream::SerialPortStream(const std::string & p,
+SerialPortStream::SerialPortStream(const std::string &p,
                                    SerialPortStream::BaudRate baud) {
   port = p;
   portSettings.baudrate = baud;
 }
 
-SerialPortStream::SerialPortStream(const std::string & p,
+SerialPortStream::SerialPortStream(const std::string &p,
                                    SerialPortStream::PortSettings ps) {
   port = p;
   portSettings = ps;
@@ -50,13 +48,15 @@ SerialPortStream::SerialPortStream(const std::string & p,
 
 bool SerialPortStream::BusyTransmitting() { return false; }
 
-bool SerialPortStream::Open(const std::string & p, SerialPortStream::BaudRate baud) {
+bool SerialPortStream::Open(const std::string &p,
+                            SerialPortStream::BaudRate baud) {
   port = p;
   portSettings.baudrate = baud;
   return Open();
 }
 
-bool SerialPortStream::Open(const std::string & p, SerialPortStream::PortSettings ps) {
+bool SerialPortStream::Open(const std::string &p,
+                            SerialPortStream::PortSettings ps) {
   port = p;
   portSettings = ps;
   return Open();
@@ -111,7 +111,7 @@ bool SerialPortStream::Open() {
     options.c_cflag |= portSettings.dataBits;
 
     // set hardware flow control:
-    if(hwFlowControl)
+    if (hwFlowControl)
       options.c_cflag |= CRTSCTS;
     else
       options.c_cflag &= ~CRTSCTS;
@@ -140,15 +140,17 @@ bool SerialPortStream::Open() {
   return false;
 }
 
-void SerialPortStream::SetHwFlowControl(bool v){
+void SerialPortStream::SetHwFlowControl(bool v) {
   hwFlowControl = v;
-  struct termios options;
-  tcgetattr(fd, &options);
-  if(hwFlowControl)
-    options.c_cflag |= CRTSCTS;
-  else
-    options.c_cflag &= ~CRTSCTS;
-  tcsetattr(fd, TCSAFLUSH, &options);
+  if (isOpen) {
+    struct termios options;
+    tcgetattr(fd, &options);
+    if (hwFlowControl)
+      options.c_cflag |= CRTSCTS;
+    else
+      options.c_cflag &= ~CRTSCTS;
+    tcsetattr(fd, TCSAFLUSH, &options);
+  }
 }
 
 void SerialPortStream::Close() {
