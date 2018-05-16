@@ -30,7 +30,6 @@ Arduino::Arduino(SerialPortStream s, const char *p, Arduino::BaudRate b,
   // TODO Auto-generated constructor stub
   hello = std::string(h);
   validReply = std::string(vr);
-  strcpy(port, p);
   baud = b;
 }
 
@@ -91,7 +90,7 @@ bool Arduino::TryReconnect() {
   int i;
   for (i = 0; i < 8; i++) {
     try {
-      strcpy(port, spfiles[i]);
+      port = spfiles[i];
 
       // std::cout <<"Intentando abrir " << port << std::endl;
       bool opened = Open();

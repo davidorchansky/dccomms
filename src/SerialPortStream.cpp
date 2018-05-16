@@ -32,42 +32,32 @@
 namespace dccomms {
 
 SerialPortStream::SerialPortStream() {}
-SerialPortStream::SerialPortStream(const char *p) {
-  int s = strlen(p);
-  port = new char[s + 1];
-  strcpy(port, p);
+SerialPortStream::SerialPortStream(const std::string & p) {
+  port = p;
 }
 
-SerialPortStream::SerialPortStream(const char *p,
+SerialPortStream::SerialPortStream(const std::string & p,
                                    SerialPortStream::BaudRate baud) {
-  int s = strlen(p);
-  port = new char[s + 1];
-  strcpy(port, p);
+  port = p;
   portSettings.baudrate = baud;
 }
 
-SerialPortStream::SerialPortStream(const char *p,
+SerialPortStream::SerialPortStream(const std::string & p,
                                    SerialPortStream::PortSettings ps) {
-  int s = strlen(p);
-  port = new char[s + 1];
-  strcpy(port, p);
+  port = p;
   portSettings = ps;
 }
 
 bool SerialPortStream::BusyTransmitting() { return false; }
 
-bool SerialPortStream::Open(const char *p, SerialPortStream::BaudRate baud) {
-  int s = strlen(p);
-  port = new char[s + 1];
-  strcpy(port, p);
+bool SerialPortStream::Open(const std::string & p, SerialPortStream::BaudRate baud) {
+  port = p;
   portSettings.baudrate = baud;
   return Open();
 }
 
-bool SerialPortStream::Open(const char *p, SerialPortStream::PortSettings ps) {
-  int s = strlen(p);
-  port = new char[s + 1];
-  strcpy(port, p);
+bool SerialPortStream::Open(const std::string & p, SerialPortStream::PortSettings ps) {
+  port = p;
   portSettings = ps;
   return Open();
 }
@@ -75,7 +65,7 @@ bool SerialPortStream::Open(const char *p, SerialPortStream::PortSettings ps) {
 bool SerialPortStream::Open() {
   struct termios options;
 
-  fd = open(port, O_RDWR);
+  fd = open(port.c_str(), O_RDWR);
   if (fd != -1) {
     fcntl(fd, F_SETFL, FNDELAY);
     SetTimeout(_timeout);
@@ -120,8 +110,11 @@ bool SerialPortStream::Open() {
     options.c_cflag &= ~CSIZE;
     options.c_cflag |= portSettings.dataBits;
 
-    // disable hardware flow control:
-    options.c_cflag &= ~CRTSCTS;
+    // set hardware flow control:
+    if(hwFlowControl)
+      options.c_cflag |= CRTSCTS;
+    else
+      options.c_cflag &= ~CRTSCTS;
 
     // disable software flow controls:
     options.c_iflag &= ~(IXON | IXOFF | IXANY);
@@ -136,21 +129,32 @@ bool SerialPortStream::Open() {
     options.c_oflag &= ~OPOST;
 
     tcsetattr(fd, TCSAFLUSH, &options);
-    _open = true;
+    isOpen = true;
 
     SetTimeout(0);
     return true;
   }
-  _open = false;
+  isOpen = false;
   throw CommsException("Error trying to connect with the serial port",
                        COMMS_EXCEPTION_PHYLAYER_ERROR);
   return false;
 }
 
+void SerialPortStream::SetHwFlowControl(bool v){
+  hwFlowControl = v;
+  struct termios options;
+  tcgetattr(fd, &options);
+  if(hwFlowControl)
+    options.c_cflag |= CRTSCTS;
+  else
+    options.c_cflag &= ~CRTSCTS;
+  tcsetattr(fd, TCSAFLUSH, &options);
+}
+
 void SerialPortStream::Close() {
 
   close(fd);
-  _open = false;
+  isOpen = false;
 }
 
 bool SerialPortStream::Connected() {
@@ -325,7 +329,7 @@ int SerialPortStream::Available() {
   return n;
 }
 
-bool SerialPortStream::IsOpen() { return _open; }
+bool SerialPortStream::IsOpen() { return isOpen; }
 
 void SerialPortStream::ReadUint8(uint8_t &byte) {
   fcntl(fd, F_SETFL, 0);

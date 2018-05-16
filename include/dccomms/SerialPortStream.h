@@ -65,12 +65,15 @@ public:
   };
 
   SerialPortStream();
-  SerialPortStream(const char *);
-  SerialPortStream(const char *, SerialPortStream::BaudRate);
-  SerialPortStream(const char *, SerialPortStream::PortSettings);
+  SerialPortStream(const std::string &);
+  SerialPortStream(const std::string &, SerialPortStream::BaudRate);
+  SerialPortStream(const std::string &, SerialPortStream::PortSettings);
+
+  virtual void SetHwFlowControl(bool v);
+
   bool Open();
-  bool Open(const char *, SerialPortStream::BaudRate);
-  bool Open(const char *, SerialPortStream::PortSettings);
+  bool Open(const std::string & p, SerialPortStream::BaudRate);
+  bool Open(const std::string & p, SerialPortStream::PortSettings);
   void Close();
 
   int Read(void *, uint32_t, unsigned long msTimeout = 0);
@@ -96,8 +99,9 @@ protected:
   bool Ready();
   PortSettings portSettings;
   int fd;
-  char *port;
-  bool _open = false;
+  std::string port;
+  bool isOpen = false;
+  bool hwFlowControl = false;
 };
 
 } /* namespace radiotransmission */
