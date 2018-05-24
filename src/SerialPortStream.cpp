@@ -40,6 +40,11 @@ SerialPortStream::SerialPortStream(const std::string &p,
   portSettings.baudrate = baud;
 }
 
+SerialPortStream::SerialPortStream(const std::string &p, const uint32_t &baud) {
+  port = p;
+  portSettings.baudrate = BaudRateFromUInt(baud);
+}
+
 SerialPortStream::SerialPortStream(const std::string &p,
                                    SerialPortStream::PortSettings ps) {
   port = p;

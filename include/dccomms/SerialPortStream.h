@@ -43,6 +43,67 @@ public:
     BAUD_57600 = B57600,
     BAUD_115200 = B115200
   };
+
+  static BaudRate BaudRateFromUInt(const uint32_t baudrate) {
+    BaudRate baud;
+    switch (baudrate) {
+    case 50:
+      baud = BAUD_50;
+      break;
+    case 75:
+      baud = BAUD_75;
+      break;
+    case 110:
+      baud = BAUD_110;
+      break;
+    case 134:
+      baud = BAUD_134;
+      break;
+    case 150:
+      baud = BAUD_150;
+      break;
+    case 200:
+      baud = BAUD_200;
+      break;
+    case 300:
+      baud = BAUD_300;
+      break;
+    case 600:
+      baud = BAUD_600;
+      break;
+    case 1200:
+      baud = BAUD_1200;
+      break;
+    case 1800:
+      baud = BAUD_1800;
+      break;
+    case 2400:
+      baud = BAUD_2400;
+      break;
+    case 4800:
+      baud = BAUD_4800;
+      break;
+    case 9600:
+      baud = BAUD_9600;
+      break;
+    case 19200:
+      baud = BAUD_19200;
+      break;
+    case 38400:
+      baud = BAUD_38400;
+      break;
+    case 57600:
+      baud = BAUD_57600;
+      break;
+    case 115200:
+      baud = BAUD_115200;
+      break;
+    default:
+      baud = BAUD_9600;
+      break;
+    }
+    return baud;
+  }
   enum Parity { EVEN, ODD, NOPARITY };
 
   enum StopBits { SB2, SB1 };
@@ -66,14 +127,15 @@ public:
 
   SerialPortStream();
   SerialPortStream(const std::string &);
+  SerialPortStream(const std::string &, const uint32_t &baudrate);
   SerialPortStream(const std::string &, SerialPortStream::BaudRate);
   SerialPortStream(const std::string &, SerialPortStream::PortSettings);
 
   virtual void SetHwFlowControl(bool v);
 
   bool Open();
-  bool Open(const std::string & p, SerialPortStream::BaudRate);
-  bool Open(const std::string & p, SerialPortStream::PortSettings);
+  bool Open(const std::string &p, SerialPortStream::BaudRate);
+  bool Open(const std::string &p, SerialPortStream::PortSettings);
   void Close();
 
   int Read(void *, uint32_t, unsigned long msTimeout = 0);
