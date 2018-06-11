@@ -28,6 +28,8 @@ public:
   Utils();
   virtual ~Utils();
   static bool IsBigEndian();
+  static void Switch8Bytes(void * dst, void * src);
+  static void Switch4Bytes(void * dst, void * src);
   static void IntSwitchEndian(void *b, uint32_t entero);
   static void IntSwitchEndian(void *b, uint16_t entero);
   // static void SaveInt16AsBigEndian(void * b, uint16_t integer);
