@@ -45,6 +45,7 @@ public:
 protected:
   void _AllocBuffer(int size);
   virtual void _SetBuffer(void *buffer);
+  bool _bigEndian;
 
 private:
   uint8_t *_buffer;

@@ -8,6 +8,9 @@ namespace dccomms {
 Packet::Packet() {
   _buffer = NULL;
   _ownBuffer = true;
+  uint32_t word = 0x1;
+  uint8_t *byte = (uint8_t *)&word;
+  _bigEndian =  *byte != 0x1;
 }
 
 Packet::~Packet() { _FreeBuffer(); }
