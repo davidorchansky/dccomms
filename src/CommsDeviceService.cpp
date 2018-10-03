@@ -71,6 +71,7 @@ CommsDeviceService::CommsDeviceService(PacketBuilderPtr pb, int _type,
   SetLogLevel(cpplogging::off);
   _started = false;
   _timeout = 0;
+  SetBlockingTransmission(true);
 }
 
 void CommsDeviceService::SetCommsDeviceId(std::string m) {
@@ -125,9 +126,6 @@ void CommsDeviceService::Init(int _type, struct mq_attr attr, int perm) {
         std::string("): Error opening/closing the rx message queue: ") + emsg);
   }
   umask(omask);
-
-  SetBlockingTransmission(true);
-  SetNonblockFlag(false, RX_MQ);
 
   ClearInputQueue();
 
