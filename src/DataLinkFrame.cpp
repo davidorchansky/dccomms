@@ -9,7 +9,7 @@
 #include <cstring>
 #include <dccomms/Checksum.h>
 #include <dccomms/DataLinkFrame.h>
-#include <class_loader/multi_library_class_loader.h>
+#include <class_loader/multi_library_class_loader.hpp>
 
 namespace dccomms {
 
