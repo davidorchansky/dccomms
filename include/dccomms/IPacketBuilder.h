@@ -10,8 +10,8 @@ typedef std::shared_ptr<IPacketBuilder> PacketBuilderPtr;
 
 class IPacketBuilder {
 public:
-  virtual PacketPtr CreateFromBuffer(void *) = 0;
-  virtual PacketPtr Create() = 0;
+  virtual dccomms::PacketPtr CreateFromBuffer(void *) = 0;
+  virtual dccomms::PacketPtr Create() = 0;
   virtual std::string GetName() { return ""; }
 };
 }
