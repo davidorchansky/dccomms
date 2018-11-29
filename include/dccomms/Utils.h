@@ -28,8 +28,8 @@ public:
   Utils();
   virtual ~Utils();
   static bool IsBigEndian();
-  static void Switch8Bytes(void * dst, void * src);
-  static void Switch4Bytes(void * dst, void * src);
+  static void Switch8Bytes(void *dst, void *src);
+  static void Switch4Bytes(void *dst, void *src);
   static void IntSwitchEndian(void *b, uint32_t entero);
   static void IntSwitchEndian(void *b, uint16_t entero);
   // static void SaveInt16AsBigEndian(void * b, uint16_t integer);
@@ -102,7 +102,7 @@ template <class T> void ServiceThread<T>::Start() {
 
 template <class T> void ServiceThread<T>::Stop() {
   mcontinue = false;
-  if (!joined) {
+  if (!joined && started) {
     thread.join();
     joined = true;
   }
@@ -126,6 +126,6 @@ static Ptr<T> CreateObject(Targs &&... Fargs) {
   Ptr<T> ptr(new T(Fargs...));
   return ptr;
 }
-} /* namespace radiotransmission */
+} // namespace dccomms
 
 #endif /* DCCOMMS_UTILS_H_ */

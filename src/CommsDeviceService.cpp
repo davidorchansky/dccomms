@@ -466,8 +466,9 @@ void CommsDeviceService::Start() {
 }
 
 void CommsDeviceService::Stop() {
+  if (_started)
+    service.Stop();
   _started = false;
-  service.Stop();
   mq_close(rxmqid);
   mq_close(txmqid);
   rxfifo_cond.notify_all();
@@ -592,4 +593,4 @@ void CommsDeviceService::FlushIO() {
   throw CommsException("void CommsDeviceService::FlushIO() Not implemented",
                        COMMS_EXCEPTION_NOTIMPLEMENTED);
 }
-} /* namespace radiotransmission */
+} // namespace dccomms
