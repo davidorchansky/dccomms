@@ -20,7 +20,7 @@ void TransportPDU::SetSeqNum(uint8_t seq) { *_nseq = seq; }
 
 void TransportPDU::IncSeqNum() { *_nseq = *_nseq + 1; }
 
-void TransportPDU::CopyFromRawBuffer(void *buffer) {}
+void TransportPDU::DoCopyFromRawBuffer(void *buffer) {}
 
 inline uint8_t *TransportPDU::GetPayloadBuffer() { return _payload; }
 inline uint32_t TransportPDU::GetPayloadSize() { return _payloadSize; }

@@ -24,7 +24,7 @@ public:
   void BufferUpdated();
   uint32_t SetPayload(uint8_t *pyload, uint32_t size);
 
-  void CopyFromRawBuffer(void *buffer);
+  void DoCopyFromRawBuffer(void *buffer);
   uint8_t *GetPayloadBuffer();
   uint32_t GetPayloadSize();
   int GetPacketSize();

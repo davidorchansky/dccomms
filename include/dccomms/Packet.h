@@ -16,7 +16,8 @@ public:
   virtual ~Packet();
   inline uint8_t *GetBuffer() const { return _buffer; }
 
-  virtual void CopyFromRawBuffer(void *buffer) = 0;
+  void CopyFromRawBuffer(void *buffer);
+  virtual void DoCopyFromRawBuffer(void *buffer) = 0;
   virtual uint8_t *GetPayloadBuffer() = 0;
   virtual uint32_t GetPayloadSize() = 0;
   virtual int GetPacketSize() = 0;
@@ -37,20 +38,40 @@ public:
   virtual bool PacketIsOk();
   virtual void Write(Stream *comms);
   virtual bool IsBroadcast() { return true; }
-  virtual uint32_t GetDestAddr() { return 0; }
-  virtual uint32_t GetSrcAddr() { return 0; }
-  virtual void SetDestAddr(uint32_t ddir){}
-  virtual void SetSrcAddr(uint32_t sdir){}
+  virtual uint32_t GetSeq() { return GetVirtualSeq(); }
+  virtual uint32_t GetDestAddr() { return GetVirtualDestAddr(); }
+  virtual uint32_t GetSrcAddr() { return GetVirtualSrcAddr(); }
+
+  virtual uint32_t GetVirtualSeq() { return *_virtual_seq; }
+  virtual uint32_t GetVirtualDestAddr() { return *_virtual_dst; }
+  virtual uint32_t GetVirtualSrcAddr() { return *_virtual_src; }
+
+  virtual void SetSeq(const uint32_t &seq) { SetVirtualSeq(seq); }
+  virtual void SetDestAddr(const uint32_t &ddir) { SetVirtualDestAddr(ddir); }
+  virtual void SetSrcAddr(const uint32_t &sdir) { SetVirtualSrcAddr(sdir); }
+
+  virtual void SetVirtualSeq(const uint32_t &seq) { *_virtual_seq = seq; }
+  virtual void SetVirtualDestAddr(const uint32_t &ddir) {
+    *_virtual_dst = ddir;
+  }
+  virtual void SetVirtualSrcAddr(const uint32_t &sdir) { *_virtual_src = sdir; }
+
+  uint32_t GetBufferSize();
 
 protected:
   void _AllocBuffer(int size);
   virtual void _SetBuffer(void *buffer);
   bool _bigEndian;
+  uint8_t *_va;
+  uint32_t *_virtual_seq, *_virtual_src, *_virtual_dst;
+  static const uint32_t VIRTUAL_AREA_SIZE = 4 + 4 + 4;
 
 private:
   uint8_t *_buffer;
   bool _ownBuffer;
+  uint32_t _maxRealAreaSize;
+  uint32_t _bufferSize;
   void _FreeBuffer();
-};
-}
+}; // namespace dccomms
+} // namespace dccomms
 #endif // DCCOMMS_PACKET_H

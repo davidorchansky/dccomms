@@ -83,7 +83,7 @@ public:
   static bool IsBigEndian();
   static const unsigned char *manchesterPre;
 
-  void CopyFromRawBuffer(void *buffer);
+  void DoCopyFromRawBuffer(void *buffer);
   inline uint8_t *GetPayloadBuffer() { return _payload; }
   inline uint32_t GetPayloadSize() { return _payloadSize; }
   inline int GetPacketSize() { return _frameSize; }

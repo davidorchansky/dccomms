@@ -10,7 +10,7 @@ Packet::Packet() {
   _ownBuffer = true;
   uint32_t word = 0x1;
   uint8_t *byte = (uint8_t *)&word;
-  _bigEndian =  *byte != 0x1;
+  _bigEndian = *byte != 0x1;
 }
 
 Packet::~Packet() { _FreeBuffer(); }
@@ -22,15 +22,31 @@ void Packet::_FreeBuffer() {
   }
 }
 
+void Packet::CopyFromRawBuffer(void *buffer) {
+  memcpy(_va, reinterpret_cast<uint8_t *>(buffer) + _maxRealAreaSize,
+         VIRTUAL_AREA_SIZE);
+  DoCopyFromRawBuffer(buffer);
+}
+
 void Packet::_AllocBuffer(int size) {
   _FreeBuffer();
-  _buffer = new uint8_t[size];
+  _maxRealAreaSize = static_cast<uint32_t>(size);
+  _bufferSize = _maxRealAreaSize + VIRTUAL_AREA_SIZE;
+  _buffer = new uint8_t[_bufferSize];
+  _va = _buffer + _maxRealAreaSize;
+  _virtual_seq = reinterpret_cast<uint32_t *>(_va);
+  _virtual_src = _virtual_seq + 1;
+  _virtual_dst = _virtual_src + 1;
   _ownBuffer = true;
+}
+
+uint32_t Packet::GetBufferSize(){
+    return _bufferSize;
 }
 
 uint32_t Packet::SetPayload(uint8_t *data) {
   uint32_t psize = GetPayloadSize();
-  uint8_t * pb = GetPayloadBuffer();
+  uint8_t *pb = GetPayloadBuffer();
   memcpy(pb, data, psize);
   PayloadUpdated(psize);
   return psize;
@@ -47,4 +63,4 @@ void Packet::_SetBuffer(void *buffer) {
 }
 
 bool Packet::PacketIsOk() { return true; }
-}
+} // namespace dccomms

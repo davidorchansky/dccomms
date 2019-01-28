@@ -493,7 +493,7 @@ void CommsDeviceService::ServiceMessage::Init(int maxs) {
 }
 
 void CommsDeviceService::ServiceMessage::BuildPacketMsg(const PacketPtr &dlf) {
-  int frsize = dlf->GetPacketSize();
+  int frsize = dlf->GetBufferSize();
   if (frsize <= maxPayloadSize) {
 
     memcpy(payload, dlf->GetBuffer(), frsize);

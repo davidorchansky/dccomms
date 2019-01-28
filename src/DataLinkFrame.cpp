@@ -349,7 +349,7 @@ DataLinkFramePtr DataLinkFrame::Copy(DataLinkFramePtr src) {
   return dlf;
 }
 
-void DataLinkFrame::CopyFromRawBuffer(void *buffer) {
+void DataLinkFrame::DoCopyFromRawBuffer(void *buffer) {
   GetInfoFromBufferWithPreamble(buffer);
 }
 
