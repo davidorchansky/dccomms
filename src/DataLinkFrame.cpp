@@ -5,11 +5,11 @@
  *      Author: diego
  */
 
+#include <class_loader/multi_library_class_loader.hpp>
 #include <cstdlib>
 #include <cstring>
 #include <dccomms/Checksum.h>
 #include <dccomms/DataLinkFrame.h>
-#include <class_loader/multi_library_class_loader.hpp>
 
 namespace dccomms {
 
@@ -178,9 +178,9 @@ void DataLinkFrame::PayloadUpdated(unsigned int datasize) {
   _calculateCRC();
 }
 
-uint32_t DataLinkFrame::SetPayload (uint8_t *data, uint32_t psize)
-{
-  uint32_t bytesWritten = psize <= DLNK_MAX_PAYLOAD_SIZE ? psize : DLNK_MAX_PAYLOAD_SIZE;
+uint32_t DataLinkFrame::SetPayload(uint8_t *data, uint32_t psize) {
+  uint32_t bytesWritten =
+      psize <= DLNK_MAX_PAYLOAD_SIZE ? psize : DLNK_MAX_PAYLOAD_SIZE;
   memcpy(_payload, data, bytesWritten);
   PayloadUpdated(bytesWritten);
   return bytesWritten;
@@ -190,7 +190,7 @@ void DataLinkFrame::UpdateFrame(uint8_t ddir,   // destination dir
                                 uint8_t sdir,   // source dir
                                 uint16_t dsize, // data size
                                 uint8_t *data   // data
-                                ) {
+) {
   *_ddir = ddir;
   *_sdir = sdir;
   SetPayload(data, dsize);
@@ -382,7 +382,9 @@ void DataLinkFrame::Read(Stream *comms) {
 
   _frameSize = _overheadSize + _payloadSize;
 }
-
+PacketPtr DataLinkFrame::Create() {
+  return DataLinkFrame::BuildDataLinkFrame(_fcstype);
+}
 DataLinkFramePacketBuilder::DataLinkFramePacketBuilder(
     DataLinkFrame::fcsType fcstype)
     : _fcsType(fcstype){};
@@ -397,6 +399,7 @@ PacketPtr DataLinkFramePacketBuilder::Create() {
   return DataLinkFrame::BuildDataLinkFrame(_fcsType);
 }
 
-CLASS_LOADER_REGISTER_CLASS(DataLinkFrameBuilderCRC16, DataLinkFramePacketBuilder)
+CLASS_LOADER_REGISTER_CLASS(DataLinkFrameBuilderCRC16,
+                            DataLinkFramePacketBuilder)
 
-} /* namespace radiotransmission */
+} // namespace dccomms

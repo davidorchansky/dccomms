@@ -95,6 +95,7 @@ public:
   inline bool IsBroadcast() { return GetDestAddr() == 255; }
 
   uint32_t SetPayload(uint8_t *data, uint32_t psize);
+  PacketPtr Create();
 
 private:
   void Init(DataLinkFrame::fcsType fcst);

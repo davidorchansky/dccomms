@@ -22,6 +22,8 @@ public:
   virtual uint32_t GetPayloadSize() = 0;
   virtual int GetPacketSize() = 0;
   virtual void Read(Stream *comms) = 0;
+  virtual PacketPtr Create() = 0;
+  virtual PacketPtr CreateCopy();
 
   // This method could update the FCS or attributes of the subclass
   virtual void PayloadUpdated(uint32_t payloadSize = 0) = 0;

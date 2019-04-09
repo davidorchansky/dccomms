@@ -40,9 +40,7 @@ void Packet::_AllocBuffer(int size) {
   _ownBuffer = true;
 }
 
-uint32_t Packet::GetBufferSize(){
-    return _bufferSize;
-}
+uint32_t Packet::GetBufferSize() { return _bufferSize; }
 
 uint32_t Packet::SetPayload(uint8_t *data) {
   uint32_t psize = GetPayloadSize();
@@ -63,4 +61,10 @@ void Packet::_SetBuffer(void *buffer) {
 }
 
 bool Packet::PacketIsOk() { return true; }
+
+PacketPtr Packet::CreateCopy() {
+  PacketPtr pkt = Create();
+  pkt->CopyFromRawBuffer(GetBuffer());
+  return pkt;
+}
 } // namespace dccomms

@@ -1,5 +1,6 @@
 #include <cstring>
 #include <dccomms/TransportPDU.h>
+#include <dccomms/Utils.h>
 
 namespace dccomms {
 
@@ -31,6 +32,10 @@ uint32_t TransportPDU::SetPayload(uint8_t *payload, uint32_t size) {
   _payloadSize = size;
   memcpy(_payload, payload, _payloadSize);
   return _payloadSize;
+}
+
+PacketPtr TransportPDU::Create(){
+  return CreateObject<TransportPDU>();
 }
 void TransportPDU::BufferUpdated() { _InitPointers(); }
 void TransportPDU::SetBuffer(void *buffer) {

@@ -23,6 +23,7 @@ public:
   void SetBuffer(void *);
   void BufferUpdated();
   uint32_t SetPayload(uint8_t *pyload, uint32_t size);
+  PacketPtr Create();
 
   void DoCopyFromRawBuffer(void *buffer);
   uint8_t *GetPayloadBuffer();
