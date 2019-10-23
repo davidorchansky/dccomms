@@ -117,7 +117,6 @@ file(GLOB ${PROJECT_NAME}_CPP_FILES
     ${SRCPATH}Radio.cpp
     ${SRCPATH}SerialPortStream.cpp
     ${SRCPATH}TCPStream.cpp
-    ${SRCPATH}TransportPDU.cpp
     ${SRCPATH}Utils.cpp
     ${SRCPATH}CommsDeviceSocket.cpp
     )

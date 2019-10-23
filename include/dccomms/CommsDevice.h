@@ -3,15 +3,16 @@
 
 #include <cpplogging/cpplogging.h>
 #include <dccomms/Packet.h>
-#include <dccomms/Utils.h>
+#include <cpputils/Object.h>
 
 namespace dccomms {
 
 using namespace cpplogging;
+using namespace cpputils;
 
 class CommsDevice;
 
-class CommsDevice : public virtual Loggable {
+class CommsDevice : public virtual Logger {
 public:
   CommsDevice();
 

@@ -11,7 +11,6 @@
 #include <cpplogging/Loggable.h>
 #include <dccomms/CommsDevice.h>
 #include <dccomms/CommsDeviceService.h>
-#include <dccomms/TransportPDU.h>
 #include <dccomms/Utils.h>
 #include <iostream>
 #include <mutex>

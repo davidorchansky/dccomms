@@ -118,14 +118,6 @@ template <class T> void ServiceThread<T>::Work() {
   }
   terminated = true;
 }
-
-template <typename T> using Ptr = std::shared_ptr<T>;
-
-template <typename T, typename... Targs>
-static Ptr<T> CreateObject(Targs &&... Fargs) {
-  Ptr<T> ptr(new T(Fargs...));
-  return ptr;
-}
 } // namespace dccomms
 
 #endif /* DCCOMMS_UTILS_H_ */
