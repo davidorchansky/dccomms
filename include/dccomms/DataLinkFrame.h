@@ -59,8 +59,8 @@ public:
   uint8_t *GetFrameBuffer() const { return GetBuffer(); }
   fcsType GetFcsType() const { return _fcstype; }
 
-  virtual void SetDestAddr(uint32_t ddir) { SetDesDir(ddir); }
-  virtual void SetSrcAddr(uint32_t sdir) { SetSrcDir(sdir); }
+  virtual void SetDst(uint32_t ddir) { SetDesDir(ddir); }
+  virtual void SetSrc(uint32_t sdir) { SetSrcDir(sdir); }
   void SetDesDir(uint8_t _ddir);
   void SetSrcDir(uint8_t _sdir);
 
@@ -88,11 +88,11 @@ public:
   inline uint32_t GetPayloadSize() { return _payloadSize; }
   inline int GetPacketSize() { return _frameSize; }
   void Read(Stream *comms);
-  inline bool PacketIsOk() { return checkFrame(); }
+  inline bool IsOk() { return checkFrame(); }
 
-  inline uint32_t GetDestAddr() { return GetDesDir(); }
-  inline uint32_t GetSrcAddr() { return GetSrcDir(); }
-  inline bool IsBroadcast() { return GetDestAddr() == 255; }
+  inline uint32_t GetDst() { return GetDesDir(); }
+  inline uint32_t GetSrc() { return GetSrcDir(); }
+  inline bool IsBroadcast() { return GetDst() == 255; }
 
   uint32_t SetPayload(uint8_t *data, uint32_t psize);
   PacketPtr Create();

@@ -32,25 +32,27 @@ public:
   // PayloadUpdated(GetPayloadSize())
   // Then returns the number of bytes written
   virtual uint32_t SetPayload(uint8_t *data);
+  virtual uint32_t SetPayload(const char * data);
+  virtual uint32_t SetPayload(const std::string & data);
 
   // It tries to set datasize bytes in the payload buffer and returns the number
   // of bytes written
   virtual uint32_t SetPayload(uint8_t *data, uint32_t datasize) = 0;
 
-  virtual bool PacketIsOk();
+  virtual bool IsOk();
   virtual void Write(Stream *comms);
   virtual bool IsBroadcast() { return true; }
   virtual uint32_t GetSeq() { return GetVirtualSeq(); }
-  virtual uint32_t GetDestAddr() { return GetVirtualDestAddr(); }
-  virtual uint32_t GetSrcAddr() { return GetVirtualSrcAddr(); }
+  virtual uint32_t GetDst() { return GetVirtualDestAddr(); }
+  virtual uint32_t GetSrc() { return GetVirtualSrcAddr(); }
 
   virtual uint32_t GetVirtualSeq() { return *_virtual_seq; }
   virtual uint32_t GetVirtualDestAddr() { return *_virtual_dst; }
   virtual uint32_t GetVirtualSrcAddr() { return *_virtual_src; }
 
   virtual void SetSeq(const uint32_t &seq) { SetVirtualSeq(seq); }
-  virtual void SetDestAddr(const uint32_t &ddir) { SetVirtualDestAddr(ddir); }
-  virtual void SetSrcAddr(const uint32_t &sdir) { SetVirtualSrcAddr(sdir); }
+  virtual void SetDst(const uint32_t &ddir) { SetVirtualDestAddr(ddir); }
+  virtual void SetSrc(const uint32_t &sdir) { SetVirtualSrcAddr(sdir); }
 
   virtual void SetVirtualSeq(const uint32_t &seq) { *_virtual_seq = seq; }
   virtual void SetVirtualDestAddr(const uint32_t &ddir) {

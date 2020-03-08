@@ -49,8 +49,8 @@ PacketPtr CommsDeviceSocket::_BuildPacket(uint8_t *buffer, uint32_t dataSize,
                                           uint32_t addr, uint32_t dst) {
   auto packet = _packetBuilder->Create();
   packet->SetPayload(buffer, dataSize);
-  packet->SetSrcAddr(addr);
-  packet->SetDestAddr(dst);
+  packet->SetSrc(addr);
+  packet->SetDst(dst);
   return packet;
 }
 
@@ -128,7 +128,7 @@ uint32_t CommsDeviceSocket::Recv(void *buf, uint32_t size, unsigned long ms) {
            (_device->Available() > 0 || ms == 0)) // If more bytes needed, wait for them
     {
       _device >> _packet;
-      if (_packet->PacketIsOk()) {
+      if (_packet->IsOk()) {
         Log->debug("Frame received without errors!");
         uint32_t bytesToRead = (bytes + _packet->GetPayloadSize()) <= size
                                    ? _packet->GetPayloadSize()
@@ -180,7 +180,7 @@ int CommsDeviceSocket::Write(const void *buff, uint32_t size,
 
 void CommsDeviceSocket::_GetNextPayloadBytes() {
   _device >> _packet;
-  if (_packet->PacketIsOk()) {
+  if (_packet->IsOk()) {
     Log->debug("Frame received without errors!");
     uint32_t bytesToRead = _packet->GetPayloadSize();
     auto payloadBuffer = _packet->GetPayloadBuffer();

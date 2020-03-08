@@ -50,6 +50,22 @@ uint32_t Packet::SetPayload(uint8_t *data) {
   return psize;
 }
 
+uint32_t Packet::SetPayload(const char *data) {
+  uint32_t psize = strlen(data);
+  uint8_t *pb = GetPayloadBuffer();
+  memcpy(pb, data, psize);
+  PayloadUpdated(psize);
+  return psize;
+}
+
+uint32_t Packet::SetPayload(const std::string &data) {
+  uint32_t psize = data.size();
+  uint8_t *pb = GetPayloadBuffer();
+  memcpy(pb, data.c_str(), psize);
+  PayloadUpdated(psize);
+  return psize;
+}
+
 void Packet::Write(Stream *comms) {
   comms->Write(GetBuffer(), GetPacketSize());
 }
@@ -60,7 +76,7 @@ void Packet::_SetBuffer(void *buffer) {
   _ownBuffer = false;
 }
 
-bool Packet::PacketIsOk() { return true; }
+bool Packet::IsOk() { return true; }
 
 PacketPtr Packet::CreateCopy() {
   PacketPtr pkt = Create();

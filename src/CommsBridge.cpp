@@ -132,7 +132,7 @@ void CommsBridge::_TransmitPacket() {
 bool CommsBridge::_ReceivePacket() {
   try {
     *device >> rxpkt;
-    return rxpkt->PacketIsOk();
+    return rxpkt->IsOk();
   } catch (CommsException &e) {
     std::string msg = e.what();
     switch (e.code) {
@@ -163,7 +163,7 @@ void CommsBridge::TxWork() {
       Log->debug("TX: FIFO size: {}", phyService.GetRxFifoSize());
 
       _TransmittingPacketCb(txpkt);
-      if (txpkt->PacketIsOk()) {
+      if (txpkt->IsOk()) {
         // PACKET OK
         unsigned int elapsed = 0;
         _TransmitPacket();
